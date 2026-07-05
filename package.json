@@ -1,0 +1,36 @@
+{
+  "name": "frens-earth",
+  "version": "0.1.0",
+  "private": true,
+  "browserslist": [
+    "chrome >= 117",
+    "edge >= 117",
+    "firefox >= 121",
+    "safari >= 17.5"
+  ],
+  "scripts": {
+    "predev": "node scripts/reset-registry.mjs",
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "reset:registry": "node scripts/reset-registry.mjs"
+  },
+  "dependencies": {
+    "@vercel/blob": "^2.5.0",
+    "next": "16.2.4",
+    "nostr-tools": "^2.23.9",
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.4",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}

@@ -1,0 +1,7 @@
+# NOTE: a .vercelignore REPLACES Vercel's default exclusions, so the defaults
+# must be re-listed here explicitly.
+node_modules
+.git
+.next
+out
+.claude
