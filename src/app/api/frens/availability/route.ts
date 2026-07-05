@@ -1,4 +1,4 @@
-import { validateHandle, isAvailable } from "@/lib/registry";
+import { validateHandle, isAvailable, getEntry } from "@/lib/registry";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -10,9 +10,17 @@ export async function GET(request: Request) {
   }
 
   const available = await isAvailable(valid.handle);
+  if (available) {
+    return Response.json({ handle: valid.handle, available: true, reason: null });
+  }
+
+  // The bound pubkey is public (nostr.json serves it) — returning it lets the
+  // page offer "already yours?" recognition for the tag's owner.
+  const entry = await getEntry(valid.handle);
   return Response.json({
     handle: valid.handle,
-    available,
-    reason: available ? null : "already claimed",
+    available: false,
+    reason: "already claimed",
+    npub: entry?.npub ?? null,
   });
 }
