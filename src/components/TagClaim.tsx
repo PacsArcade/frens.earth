@@ -169,7 +169,7 @@ export default function TagClaim({ space, nip05Domain }: { space: string; nip05D
     const v = pasteValue.trim().toLowerCase();
     if (v.startsWith("nsec1")) {
       setPasteError(
-        "STOP — that is your SECRET key. Never paste it into any website, including ours. We only need your PUBLIC key (starts with npub1)."
+        "STOP — that is your SECRET key. Anything you paste it into can act as you. We only need your PUBLIC key (starts with npub1)."
       );
       setPasteValue("");
       return;
@@ -384,7 +384,14 @@ export default function TagClaim({ space, nip05Domain }: { space: string; nip05D
           </p>
           <p>Rules of the vault:</p>
           <ul className="list-disc pl-5 space-y-1 text-white/75">
-            <li>Never type it into a website. Never. Including this one.</li>
+            <li>
+              Any website, app, or AI you enter it into gains full authority to act as you —
+              post, message, and send in your name.
+            </li>
+            <li>
+              The only place it belongs is the sign-in screen of a nostr app you trust. This
+              site never asks for it.
+            </li>
             <li>Never screenshot it to your camera roll.</li>
             <li>Write it on paper, or store it in a password manager.</li>
           </ul>
