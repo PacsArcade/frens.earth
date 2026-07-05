@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 import TagClaim from "@/components/TagClaim";
 
@@ -36,6 +39,8 @@ export default function RegistrationPage({
 }) {
   const spaceTag = `@${space}`;
   const homeHref = "https://pacsarcade.org";
+  // live echo of the tag being typed, so the cards below talk about THEIR name
+  const [previewHandle, setPreviewHandle] = useState("");
   return (
     <main className="min-h-screen bg-void">
       <header className="border-b-2 border-edge px-6 py-5">
@@ -64,7 +69,7 @@ export default function RegistrationPage({
 
       {/* The claim machine */}
       <section className="px-6 pb-20">
-        <TagClaim space={space} nip05Domain={nip05Domain} />
+        <TagClaim space={space} nip05Domain={nip05Domain} onHandlePreview={setPreviewHandle} />
       </section>
 
       {/* How it works — cabinet cards */}
@@ -87,7 +92,7 @@ export default function RegistrationPage({
             </p>
           </div>
           <div className="card text-left">
-            <h3 className="text-cyan">3. USE IT NOW</h3>
+            <h3 className="text-cyan">3. LIVE NOW</h3>
             <p className="font-body text-sm text-white/70">
               Your tag works today on{" "}
               <a
@@ -97,18 +102,19 @@ export default function RegistrationPage({
                 className="text-cyan hover:glow-cyan underline"
               >
                 nostr
-              </a>{" "}— an open chat
-              network no company controls. Post, message, and follow other frens from any nostr
-              app. Apps show you as verified <span className="text-cyan">you@{nip05Domain}</span>{" "}
+              </a>
+              {" "}— an open chat network no company controls. Post, message, and follow
+              other frens from any nostr app. Apps show you as verified{" "}
+              <span className="text-cyan">{previewHandle || "you"}@{nip05Domain}</span>{" "}
               (looks like an email — it isn&apos;t one).
             </p>
           </div>
           <div className="card text-left">
-            <h3 className="text-cyan">4. ON THE CHAIN</h3>
+            <h3 className="text-cyan">4. ON-CHAIN</h3>
             <p className="font-body text-sm text-white/70">
-              At the next batch commit your tag anchors to Bitcoin with a cryptographic proof —
-              permanent, uncensorable, portable. Arcade leaderboards and campaign shout-outs
-              display it forever.
+              Every so often — when the queue fills, not every block — we anchor all new tags to
+              Bitcoin in one transaction with a cryptographic proof: permanent, uncensorable,
+              portable. Your tag already works while it waits; the batch just makes it forever.
             </p>
           </div>
         </div>

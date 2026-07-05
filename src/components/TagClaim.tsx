@@ -95,7 +95,16 @@ function RPGDialog({
   );
 }
 
-export default function TagClaim({ space, nip05Domain }: { space: string; nip05Domain: string }) {
+export default function TagClaim({
+  space,
+  nip05Domain,
+  onHandlePreview,
+}: {
+  space: string;
+  nip05Domain: string;
+  /** Live echo of the typed handle, so the page around the machine can react */
+  onHandlePreview?: (handle: string) => void;
+}) {
   const [handle, setHandle] = useState("");
   const [availability, setAvailability] = useState<Availability>("idle");
   const [reason, setReason] = useState<string | null>(null);
@@ -317,9 +326,18 @@ export default function TagClaim({ space, nip05Domain }: { space: string; nip05D
         <div className="font-body text-sm text-white/80 space-y-3">
           <p>
             <span className="text-neon font-pixel text-xs mr-2">CHAT</span>
-            Your tag works on <span className="text-cyan">nostr</span>{" "}— an open chat network no
-            company owns. Open any nostr app (Primal, Damus, Amethyst), sign in with your key, and
-            you can post, message, and follow other frens by their tags.
+            Your tag works on{" "}
+            <a
+              href="https://nostr.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-cyan hover:glow-cyan underline"
+            >
+              nostr
+            </a>
+            {" "}— an open chat network no company owns. Open any nostr app (Primal, Damus,
+            Amethyst), sign in with your key, and you can post, message, and follow other frens by
+            their tags.
           </p>
           <p>
             <span className="text-neon font-pixel text-xs mr-2">VERIFY</span>
@@ -327,15 +345,24 @@ export default function TagClaim({ space, nip05Domain }: { space: string; nip05D
               ? "Published above — but you can always set it yourself too: "
               : "Already have a profile? Don't change anything else — just "}
             open your app&apos;s profile settings and paste {nip05Pill}{" "}into the{" "}
-            <span className="text-cyan">&quot;Verified Nostr Address (NIP-05)&quot;</span>{" "}field.
-            It looks like an email address but it isn&apos;t one — it&apos;s how nostr proves your
-            name belongs to your key.
+            <a
+              href="https://github.com/nostr-protocol/nips/blob/master/05.md"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-cyan hover:glow-cyan underline"
+            >
+              &quot;Verified Nostr Address (NIP-05)&quot;
+            </a>
+            {" "}field. It looks like an email address but it isn&apos;t one — it&apos;s how nostr
+            proves your name belongs to your key.
           </p>
           <p>
             <span className="text-coin font-pixel text-xs mr-2">SOON</span>
-            Queue position #{claimed.queuePosition} for the next on-chain batch — then your tag is a
-            permanent Bitcoin name. Leaderboards, arcade scores, and campaign shout-outs all display
-            it.
+            You&apos;re #{claimed.queuePosition} in the queue for the next batch. Batches
+            aren&apos;t tied to Bitcoin blocks — when the queue fills, Pac&apos;s Arcade anchors
+            every new tag to Bitcoin in one transaction, and we announce each batch from{" "}
+            <span className="text-pink">@pacsarcade</span>{" "}on nostr. Nothing to wait on: your
+            tag already works everywhere — the batch just makes it permanent.
           </p>
         </div>
       </div>
@@ -462,7 +489,11 @@ export default function TagClaim({ space, nip05Domain }: { space: string; nip05D
         <div className="flex items-center border-4 border-coin bg-void px-3 py-3 focus-within:border-neon sm:px-4">
           <input
             value={handle}
-            onChange={(e) => setHandle(e.target.value.toLowerCase())}
+            onChange={(e) => {
+              const next = e.target.value.toLowerCase();
+              setHandle(next);
+              onHandlePreview?.(next.trim());
+            }}
             maxLength={20}
             spellCheck={false}
             autoComplete="off"
