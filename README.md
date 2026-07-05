@@ -35,22 +35,27 @@ npm run dev        # local file registry, cleared on every start
 Production needs one env var: `BLOB_READ_WRITE_TOKEN` (a Vercel Blob store
 connected to the project). Nothing else — no database, no accounts.
 
-## Reuse this for another space
+## Fork this for your own space
 
-This repo is a template: one deployment = one space.
+This repo is a template: one deployment = one space, and the space is pure
+configuration. Copy [`.env.example`](.env.example) to `.env.local` (or set the
+same vars in your Vercel project) and change two values:
 
-1. Clone, then set the space in the environment (or edit
-   `src/lib/identity-config.ts` defaults):
-   ```
-   NEXT_PUBLIC_SPACE_NAME=yourspace
-   NEXT_PUBLIC_NIP05_DOMAIN=yourspace.example
-   ```
-2. Create a Vercel project + Blob store for it
+```
+NEXT_PUBLIC_SPACE_NAME=yourspace          # tag = name@yourspace
+NEXT_PUBLIC_NIP05_DOMAIN=yourspace.example # domain serving this site
+```
+
+Then:
+
+1. Create a Vercel project + Blob store for it
    (`vercel blob create-store <name> --access public --yes`).
-3. Point the domain at the project. NIP-05 requires the domain in
+2. Point your domain at the project. NIP-05 requires the domain in
    `NEXT_PUBLIC_NIP05_DOMAIN` to be the one serving `/.well-known/nostr.json`.
-4. Adjust the copy in `src/components/RegistrationPage.tsx` if the space isn't
-   a free-for-everyone one.
+3. Adjust the copy in `src/components/RegistrationPage.tsx` (hero, cards,
+   footer branding) — especially if your space isn't a free-for-everyone one.
+4. Reserved names live in `src/lib/registry.ts` (`RESERVED`) — review them for
+   your community.
 
 ## Registry data
 
