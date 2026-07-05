@@ -292,7 +292,10 @@ export default function TagClaim({
     return (
       <div className="mx-auto max-w-2xl border-4 border-neon bg-panel p-8 shadow-[8px_8px_0_#ff00ff]">
         <p className="text-center font-pixel text-2xl text-neon glow-neon mb-6">PLAYER REGISTERED</p>
-        <p className="text-center font-arcade text-4xl text-coin glow-coin mb-8">{claimed.handle}{spaceTag}</p>
+        <p className="text-center font-arcade text-[clamp(1.4rem,7vw,2.25rem)] leading-tight break-all text-coin glow-coin mb-8">
+          {claimed.handle}
+          {spaceTag}
+        </p>
 
         {forged && (
           <div className="mb-8 border-2 border-cyan/60 p-4">
