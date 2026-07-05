@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { generateSecretKey, getPublicKey, nip19 } from "nostr-tools";
+import { generateSecretKey, getPublicKey, nip19, SimplePool, finalizeEvent } from "nostr-tools";
 
 type Availability = "idle" | "checking" | "available" | "taken" | "invalid";
 
@@ -110,7 +110,8 @@ export default function TagClaim({ space, nip05Domain }: { space: string; nip05D
   const [pasteError, setPasteError] = useState<string | null>(null);
   const [dialog, setDialog] = useState<"none" | "pubkey" | "danger-warn" | "danger-reveal">("none");
   const [pubAccepted, setPubAccepted] = useState(false);
-  const [copied, setCopied] = useState<"none" | "pub" | "sec">("none");
+  const [copied, setCopied] = useState<"none" | "pub" | "sec" | "nip05">("none");
+  const [profilePublish, setProfilePublish] = useState<"idle" | "publishing" | "done" | "failed">("idle");
 
   const [claiming, setClaiming] = useState(false);
   const [claimed, setClaimed] = useState<{ handle: string; queuePosition: number } | null>(null);
@@ -219,6 +220,44 @@ export default function TagClaim({ space, nip05Domain }: { space: string; nip05D
     }
   }, [handle, npub, availability]);
 
+  /* Freshly forged keys have a blank profile, so apps show a bare npub. This
+     signs a starter kind-0 (name + verified NIP-05 address) IN THE BROWSER
+     and broadcasts it to public relays — the secret key never leaves the
+     page. Existing keys are never touched: publishing a kind-0 would replace
+     whatever profile they already have. */
+  const publishStarterProfile = useCallback(async () => {
+    if (!forged || !claimed) return;
+    setProfilePublish("publishing");
+    const relays = ["wss://relay.damus.io", "wss://nos.lol", "wss://relay.primal.net"];
+    const pool = new SimplePool();
+    try {
+      const sk = nip19.decode(forged.nsec).data as Uint8Array;
+      const event = finalizeEvent(
+        {
+          kind: 0,
+          created_at: Math.floor(Date.now() / 1000),
+          tags: [],
+          content: JSON.stringify({
+            name: claimed.handle,
+            display_name: claimed.handle,
+            nip05: `${claimed.handle}@${nip05Domain}`,
+          }),
+        },
+        sk
+      );
+      // one relay accepting is enough — the network gossips from there
+      await Promise.race([
+        Promise.any(pool.publish(relays, event)),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 8000)),
+      ]);
+      setProfilePublish("done");
+    } catch {
+      setProfilePublish("failed");
+    } finally {
+      pool.close(relays);
+    }
+  }, [forged, claimed, nip05Domain]);
+
   const statusLine = {
     idle: { text: "TYPE A NAME TO CHECK THE BOARD", cls: "text-cyan glow-cyan" },
     checking: { text: "CHECKING…", cls: "text-coin glow-coin pulse-neon" },
@@ -229,10 +268,51 @@ export default function TagClaim({ space, nip05Domain }: { space: string; nip05D
 
   /* ---------- SUCCESS ---------- */
   if (claimed) {
+    const nip05Id = `${claimed.handle}@${nip05Domain}`;
+    const nip05Pill = (
+      <button
+        onClick={async () => {
+          if (await copyToClipboard(nip05Id)) setCopied("nip05");
+        }}
+        className="border border-cyan/60 px-2 py-0.5 font-mono text-xs text-cyan hover:bg-cyan/10"
+        aria-label="Copy your verified address"
+      >
+        {copied === "nip05" ? "✓ copied" : nip05Id}
+      </button>
+    );
     return (
       <div className="mx-auto max-w-2xl border-4 border-neon bg-panel p-8 shadow-[8px_8px_0_#ff00ff]">
         <p className="text-center font-pixel text-2xl text-neon glow-neon mb-6">PLAYER REGISTERED</p>
         <p className="text-center font-arcade text-4xl text-coin glow-coin mb-8">{claimed.handle}{spaceTag}</p>
+
+        {forged && (
+          <div className="mb-8 border-2 border-cyan/60 p-4">
+            <p className="font-pixel text-xs text-cyan mb-3">FINAL STEP — PIN YOUR NAME TO YOUR KEY</p>
+            <p className="font-body text-sm text-white/80 mb-4">
+              A brand-new key has a blank profile, so chat apps would show you as a long code
+              instead of <span className="text-coin">{claimed.handle}{spaceTag}</span>. Publish a
+              starter profile — your name plus your verified address — signed right here in your
+              browser. Your secret key never leaves this page.
+            </p>
+            <button
+              onClick={publishStarterProfile}
+              disabled={profilePublish === "publishing" || profilePublish === "done"}
+              className="button w-full disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {profilePublish === "idle" && "PUBLISH MY PROFILE"}
+              {profilePublish === "publishing" && "BROADCASTING…"}
+              {profilePublish === "done" && "✓ PROFILE PUBLISHED"}
+              {profilePublish === "failed" && "RELAYS DIDN'T ANSWER — TRY AGAIN"}
+            </button>
+            {profilePublish === "done" && (
+              <p className="mt-3 font-body text-xs text-neon">
+                Done — apps now show you as {claimed.handle}{spaceTag}, verified as{" "}
+                <span className="text-cyan">{nip05Id}</span> (give them a minute to notice).
+              </p>
+            )}
+          </div>
+        )}
+
         <p className="font-pixel text-xs text-cyan mb-4">WHAT NOW?</p>
         <div className="font-body text-sm text-white/80 space-y-3">
           <p>
@@ -243,10 +323,13 @@ export default function TagClaim({ space, nip05Domain }: { space: string; nip05D
           </p>
           <p>
             <span className="text-neon font-pixel text-xs mr-2">VERIFY</span>
-            Apps will show you verified as{" "}
-            <span className="text-cyan">{claimed.handle}@{nip05Domain}</span>. It looks like an
-            email address but it isn&apos;t one — it&apos;s how nostr proves a name belongs to your
-            key.
+            {forged
+              ? "Published above — but you can always set it yourself too: "
+              : "Already have a profile? Don't change anything else — just "}
+            open your app&apos;s profile settings and paste {nip05Pill}{" "}into the{" "}
+            <span className="text-cyan">&quot;Verified Nostr Address (NIP-05)&quot;</span>{" "}field.
+            It looks like an email address but it isn&apos;t one — it&apos;s how nostr proves your
+            name belongs to your key.
           </p>
           <p>
             <span className="text-coin font-pixel text-xs mr-2">SOON</span>
