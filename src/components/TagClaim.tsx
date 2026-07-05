@@ -562,23 +562,29 @@ export default function TagClaim({
               <div className="space-y-3">
                 <p className="font-body text-xs text-white/60">
                   Every tag is bound to a public key. Show us yours — connect your{" "}
+                  {hasNip07 ? (
+                    <button
+                      onClick={checkOwnershipNip07}
+                      className="text-cyan hover:glow-cyan underline"
+                    >
+                      nostr extension
+                    </button>
+                  ) : (
+                    <span className="text-cyan">nostr extension</span>
+                  )}
+                  {" "}(
                   <a
                     href="https://github.com/nostr-protocol/nips/blob/master/07.md"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-cyan hover:glow-cyan underline"
                   >
-                    nostr extension (NIP-07)
+                    NIP-07
                   </a>
-                  {" "}or paste your <span className="text-cyan">public</span>{" "}key (npub1…) —
+                  ) or paste your <span className="text-cyan">public</span>{" "}key (npub1…) —
                   and we&apos;ll check it against the key{" "}
                   <span className="text-coin">{handle}{spaceTag}</span>{" "}is bound to.
                 </p>
-                {hasNip07 && (
-                  <button onClick={checkOwnershipNip07} className="button w-full !py-2 !text-xs">
-                    Check with my extension
-                  </button>
-                )}
                 <div className="flex gap-2">
                   <input
                     value={ownershipValue}
