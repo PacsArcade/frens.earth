@@ -399,11 +399,11 @@ export default function TagClaim({
             Your profile page is live — your start screen for the nostr verse. Everything below
             is waiting for you there too.
           </p>
-          <Link href={`/fren/${claimed.handle}`} className="button block w-full">
+          <Link href={`/u/${claimed.handle}`} className="button block w-full">
             ▶ ENTER YOUR PROFILE
           </Link>
           <p className="mt-3 font-body text-xs text-white/50">
-            {nip05Domain}/fren/{claimed.handle} — bookmark it, share it, come back any time.
+            {nip05Domain}/u/{claimed.handle} — bookmark it, share it, come back any time.
           </p>
         </div>
 
@@ -688,10 +688,10 @@ export default function TagClaim({
                       </a>
                       {" "}field. Your profile page is live at{" "}
                       <Link
-                        href={`/fren/${handle}`}
+                        href={`/u/${handle}`}
                         className="text-cyan hover:glow-cyan underline"
                       >
-                        {nip05Domain}/fren/{handle}
+                        {nip05Domain}/u/{handle}
                       </Link>
                       .
                     </p>

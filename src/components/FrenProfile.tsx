@@ -300,11 +300,11 @@ export default function FrenProfile({
               <p className="mb-1 font-pixel text-[10px] text-white/40">THIS PAGE</p>
               <button
                 onClick={async () => {
-                  if (await copyToClipboard(`https://${nip05Domain}/fren/${handle}`)) setCopied("page");
+                  if (await copyToClipboard(`https://${nip05Domain}/u/${handle}`)) setCopied("page");
                 }}
                 className="break-all border border-edge px-2 py-1 text-left font-mono text-xs text-white/70 hover:border-cyan hover:text-cyan"
               >
-                {copied === "page" ? "✓ copied" : `https://${nip05Domain}/fren/${handle}`}
+                {copied === "page" ? "✓ copied" : `https://${nip05Domain}/u/${handle}`}
               </button>
               <p className="mt-1 font-body text-xs text-white/50">
                 Bookmark it, share it — this is your start screen. Frens without keys can still
