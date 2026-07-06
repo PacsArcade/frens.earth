@@ -439,7 +439,7 @@ export default function TagClaim({
                 <span className="text-coin">{(tipHeight + 6789).toLocaleString()}</span>, that&apos;s
                 6,789 blocks out{" "}
                 <span title="why was 6 afraid of 7? because 7 8 9">(seven ate nine)</span>{" "}—
-                about seven weeks.
+                about six-seven weeks.
               </>
             ) : null}
           </p>
