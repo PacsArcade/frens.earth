@@ -127,6 +127,8 @@ export default function TagClaim({
   const [pubAccepted, setPubAccepted] = useState(false);
   const [copied, setCopied] = useState<"none" | "pub" | "sec" | "nip05">("none");
   const [profilePublish, setProfilePublish] = useState<"idle" | "publishing" | "done" | "failed">("idle");
+  const [bio, setBio] = useState("");
+  const [tipHeight, setTipHeight] = useState<number | null>(null);
 
   const [claiming, setClaiming] = useState(false);
   const [claimed, setClaimed] = useState<{ handle: string; queuePosition: number } | null>(null);
@@ -138,6 +140,17 @@ export default function TagClaim({
     setHasNip07(typeof window !== "undefined" && !!window.nostr);
   }, []);
   const spaceTag = `@${space}`;
+
+  // current bitcoin block height, so the anchor estimate has a frame of reference
+  useEffect(() => {
+    if (!claimed) return;
+    fetch("https://mempool.space/api/blocks/tip/height")
+      .then((r) => r.json())
+      .then((h) => typeof h === "number" && setTipHeight(h))
+      .catch(() => {
+        /* the estimate is a nicety — never block the success screen on it */
+      });
+  }, [claimed]);
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -287,6 +300,7 @@ export default function TagClaim({
           content: JSON.stringify({
             name: claimed.handle,
             display_name: claimed.handle,
+            ...(bio.trim() ? { about: bio.trim() } : {}),
             nip05: `${claimed.handle}@${nip05Domain}`,
           }),
         },
@@ -303,7 +317,7 @@ export default function TagClaim({
     } finally {
       pool.close(relays);
     }
-  }, [forged, claimed, nip05Domain]);
+  }, [forged, claimed, nip05Domain, bio]);
 
   const statusLine = {
     idle: { text: "TYPE A NAME TO CHECK THE BOARD", cls: "text-cyan glow-cyan" },
@@ -341,9 +355,19 @@ export default function TagClaim({
             <p className="font-body text-sm text-white/80 mb-4">
               A brand-new key has a blank profile, so chat apps would show you as a long code
               instead of <span className="text-coin">{claimed.handle}{spaceTag}</span>. Publish a
-              starter profile — your name plus your verified address — signed right here in your
-              browser. Your secret key never leaves this page.
+              starter profile — your name, your verified address, and a bio if you want one —
+              signed right here in your browser. Your secret key never leaves this page.
             </p>
+            <textarea
+              value={bio}
+              onChange={(e) => setBio(e.target.value)}
+              disabled={profilePublish === "done"}
+              maxLength={500}
+              rows={3}
+              placeholder="ABOUT ME (optional) — tell the arcade who you are. This becomes your fren identity everywhere."
+              className="mb-4 w-full border-2 border-edge bg-void px-3 py-2 font-body text-sm text-white/85 outline-none focus:border-cyan disabled:opacity-60"
+              aria-label="About me — optional bio for your profile"
+            />
             <button
               onClick={publishStarterProfile}
               disabled={profilePublish === "publishing" || profilePublish === "done"}
@@ -398,12 +422,24 @@ export default function TagClaim({
             proves your name belongs to your key.
           </p>
           <p>
-            <span className="text-coin font-pixel text-xs mr-2">SOON</span>
-            You&apos;re #{claimed.queuePosition} in the queue for the next batch. Batches
-            aren&apos;t tied to Bitcoin blocks — when the queue fills, Pac&apos;s Arcade anchors
-            every new tag to Bitcoin in one transaction, and we announce each batch from{" "}
-            <span className="text-pink">@pacsarcade</span>{" "}on nostr. Nothing to wait on: your
-            tag already works everywhere — the batch just makes it permanent.
+            <span className="text-neon font-pixel text-xs mr-2">LIVE NOW</span>
+            Your tag works everywhere already — chat, verification, leaderboards, campaigns.
+            There is nothing to wait for.
+          </p>
+          <p>
+            <span className="text-coin font-pixel text-xs mr-2">ANCHOR</span>
+            At the next batch ceremony your tag is anchored to Bitcoin — permanent and
+            uncensorable. Ceremonies run as the queue fills, announced from{" "}
+            <span className="text-pink">@pacsarcade</span>{" "}on nostr.
+            {tipHeight ? (
+              <>
+                {" "}Bitcoin is at block{" "}
+                <span className="text-coin">{tipHeight.toLocaleString()}</span>{" "}right now —
+                expect your anchor by block ~
+                <span className="text-coin">{(tipHeight + 4320).toLocaleString()}</span>{" "}
+                (roughly a month of blocks).
+              </>
+            ) : null}
           </p>
         </div>
       </div>

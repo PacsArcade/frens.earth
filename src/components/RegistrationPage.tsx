@@ -1,8 +1,34 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import TagClaim from "@/components/TagClaim";
+
+/* Live bitcoin block height — the arcade's wall clock. Refreshes every two
+   minutes; renders nothing until the first fetch lands (never a blocker). */
+function BlockClock() {
+  const [height, setHeight] = useState<number | null>(null);
+  useEffect(() => {
+    let alive = true;
+    const tick = () =>
+      fetch("https://mempool.space/api/blocks/tip/height")
+        .then((r) => r.json())
+        .then((h) => alive && typeof h === "number" && setHeight(h))
+        .catch(() => {});
+    tick();
+    const id = setInterval(tick, 120_000);
+    return () => {
+      alive = false;
+      clearInterval(id);
+    };
+  }, []);
+  if (height === null) return null;
+  return (
+    <span className="text-coin" title="Current bitcoin block height">
+      ⛓ BLOCK {height.toLocaleString()}
+    </span>
+  );
+}
 
 /* Marquee title: letters CRT-bloom into place on load, then a couple of tubes
    flicker sporadically — once — and the sign burns steady. `flickers` maps
@@ -48,7 +74,10 @@ export default function RegistrationPage({
           <Link href={homeHref} className="font-pixel text-sm text-coin glow-coin">
             PAC&apos;S ARCADE
           </Link>
-          <span className="font-pixel text-xs text-pink glow-pink uppercase">{spaceTag}</span>
+          <span className="flex items-center gap-4 font-pixel text-xs">
+            <BlockClock />
+            <span className="text-pink glow-pink uppercase">{spaceTag}</span>
+          </span>
         </nav>
       </header>
 
