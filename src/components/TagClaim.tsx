@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { generateSecretKey, getPublicKey, nip19, SimplePool, finalizeEvent } from "nostr-tools";
 
 type Availability = "idle" | "checking" | "available" | "taken" | "invalid";
@@ -387,6 +388,25 @@ export default function TagClaim({
           </div>
         )}
 
+        {/* The end state — every registration lands on the fren's profile page.
+            For forged keys it sits below the publish step so the starter
+            profile (which only exists on THIS screen) isn't skipped. */}
+        <div className="mb-8 border-2 border-neon bg-neon/5 p-5 text-center">
+          <p className="mb-3 font-pixel text-xs text-neon glow-neon">
+            {forged && profilePublish !== "done" ? "STAGE CLEAR" : "LEVEL COMPLETE"}
+          </p>
+          <p className="mb-4 font-body text-sm text-white/80">
+            Your profile page is live — your start screen for the nostr verse. Everything below
+            is waiting for you there too.
+          </p>
+          <Link href={`/fren/${claimed.handle}`} className="button block w-full">
+            ▶ ENTER YOUR PROFILE
+          </Link>
+          <p className="mt-3 font-body text-xs text-white/50">
+            {nip05Domain}/fren/{claimed.handle} — bookmark it, share it, come back any time.
+          </p>
+        </div>
+
         <p className="font-pixel text-xs text-cyan mb-4">WHAT NOW?</p>
         <div className="font-body text-sm text-white/80 space-y-3">
           <p>
@@ -666,8 +686,14 @@ export default function TagClaim({
                       >
                         &quot;Verified Nostr Address (NIP-05)&quot;
                       </a>
-                      {" "}field. Profile pages are coming — you&apos;ll manage your whole card
-                      from here.
+                      {" "}field. Your profile page is live at{" "}
+                      <Link
+                        href={`/fren/${handle}`}
+                        className="text-cyan hover:glow-cyan underline"
+                      >
+                        {nip05Domain}/fren/{handle}
+                      </Link>
+                      .
                     </p>
                   </div>
                 )}
