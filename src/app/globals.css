@@ -80,6 +80,8 @@ body {
   background-color: var(--background);
   color: var(--foreground);
   font-family: var(--font-roboto), sans-serif;
+  /* one notch up from browser default — CRT view body copy read small (Pac) */
+  font-size: 1.0625rem;
   line-height: 1.6;
 }
 

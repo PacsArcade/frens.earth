@@ -186,17 +186,6 @@ export default function FrenProfile({
           </div>
         </section>
 
-        {/* Own profile only — the Primal-style kind-0 editor */}
-        <ProfileEditor
-          npub={npub}
-          handle={handle}
-          space={space}
-          nip05Domain={nip05Domain}
-          raw={raw}
-          signal={signal}
-          onPublished={applyLocal}
-        />
-
         {/* Badges — verified only because the checks actually hold. The
             space chip answers "which profile am I in?" — two doors, one arcade. */}
         <section className="flex flex-wrap gap-3 border-b-0 py-0">
@@ -224,10 +213,11 @@ export default function FrenProfile({
           )}
         </section>
 
-        {/* Artist mode — the workflow, right up top: running campaigns is
-            earned, not bought. LOCKED lives in the header (said once), the
-            border burns ghost-red until the checklist goes green, and every
-            requirement is a key — collect the keyring, open the floor. */}
+        {/* Artist mode — compact milestone rail in the enrollment order
+            (nostr → matrix → classes → wallet). LOCKED lives in the header,
+            the border burns ghost-red until every light is on. @frens
+            accounts get the honest blurb instead: play-and-support here,
+            campaigns are school business. */}
         <section className="border-b-0 py-0">
           <p className="mb-2 font-pixel text-[10px] uppercase tracking-widest text-white/40">
             RUNNING CAMPAIGNS IS EARNED, NOT BOUGHT
@@ -235,53 +225,75 @@ export default function FrenProfile({
           <h2 className="mb-4 font-arcade text-2xl text-ghost glow-ghost">
             ARTIST MODE — 🔒 LOCKED
           </h2>
-          <div className="border-2 border-ghost/60 bg-panel p-6">
-            <div className="space-y-3 font-pixel text-[10px] uppercase">
-              <p className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                <span className="text-neon" title="key earned">⚿</span>
-                <span className="text-white/80">FREN TAG REGISTERED</span>
-                <span className="font-mono text-white/40 normal-case">
-                  {handle}
-                  {spaceTag}
-                  {sinceBlock !== null && ` · block ${sinceBlock.toLocaleString()}`}
-                </span>
-              </p>
-              <p className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                <span className="text-ghost/70" title="key missing">⚿</span>
-                <span className="text-white/80">CERTS — 0 OF {ARTIST_GATE_CERT_COUNT}</span>
-                <a href={CLASSES_URL} className="text-cyan underline hover:glow-cyan">
-                  EARN AT THE CLASSES ▸
+          {space === "frens" ? (
+            <div className="border-2 border-ghost/60 bg-panel p-5">
+              <p className="font-body text-sm text-white/80">
+                <span className="text-pink">@frens</span>{" "}is the play-and-support account:
+                games, classes, backing other frens&apos; runs. Running a campaign of your own is
+                school business — it takes an{" "}
+                <span className="text-pink">@pacsarcade</span>{" "}account.{" "}
+                <a
+                  href="https://pacsarcade.org/register"
+                  className="font-pixel text-[10px] uppercase text-cyan underline hover:glow-cyan"
+                >
+                  ENROLL AT PACSARCADE.ORG ▸
                 </a>
               </p>
-              <p className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                <span className={matrixProvisioned ? "text-neon" : "text-ghost/70"} title={matrixProvisioned ? "key earned" : "key missing"}>⚿</span>
-                <span className="text-white/80">
-                  MATRIX DOOR{matrixProvisioned && " — CUT"}
-                </span>
-                {matrixProvisioned ? (
-                  <span className="font-mono text-white/40 normal-case">@{handle}:pacsarcade.org</span>
-                ) : (
-                  <a
-                    href="https://pacsarcade.org/login"
-                    className="text-cyan underline hover:glow-cyan"
-                  >
-                    CUT AT PACSARCADE.ORG ▸
-                  </a>
-                )}
-              </p>
-              <p className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                <span className="text-ghost/70" title="key missing">⚿</span>
-                <span className="text-white/80">WALLET LINKED</span>
-                <span className="text-white/40">
-                  LINKING OPENS SOON — TAUGHT IN THE WALLET CLASS
-                </span>
+            </div>
+          ) : (
+            <div className="border-2 border-ghost/60 bg-panel p-5">
+              {/* the rail: circles on a line, lit in order */}
+              <div className="flex items-start">
+                {[
+                  { label: "NOSTR TAG", done: true, href: null },
+                  {
+                    label: "MATRIX",
+                    done: matrixProvisioned,
+                    href: matrixProvisioned ? null : "https://pacsarcade.org/login",
+                  },
+                  { label: `CERTS 0/${ARTIST_GATE_CERT_COUNT}`, done: false, href: CLASSES_URL },
+                  { label: "WALLET", done: false, href: null },
+                ].map((m, i, all) => (
+                  <div key={m.label} className="flex flex-1 items-start">
+                    {i > 0 && (
+                      <span
+                        aria-hidden
+                        className={`mt-3 h-0.5 flex-1 ${all[i - 1].done && m.done ? "bg-neon/70" : "bg-ghost/40"}`}
+                      />
+                    )}
+                    <span className="flex flex-col items-center gap-1.5 px-1">
+                      <span
+                        className={`grid h-6 w-6 flex-none place-items-center rounded-full border-2 text-[10px] ${
+                          m.done ? "border-neon text-neon glow-neon" : "border-ghost/60 text-ghost/60"
+                        }`}
+                        title={m.done ? "milestone reached" : "still to earn"}
+                      >
+                        {m.done ? "✓" : "⚿"}
+                      </span>
+                      {m.href ? (
+                        <a
+                          href={m.href}
+                          className="whitespace-nowrap font-pixel text-[8px] uppercase text-cyan underline hover:glow-cyan"
+                        >
+                          {m.label}
+                        </a>
+                      ) : (
+                        <span
+                          className={`whitespace-nowrap font-pixel text-[8px] uppercase ${m.done ? "text-white/80" : "text-white/40"}`}
+                        >
+                          {m.label}
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-3 font-body text-xs text-white/50">
+                Four lights in order — tag, Matrix door, certs, wallet — every one free to earn.
+                The border goes green when the rail is lit.
               </p>
             </div>
-            <p className="mt-4 border-t-2 border-ghost/30 pt-4 font-body text-sm text-white/70">
-              Four keys open this door, fren — every one free to earn. The border goes green
-              the day the keyring is full.
-            </p>
-          </div>
+          )}
         </section>
 
         {/* Live nostr signal — proof the profile exists beyond this site */}
@@ -326,6 +338,20 @@ export default function FrenProfile({
               set your name and bio there, and this card lights up — no permission from us needed.
             </p>
           )}
+
+          {/* editing lives WITH the network it edits — this whole card is
+              nostr (the lead network); matrix keeps its own block below */}
+          <div className="mt-5 border-t border-dashed border-edge pt-5">
+            <ProfileEditor
+              npub={npub}
+              handle={handle}
+              space={space}
+              nip05Domain={nip05Domain}
+              raw={raw}
+              signal={signal}
+              onPublished={applyLocal}
+            />
+          </div>
         </section>
 
         {/* Matrix doors are @tag:pacsarcade.org school hardware — cut from
