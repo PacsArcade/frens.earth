@@ -1,34 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
+import { useState } from "react";
 import TagClaim from "@/components/TagClaim";
-
-/* Live bitcoin block height — the arcade's wall clock. Refreshes every two
-   minutes; renders nothing until the first fetch lands (never a blocker). */
-function BlockClock() {
-  const [height, setHeight] = useState<number | null>(null);
-  useEffect(() => {
-    let alive = true;
-    const tick = () =>
-      fetch("https://mempool.space/api/blocks/tip/height")
-        .then((r) => r.json())
-        .then((h) => alive && typeof h === "number" && setHeight(h))
-        .catch(() => {});
-    tick();
-    const id = setInterval(tick, 120_000);
-    return () => {
-      alive = false;
-      clearInterval(id);
-    };
-  }, []);
-  if (height === null) return null;
-  return (
-    <span className="text-coin" title="Current bitcoin block height">
-      ⛓ BLOCK {height.toLocaleString()}
-    </span>
-  );
-}
+import ArcadeHeader from "@/components/ArcadeHeader";
 
 /* Marquee title: letters CRT-bloom into place on load, then a couple of tubes
    flicker sporadically — once — and the sign burns steady. `flickers` maps
@@ -52,34 +26,27 @@ function NeonTitle({ text, flickers }: { text: string; flickers: Record<number, 
 }
 
 /**
- * The registration machine for this deployment's space (see
- * src/lib/identity-config.ts). This site is standalone — its "/" IS this
- * page — so the header logo points home to the arcade.
+ * The registration machine, parameterized by space: /frens issues @frens tags
+ * (served at frens.earth's root via the proxy rewrite), /register issues
+ * @pacsarcade tags on pacsarcade.org. The route decides the space — the same
+ * page works identically on preview deployments and localhost.
  */
 export default function RegistrationPage({
   space,
   nip05Domain,
+  initialHandle,
 }: {
   space: string;
   nip05Domain: string;
+  /** Pre-filled tag (?tag=) — GAME OVER's "press start" lands here */
+  initialHandle?: string;
 }) {
   const spaceTag = `@${space}`;
-  const homeHref = "https://pacsarcade.org";
   // live echo of the tag being typed, so the cards below talk about THEIR name
-  const [previewHandle, setPreviewHandle] = useState("");
+  const [previewHandle, setPreviewHandle] = useState(initialHandle ?? "");
   return (
     <main className="min-h-screen bg-void">
-      <header className="border-b-2 border-edge px-6 py-5">
-        <nav className="mx-auto flex max-w-5xl items-center justify-between">
-          <Link href={homeHref} className="font-pixel text-sm text-coin glow-coin">
-            PAC&apos;S ARCADE
-          </Link>
-          <span className="flex items-center gap-4 font-pixel text-xs">
-            <BlockClock />
-            <span className="text-pink glow-pink uppercase">{spaceTag}</span>
-          </span>
-        </nav>
-      </header>
+      <ArcadeHeader />
 
       {/* Hero — a breathing neon marquee */}
       <section className="overflow-hidden px-6 pb-10 pt-16 text-center">
@@ -98,12 +65,17 @@ export default function RegistrationPage({
 
       {/* The claim machine */}
       <section className="px-6 pb-20">
-        <TagClaim space={space} nip05Domain={nip05Domain} onHandlePreview={setPreviewHandle} />
+        <TagClaim
+          space={space}
+          nip05Domain={nip05Domain}
+          onHandlePreview={setPreviewHandle}
+          initialHandle={initialHandle}
+        />
       </section>
 
       {/* How it works — cabinet cards */}
       <section className="border-t border-dashed border-edge px-6 py-16">
-        <div className="mx-auto grid max-w-6xl gap-8 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="ez-reflow mx-auto grid max-w-5xl auto-rows-fr gap-6 sm:grid-cols-2 lg:grid-cols-4">
           <div className="card text-left">
             <h3 className="text-cyan">1. FREE TAG</h3>
             <p className="font-body text-sm text-white/70">
@@ -151,10 +123,15 @@ export default function RegistrationPage({
 
       <footer className="border-t-2 border-edge px-6 py-10 text-center">
         <p className="font-pixel text-xs leading-relaxed text-white/40">
-          A PROJECT OF THE PAC&apos;S ARCADE NON-PROFIT —{" "}
-          <a href="https://pacsarcade.org" className="text-cyan hover:glow-cyan">
-            PACSARCADE.ORG
-          </a>{" "}·{" "}
+          PAC&apos;S ARCADE IS A NON-PROFIT ·{" "}
+          {space === "frens" ? (
+            <>
+              A PAC&apos;S ARCADE PROJECT —{" "}
+              <a href="https://pacsarcade.org" className="text-cyan hover:glow-cyan">
+                PACSARCADE.ORG
+              </a>{" "}·{" "}
+            </>
+          ) : null}
           YOUR TAG BELONGS TO YOU — WE NEVER SEE OR STORE YOUR SECRET KEY · POWERED BY THE{" "}
           <a
             href="https://spacesprotocol.org"

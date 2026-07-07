@@ -17,6 +17,7 @@
     "reset:registry": "node scripts/reset-registry.mjs"
   },
   "dependencies": {
+    "@pacsarcade/arcade-ui": "https://github.com/PacsArcade/arcade-ui/archive/de0dbbdceff7a710fbea330fba81b7a691851c95.tar.gz",
     "@vercel/blob": "^2.5.0",
     "next": "16.2.4",
     "nostr-tools": "^2.23.9",

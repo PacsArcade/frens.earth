@@ -1,16 +1,17 @@
 import Link from "next/link";
 
-/* No entry on the board for this tag — the arcade's 404. */
+/* The /u segment's fallback 404 — only unplayable input lands here (real
+   missing tags get GameOverTag with the press-start invitation instead). */
 export default function FrenNotFound() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-8 bg-void px-6 text-center">
       <p className="font-arcade text-5xl text-ghost glow-ghost">GAME OVER</p>
       <p className="max-w-md font-body text-lg text-white/80">
-        No fren holds this tag yet. The board doesn&apos;t know it — which means it might still be
-        up for grabs.
+        That&apos;s not a playable tag, fren — names are 3-20 characters, a-z, 0-9 and hyphens.
+        Pick one that fits and press start.
       </p>
       <Link href="/" className="button">
-        ▶ REGISTER A TAG
+        ▶ NEW PLAYER — PRESS START
       </Link>
       <p className="font-pixel text-xs text-white/40">
         <Link href="https://pacsarcade.org" className="text-cyan hover:glow-cyan">
