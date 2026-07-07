@@ -422,11 +422,18 @@ export default function FrenProfile({
           </div>
         </section>
 
-        {/* The controller — explicit continue into the nostr verse. Lives
-            below the working shelves: it's onboarding, not daily workflow. */}
-        <section className="border-4 border-neon bg-panel p-6 shadow-[8px_8px_0_#ff00ff] sm:p-8">
-          <p className="mb-2 font-pixel text-xs text-neon glow-neon">NEXT LEVEL</p>
-          <h2 className="mb-4 font-arcade text-2xl text-cyan glow-cyan">ENTER THE NOSTR VERSE</h2>
+        {/* The controller — now a pull-cord: it opens when a fren wants to
+            know what nostr can DO (the ON AIR card above already shows the
+            profile itself). The levels stay inside as the fun on-ramp. */}
+        <section className="border-4 border-neon bg-panel shadow-[8px_8px_0_#ff00ff]">
+          <details>
+            <summary className="cursor-pointer p-6 sm:p-8">
+              <span className="mb-1 block font-pixel text-xs text-neon glow-neon">NEXT LEVEL</span>
+              <span className="font-arcade text-2xl text-cyan glow-cyan">
+                WHAT CAN NOSTR DO? ▸
+              </span>
+            </summary>
+            <div className="px-6 pb-6 sm:px-8 sm:pb-8">
           <p className="mb-6 font-body text-sm text-white/80">
             Your tag isn&apos;t just a name on this site — it&apos;s a passport to{" "}
             <a
@@ -450,7 +457,7 @@ export default function FrenProfile({
             }}
             className="button block w-full text-center"
           >
-            ▲ SEE YOUR LIVE SIGNAL — ON THIS PAGE
+            ▲ SEE YOUR LIVE SIGNAL
           </a>
           <p className="mt-2 text-center font-body text-xs text-white/50">
             The ON AIR card above reads the open network directly — your own arcade, no
@@ -519,6 +526,8 @@ export default function FrenProfile({
               <span className="text-coin">{handle}{spaceTag}</span>{" "}to Bitcoin forever.
             </p>
           </div>
+            </div>
+          </details>
         </section>
 
         {/* The plumbing — keys and addresses, copy-ready */}
@@ -577,7 +586,7 @@ export default function FrenProfile({
             <div className="flex flex-col gap-3 border-2 border-coin/40 bg-panel p-5">
               <p className="font-pixel text-xs text-coin">PLAY</p>
               <p className="flex-1 font-body text-sm text-white/70">
-                The game portal — POKE worlds where playing IS learning.
+                The game portal — P.O.K.E. worlds where playing IS learning.
               </p>
               <a
                 href="https://pacsarcade.org/play"

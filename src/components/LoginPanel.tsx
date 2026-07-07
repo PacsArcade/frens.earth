@@ -63,9 +63,9 @@ export default function LoginPanel() {
   }
 
   return (
-    <div className="mx-auto flex max-w-md flex-col gap-8">
+    <div className="mx-auto flex w-full max-w-2xl flex-col gap-8">
       {existing ? (
-        <div className="border-2 border-neon/60 bg-panel p-6 text-center">
+        <div className="mx-auto w-full max-w-md border-2 border-neon/60 bg-panel p-6 text-center">
           <p className="mb-3 font-pixel text-xs text-neon glow-neon">
             ✓ YOU&apos;RE IN AS {existing.handle.toUpperCase()}@{existing.space.toUpperCase()}
           </p>
@@ -83,7 +83,7 @@ export default function LoginPanel() {
           </button>
         </div>
       ) : (
-        <div className="border-4 border-cyan bg-panel p-6 shadow-[8px_8px_0_#ff00ff]">
+        <div className="mx-auto w-full max-w-md border-4 border-cyan bg-panel p-6 shadow-[8px_8px_0_#ff00ff]">
           <p className="mb-2 font-pixel text-xs text-cyan glow-cyan">RETURNING FREN?</p>
           <p className="mb-5 font-body text-sm text-white/70">
             Your key is your login — sign a fresh challenge and land on your profile. No
@@ -111,18 +111,20 @@ export default function LoginPanel() {
         <p className="text-center font-pixel text-[10px] uppercase tracking-widest text-white/40">
           NO ACCOUNT? TWO DOORS, ONE ARCADE
         </p>
+        {/* the doors stand side by side — pick like a character select */}
+        <div className="grid gap-4 sm:grid-cols-2 sm:auto-rows-fr">
         <div className="border-2 border-cyan/40 bg-panel p-5">
           <p className="mb-1 font-pixel text-[10px] text-cyan">@FRENS · THE PLAY ACCOUNT</p>
           <p className="mb-3 font-body text-sm text-white/70">
             Free for everyone. Learn together, test, tinker, join classes, back campaigns —
             the account you can afford to experiment with. As frens, we learn together.
           </p>
-          <Link
-            href="/"
+          <a
+            href="https://frens.earth"
             className="font-pixel text-[10px] uppercase text-cyan underline hover:glow-cyan"
           >
             GET YOUR PLAY TAG — FREE ▸
-          </Link>
+          </a>
         </div>
         <div className="border-2 border-pink/40 bg-panel p-5">
           <p className="mb-1 font-pixel text-[10px] text-pink">@PACSARCADE · THE SCHOOL ACCOUNT</p>
@@ -130,12 +132,13 @@ export default function LoginPanel() {
             The step up when you commit to the path: classes → etched certs → the artist gate →
             running campaigns. When you&apos;re ready for school, this is enrollment.
           </p>
-          <a
-            href="https://pacsarcade.org/register"
+          <Link
+            href="/register"
             className="font-pixel text-[10px] uppercase text-cyan underline hover:glow-cyan"
           >
             SET UP YOUR SCHOOL ACCOUNT ▸
-          </a>
+          </Link>
+        </div>
         </div>
         <p className="text-center font-body text-xs text-white/50">
           Two accounts is a feature, fren: experiment on one, keep the other clean — blast
