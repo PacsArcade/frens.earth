@@ -18,7 +18,7 @@ function useHasSigner(): boolean | null {
     all NOSTR profile-card fields: none of them touch the etched arcade tag. */
 const FIELDS = [
   { key: "name", label: "NOSTR USERNAME", hint: "what nostr apps show — not your arcade tag" },
-  { key: "display_name", label: "DISPLAY NAME", hint: "the marquee version" },
+  { key: "display_name", label: "ARCADE NAME (DISPLAY NAME)", hint: "the marquee version — change it any time; only your tag is etched" },
   { key: "about", label: "ABOUT ME", hint: "say something to the frens", textarea: true },
   { key: "website", label: "WEBSITE", hint: "https://…" },
   { key: "lud16", label: "LIGHTNING ADDRESS (ZAPS)", hint: "name@wallet-provider — lightning, not an on-chain address" },
