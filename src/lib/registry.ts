@@ -29,9 +29,10 @@ export interface HandleEntry {
   status: HandleStatus;
   batchId: string | null; // on-chain batch that committed it (R2)
   requestedAt: string; // ISO timestamp
+  blockHeight?: number | null; // bitcoin tip when the claim entered the queue — bitcoin time, not calendar time (absent on pre-R2 entries; profile backfills via mempool.space)
 }
 
-function useBlobStore(): boolean {
+export function blobStoreEnabled(): boolean {
   return (
     !!process.env.BLOB_READ_WRITE_TOKEN &&
     (process.env.VERCEL === "1" || process.env.REGISTRY_DRIVER === "blob")
@@ -173,7 +174,7 @@ async function blobEntries(space: string): Promise<HandleEntry[]> {
 
 export async function isAvailable(handle: string, space?: string): Promise<boolean> {
   const s = normalizeSpace(space);
-  if (useBlobStore()) {
+  if (blobStoreEnabled()) {
     return !(await blobExists(s, handle));
   }
   const reg = await fileRead(s);
@@ -183,7 +184,7 @@ export async function isAvailable(handle: string, space?: string): Promise<boole
 /** A single claim, or null if the handle is unclaimed. */
 export async function getEntry(handle: string, space?: string): Promise<HandleEntry | null> {
   const s = normalizeSpace(space);
-  if (useBlobStore()) {
+  if (blobStoreEnabled()) {
     try {
       const res = await get(blobPath(s, handle), { access: "public" });
       if (!res || res.statusCode !== 200) return null;
@@ -199,7 +200,8 @@ export async function getEntry(handle: string, space?: string): Promise<HandleEn
 export async function claimHandle(
   handle: string,
   npub: string,
-  space?: string
+  space?: string,
+  blockHeight?: number | null
 ): Promise<{ ok: true; entry: HandleEntry; queuePosition: number } | { ok: false; reason: string }> {
   const valid = validateHandle(handle);
   if (!valid.ok) return { ok: false, reason: valid.reason };
@@ -215,9 +217,10 @@ export async function claimHandle(
     status: "queued",
     batchId: null,
     requestedAt: new Date().toISOString(),
+    blockHeight: blockHeight ?? null,
   };
 
-  if (useBlobStore()) {
+  if (blobStoreEnabled()) {
     try {
       await put(blobPath(s, valid.handle), JSON.stringify(entry, null, 2), {
         access: "public",
@@ -247,11 +250,34 @@ export async function claimHandle(
   return { ok: true, entry, queuePosition: reg.entries.filter((e) => e.status === "queued").length };
 }
 
+/* Reverse lookup for sign-in: which tag does this npub own? Scans every
+   space; cached briefly — the registry is small and sign-ins are rare. */
+const npubCache = new Map<string, { at: number; value: { handle: string; space: string } | null }>();
+const NPUB_CACHE_TTL_MS = 60_000;
+
+export async function findHandleByNpub(
+  npub: string
+): Promise<{ handle: string; space: string } | null> {
+  const hit = npubCache.get(npub);
+  if (hit && Date.now() - hit.at < NPUB_CACHE_TTL_MS) return hit.value;
+  let value: { handle: string; space: string } | null = null;
+  for (const space of KNOWN_SPACES) {
+    const entries = blobStoreEnabled() ? await blobEntries(space) : (await fileRead(space)).entries;
+    const match = entries.find((e) => e.npub === npub);
+    if (match) {
+      value = { handle: match.handle, space };
+      break;
+    }
+  }
+  npubCache.set(npub, { at: Date.now(), value });
+  return value;
+}
+
 /** NIP-05 mapping (name -> hex pubkey) served at /.well-known/nostr.json */
 export async function nip05Names(space?: string): Promise<Record<string, string>> {
   const { nip19 } = await import("nostr-tools");
   const s = normalizeSpace(space);
-  const entries = useBlobStore() ? await blobEntries(s) : (await fileRead(s)).entries;
+  const entries = blobStoreEnabled() ? await blobEntries(s) : (await fileRead(s)).entries;
   const names: Record<string, string> = {};
   for (const e of entries) {
     try {

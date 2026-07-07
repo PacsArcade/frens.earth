@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { generateSecretKey, getPublicKey, nip19, SimplePool, finalizeEvent } from "nostr-tools";
+import { ANCHOR_BLOCKS_OUT } from "@/lib/identity-config";
 
 type Availability = "idle" | "checking" | "available" | "taken" | "invalid";
 
@@ -11,11 +12,6 @@ interface ForgedKeys {
   nsec: string;
 }
 
-declare global {
-  interface Window {
-    nostr?: { getPublicKey: () => Promise<string> };
-  }
-}
 
 /* Render a key as equal-width monospace lines so it never wraps awkwardly.
    Blurred mode keeps the characters unreadable and unselectable — pair it
@@ -100,13 +96,16 @@ export default function TagClaim({
   space,
   nip05Domain,
   onHandlePreview,
+  initialHandle,
 }: {
   space: string;
   nip05Domain: string;
   /** Live echo of the typed handle, so the page around the machine can react */
   onHandlePreview?: (handle: string) => void;
+  /** Pre-filled tag — how GAME OVER's "press start" hands the name over */
+  initialHandle?: string;
 }) {
-  const [handle, setHandle] = useState("");
+  const [handle, setHandle] = useState(initialHandle ?? "");
   const [availability, setAvailability] = useState<Availability>("idle");
   const [reason, setReason] = useState<string | null>(null);
   const [takenNpub, setTakenNpub] = useState<string | null>(null);
@@ -118,6 +117,25 @@ export default function TagClaim({
 
   const [npub, setNpub] = useState<string | null>(null);
   const [forged, setForged] = useState<ForgedKeys | null>(null);
+
+  // one key, two doors? warn before the claim, never block (public data).
+  // Staleness is handled at render (handle match), not by sync resets.
+  const [alsoHolds, setAlsoHolds] = useState<{ handle: string; space: string } | null>(null);
+  useEffect(() => {
+    if (!npub || !handle) return;
+    let alive = true;
+    fetch(`/api/frens/whois?npub=${npub}&handle=${encodeURIComponent(handle)}`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (!alive) return;
+        const other = d.ok ? d.holds.find((h: { space: string }) => h.space !== space) : null;
+        setAlsoHolds(other ?? null);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [npub, handle, space]);
   const [savedConfirmed, setSavedConfirmed] = useState(false);
   const [hasNip07, setHasNip07] = useState(false);
 
@@ -456,8 +474,8 @@ export default function TagClaim({
                 {" "}Bitcoin is at block{" "}
                 <span className="text-coin">{tipHeight.toLocaleString()}</span>{" "}right now —
                 expect your anchor by block ~
-                <span className="text-coin">{(tipHeight + 6789).toLocaleString()}</span>, that&apos;s
-                6,789 blocks out{" "}
+                <span className="text-coin">{(tipHeight + ANCHOR_BLOCKS_OUT).toLocaleString()}</span>, that&apos;s
+                {" "}{ANCHOR_BLOCKS_OUT.toLocaleString()} blocks out{" "}
                 <span title="why was 6 afraid of 7? because 7 8 9">(seven ate nine)</span>{" "}—
                 about six-seven weeks.
               </>
@@ -852,6 +870,14 @@ export default function TagClaim({
       {/* STEP 3 — lock it in */}
       <div className="border-2 border-edge bg-panel p-6">
         <p className="font-pixel text-xs text-cyan mb-4">STEP 3 — LOCK IT IN</p>
+        {alsoHolds && alsoHolds.handle === handle.trim().toLowerCase() && npub && (
+          <p className="mb-4 border-2 border-coin/60 px-3 py-2 font-pixel text-[9px] uppercase leading-relaxed text-coin">
+            HEADS UP, FREN: THIS KEY ALREADY HOLDS{" "}
+            <span className="text-cyan">{alsoHolds.handle}@{alsoHolds.space}</span>. ONE NOSTR
+            PROFILE VERIFIES ONE ADDRESS AT A TIME — TWO TAGS ON ONE KEY IS ALLOWED, BUT A
+            SECOND KEY KEEPS YOUR PLAY SELF AND SCHOOL SELF CLEANLY SPLIT. YOUR CALL.
+          </p>
+        )}
         <button
           onClick={claim}
           disabled={availability !== "available" || !npub || !savedConfirmed || claiming}

@@ -2,18 +2,21 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { nip19, SimplePool } from "nostr-tools";
 import type { HandleStatus } from "@/lib/registry";
+import { ANCHOR_BLOCKS_OUT, SPACE_ROLES } from "@/lib/identity-config";
+import { ARTIST_GATE_CERT_COUNT, CLASSES_URL } from "@/lib/classes";
+import { useTipHeight } from "@pacsarcade/arcade-ui";
+import ArcadeHeader from "@/components/ArcadeHeader";
+import ProfileEditor from "@/components/ProfileEditor";
+import useNostrProfile from "@/hooks/useNostrProfile";
 
-/* Public relays we read the fren's kind-0 profile from — same set the
-   registration machine broadcasts to, so a fresh starter profile is found. */
-const PROFILE_RELAYS = ["wss://relay.damus.io", "wss://nos.lol", "wss://relay.primal.net"];
-
-interface NostrProfile {
-  name?: string;
-  display_name?: string;
-  about?: string;
-  picture?: string;
+/* kind-0 websites arrive in every shape — make them clickable, never js: */
+function safeUrl(raw?: string): string | null {
+  if (!raw) return null;
+  const trimmed = raw.trim();
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  if (/^[a-z0-9][a-z0-9.-]+\.[a-z]{2,}/i.test(trimmed)) return `https://${trimmed}`;
+  return null;
 }
 
 async function copyToClipboard(text: string): Promise<boolean> {
@@ -37,40 +40,28 @@ async function copyToClipboard(text: string): Promise<boolean> {
   }
 }
 
-/* The fren's live signal: their kind-0 profile as the nostr network sees it
-   right now. Read-only, best-effort — the page never blocks on relays. */
-function useNostrProfile(npub: string) {
-  const [state, setState] = useState<"tuning" | "found" | "silent">("tuning");
-  const [profile, setProfile] = useState<NostrProfile | null>(null);
+/* Bitcoin time, not calendar time: entries claimed after round 2 carry the
+   tip height; older frens get it backfilled from mempool.space's
+   closest-block-to-timestamp lookup. Best-effort — the date is the fallback. */
+function usePlayerSinceBlock(
+  stored: number | null | undefined,
+  requestedAt: string
+): number | null {
+  const [height, setHeight] = useState<number | null>(stored ?? null);
   useEffect(() => {
+    if (height !== null) return;
+    const ts = Math.floor(new Date(requestedAt).getTime() / 1000);
+    if (!Number.isFinite(ts) || ts <= 0) return;
     let alive = true;
-    const pool = new SimplePool();
-    (async () => {
-      try {
-        const decoded = nip19.decode(npub);
-        if (decoded.type !== "npub") throw new Error();
-        const event = await Promise.race([
-          pool.get(PROFILE_RELAYS, { kinds: [0], authors: [decoded.data as string] }),
-          new Promise<null>((resolve) => setTimeout(() => resolve(null), 6000)),
-        ]);
-        if (!alive) return;
-        if (event) {
-          setProfile(JSON.parse(event.content) as NostrProfile);
-          setState("found");
-        } else {
-          setState("silent");
-        }
-      } catch {
-        if (alive) setState("silent");
-      } finally {
-        pool.close(PROFILE_RELAYS);
-      }
-    })();
+    fetch(`https://mempool.space/api/v1/mining/blocks/timestamp/${ts}`)
+      .then((r) => r.json())
+      .then((d) => alive && typeof d?.height === "number" && setHeight(d.height))
+      .catch(() => {});
     return () => {
       alive = false;
     };
-  }, [npub]);
-  return { state, profile };
+  }, [height, requestedAt]);
+  return height;
 }
 
 /**
@@ -83,6 +74,7 @@ export default function FrenProfile({
   npub,
   status,
   requestedAt,
+  blockHeight,
   space,
   nip05Domain,
 }: {
@@ -90,6 +82,7 @@ export default function FrenProfile({
   npub: string;
   status: HandleStatus;
   requestedAt: string;
+  blockHeight?: number | null;
   space: string;
   nip05Domain: string;
 }) {
@@ -97,7 +90,9 @@ export default function FrenProfile({
   const nip05Id = `${handle}@${nip05Domain}`;
   const njumpUrl = `https://njump.me/${nip05Id}`;
   const [copied, setCopied] = useState<"none" | "pub" | "nip05" | "page">("none");
-  const { state: signal, profile } = useNostrProfile(npub);
+  const { state: signal, profile, raw, applyLocal } = useNostrProfile(npub);
+  const sinceBlock = usePlayerSinceBlock(blockHeight, requestedAt);
+  const tipHeight = useTipHeight();
   const registered = new Date(requestedAt);
   const registeredLabel = isNaN(registered.getTime())
     ? null
@@ -105,44 +100,113 @@ export default function FrenProfile({
 
   return (
     <main className="min-h-screen bg-void">
-      <header className="border-b-2 border-edge px-6 py-5">
-        <nav className="mx-auto flex max-w-5xl items-center justify-between">
-          <Link href="https://pacsarcade.org" className="font-pixel text-sm text-coin glow-coin">
-            PAC&apos;S ARCADE
-          </Link>
-          <span className="font-pixel text-xs text-pink glow-pink uppercase">{spaceTag}</span>
-        </nav>
-      </header>
+      <ArcadeHeader />
 
       <div className="mx-auto flex max-w-3xl flex-col gap-8 px-6 py-12">
         <p className="font-pixel text-[10px] uppercase tracking-widest text-white/40">
           PAC&apos;S ARCADE ▸ FREN PROFILE
         </p>
 
-        {/* Identity header — the arcade marquee version of "this is you".
-            py-0/border-b-0 beat the legacy base-layer section styles. */}
-        <section className="flex flex-wrap items-center gap-5 border-b-0 py-0">
-          <div
-            className="grid h-18 w-18 flex-none place-items-center border-3 border-cyan bg-panel font-arcade text-3xl text-cyan"
+        {/* The fren's own sky — banner straight from their kind-0 */}
+        {profile?.banner && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={profile.banner}
+            alt=""
             aria-hidden
-          >
-            {handle[0]?.toUpperCase()}
-          </div>
+            className="h-32 w-full border-2 border-edge object-cover sm:h-44"
+          />
+        )}
+
+        {/* Identity header — the arcade marquee version of "this is you":
+            the network's picture and display name lead; the tag is the
+            anchor underneath. py-0/border-b-0 beat legacy section styles. */}
+        <section className="flex flex-wrap items-center gap-5 border-b-0 py-0">
+          {profile?.picture ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={profile.picture}
+              alt=""
+              className="h-18 w-18 flex-none border-3 border-cyan object-cover"
+            />
+          ) : (
+            <div
+              className="grid h-18 w-18 flex-none place-items-center border-3 border-cyan bg-panel font-arcade text-3xl text-cyan"
+              aria-hidden
+            >
+              {handle[0]?.toUpperCase()}
+            </div>
+          )}
           <div className="min-w-0 flex-1">
             <h1 className="break-all font-arcade text-[clamp(1.6rem,6vw,2.6rem)] leading-tight text-coin glow-coin">
-              {handle}
-              {spaceTag}
+              {profile?.display_name || profile?.name || `${handle}${spaceTag}`}
             </h1>
-            {registeredLabel && (
+            {(profile?.display_name || profile?.name) && (
+              <p className="mt-1 break-all font-mono text-xs text-cyan">
+                {handle}
+                {spaceTag}
+              </p>
+            )}
+            {sinceBlock !== null ? (
               <p className="mt-1 font-pixel text-[10px] text-white/40">
-                PLAYER SINCE {registeredLabel}
+                PLAYER SINCE BLOCK <span className="text-cyan">{sinceBlock.toLocaleString()}</span>
+                {registeredLabel && <span className="text-white/25">{" "}({registeredLabel})</span>}
+              </p>
+            ) : (
+              registeredLabel && (
+                <p className="mt-1 font-pixel text-[10px] text-white/40">
+                  PLAYER SINCE {registeredLabel}
+                </p>
+              )
+            )}
+            {profile?.about && (
+              <p className="mt-3 max-w-xl break-words font-body text-sm leading-relaxed text-white/75">
+                {profile.about}
+              </p>
+            )}
+            {(safeUrl(profile?.website) || profile?.lud16) && (
+              <p className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1 font-mono text-[11px]">
+                {safeUrl(profile?.website) && (
+                  <a
+                    href={safeUrl(profile?.website)!}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="break-all text-cyan underline hover:glow-cyan"
+                  >
+                    {profile!.website}
+                  </a>
+                )}
+                {profile?.lud16 && (
+                  <span className="break-all text-coin" title="Lightning address — zaps land here">
+                    ⚡ {profile.lud16}
+                  </span>
+                )}
               </p>
             )}
           </div>
         </section>
 
-        {/* Badges — verified only because the checks actually hold */}
+        {/* Own profile only — the Primal-style kind-0 editor */}
+        <ProfileEditor
+          npub={npub}
+          handle={handle}
+          space={space}
+          nip05Domain={nip05Domain}
+          raw={raw}
+          signal={signal}
+          onPublished={applyLocal}
+        />
+
+        {/* Badges — verified only because the checks actually hold. The
+            space chip answers "which profile am I in?" — two doors, one arcade. */}
         <section className="flex flex-wrap gap-3 border-b-0 py-0">
+          <span
+            className={`border-2 px-3 py-1.5 font-pixel text-[10px] uppercase ${
+              space === "pacsarcade" ? "border-pink/60 text-pink" : "border-cyan/60 text-cyan"
+            }`}
+          >
+            {spaceTag} · {SPACE_ROLES[space] ?? "VERSE"}
+          </span>
           <span className="border-2 border-cyan/60 px-3 py-1.5 font-pixel text-[10px] text-cyan">
             ✓ NOSTR VERIFIED — {nip05Id}
           </span>
@@ -152,13 +216,16 @@ export default function FrenProfile({
             </span>
           ) : (
             <span className="border-2 border-coin/60 px-3 py-1.5 font-pixel text-[10px] text-coin pulse-neon">
-              ⧗ ANCHOR PENDING — ETCHES AT THE NEXT CEREMONY
+              ⧗ ANCHOR PENDING —{" "}
+              {tipHeight !== null
+                ? `ETCHES ~BLOCK ${(tipHeight + ANCHOR_BLOCKS_OUT).toLocaleString()}`
+                : "ETCHES AT THE NEXT CEREMONY"}
             </span>
           )}
         </section>
 
         {/* Live nostr signal — proof the profile exists beyond this site */}
-        <section className="border-2 border-edge bg-panel p-6">
+        <section id="on-air" className="scroll-mt-6 border-2 border-edge bg-panel p-6">
           <p className="mb-4 font-pixel text-xs text-cyan">ON AIR — YOUR SIGNAL ON NOSTR</p>
           {signal === "tuning" && (
             <p className="font-pixel text-xs text-coin pulse-neon">TUNING RELAYS…</p>
@@ -174,8 +241,15 @@ export default function FrenProfile({
                 />
               )}
               <div className="min-w-0">
-                <p className="break-words font-pixel text-sm text-neon glow-neon">
+                {/* same treatment as the H1 up top — the name is always coin,
+                    so the reader knows what to look at (not just what's pretty) */}
+                <p className="break-words font-arcade text-xl text-coin glow-coin">
                   {profile.display_name || profile.name || handle}
+                </p>
+                {/* the full network they're attached to, a step smaller */}
+                <p className="mt-1 break-all font-mono text-xs text-cyan">
+                  {handle}
+                  {spaceTag} · {nip05Id}
                 </p>
                 {profile.about && (
                   <p className="mt-2 break-words font-body text-sm text-white/75">{profile.about}</p>
@@ -212,15 +286,37 @@ export default function FrenProfile({
             <span className="text-cyan">{nip05Id}</span>.
           </p>
           <a
-            href={njumpUrl}
-            target="_blank"
-            rel="noopener noreferrer"
+            href="#on-air"
+            onClick={(e) => {
+              /* belt and braces: the anchor jump silently no-ops when anything
+                 upsets hash navigation — scrollIntoView always moves */
+              e.preventDefault();
+              document.getElementById("on-air")?.scrollIntoView({ behavior: "smooth", block: "start" });
+            }}
             className="button block w-full text-center"
           >
-            ▶ SEE YOURSELF ON NOSTR
+            ▲ SEE YOUR LIVE SIGNAL — ON THIS PAGE
           </a>
           <p className="mt-2 text-center font-body text-xs text-white/50">
-            Opens njump — a public window into the network. No sign-in needed to look.
+            The ON AIR card above reads the open network directly — your own arcade, no
+            middleman. Third-party windows if you want a second opinion:{" "}
+            <a
+              href={njumpUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-cyan hover:glow-cyan underline"
+            >
+              njump
+            </a>{" "}·{" "}
+            <a
+              href={`https://primal.net/p/${npub}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-cyan hover:glow-cyan underline"
+            >
+              primal
+            </a>
+            .
           </p>
 
           <div className="mt-8 space-y-5 border-t border-dashed border-edge pt-6 font-body text-sm text-white/80">
@@ -267,6 +363,164 @@ export default function FrenProfile({
               where etch ceremonies are announced, including the one that anchors{" "}
               <span className="text-coin">{handle}{spaceTag}</span>{" "}to Bitcoin forever.
             </p>
+          </div>
+        </section>
+
+        {/* Matrix doors are @tag:pacsarcade.org school hardware — they're cut
+            from the pacsarcade.org profile, not here (follow-up decision) */}
+
+        {/* Certs — proof you showed up, etched not printed. Empty state until
+            the rune index + issuer attestations exist; honest by design. */}
+        <section className="border-b-0 py-0">
+          <p className="mb-2 font-pixel text-[10px] uppercase tracking-widest text-white/40">
+            PROOF YOU SHOWED UP — ETCHED, NOT PRINTED
+          </p>
+          <h2 className="mb-4 font-arcade text-2xl text-cyan glow-cyan">CERTS</h2>
+          <div className="border-2 border-edge bg-panel p-6">
+            <p className="mb-2 font-pixel text-xs text-white/60">NO CERTS YET</p>
+            <div className="flex flex-wrap items-center gap-5">
+              <p className="min-w-[16rem] flex-1 font-body text-sm text-white/80">
+                The arcade teaches free, fren. Take a class, earn a cert — one rune, etched to
+                your wallet, network fee on the house.
+              </p>
+              <a href={CLASSES_URL} className="button w-full text-center sm:w-auto">
+                SEE THE CLASSES ▸
+              </a>
+            </div>
+          </div>
+        </section>
+
+        {/* The showcase — runes and ordinals minted supporting projects.
+            Honest empty state until the rune index (knowledge-engine) gets
+            an HTTP bridge; each mint will then deep-link its campaign's
+            cabinet (/campaigns/[slug]) and the billboard rotation. */}
+        <section className="border-b-0 py-0">
+          <p className="mb-2 font-pixel text-[10px] uppercase tracking-widest text-white/40">
+            WHAT YOU MINTED ALONG THE WAY
+          </p>
+          <h2 className="mb-4 font-arcade text-2xl text-cyan glow-cyan">THE SHOWCASE</h2>
+          <div className="border-2 border-edge bg-panel p-6">
+            <p className="mb-2 font-pixel text-xs text-white/60">NO MINTS YET</p>
+            <div className="flex flex-wrap items-center gap-5">
+              <p className="min-w-[16rem] flex-1 font-body text-sm text-white/80">
+                Back a project and the runes and ordinals it mints land here — real artifacts on
+                Bitcoin, made in the arcade. Every piece on this shelf will link back to the
+                campaign that made it, so a fren who likes what they see can walk straight to
+                the cabinet and drop a quarter too.
+              </p>
+              <Link href="/campaigns" className="button w-full text-center sm:w-auto">
+                SEE THE FLOOR ▸
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        {/* 1UP supporters — the donor shelf (brand-kit-reference "in flight").
+            BTCPay invoices are anonymous today; badges arrive with Contribute
+            V2's nostr sign-in. No fake data — the shelf waits honestly. */}
+        <section className="border-b-0 py-0">
+          <p className="mb-2 font-pixel text-[10px] uppercase tracking-widest text-white/40">
+            PAYING IT FORWARD, ON THE RECORD
+          </p>
+          <h2 className="mb-4 font-arcade text-2xl text-coin glow-coin">1UP SUPPORTERS</h2>
+          <div className="border-2 border-coin/40 bg-panel p-6">
+            <p className="mb-2 font-pixel text-xs text-white/60">THE SHELF IS WAITING</p>
+            <p className="font-body text-sm text-white/80">
+              When you back a campaign with your tag signed in, the project&apos;s badge lights
+              up here — a 1UP for someone else&apos;s dream, worn on your profile. Supporters see
+              their backed projects; visitors see a fren who pays it forward. Contributions
+              stay wallet-to-wallet either way — the badge is bragging rights, not custody. 💛
+            </p>
+          </div>
+        </section>
+
+        {/* Artist mode — running campaigns is earned, not bought. The real
+            gate is server-side when it ships; this checklist never lies. */}
+        <section className="border-b-0 py-0">
+          <p className="mb-2 font-pixel text-[10px] uppercase tracking-widest text-white/40">
+            RUNNING CAMPAIGNS IS EARNED, NOT BOUGHT
+          </p>
+          <h2 className="mb-4 font-arcade text-2xl text-cyan glow-cyan">ARTIST MODE</h2>
+          <div className="border-2 border-edge bg-panel p-6">
+            <p className="mb-4 font-pixel text-xs text-ghost glow-ghost">
+              🔒 ARTIST MODE — LOCKED
+            </p>
+            <div className="space-y-3 font-pixel text-[10px] uppercase">
+              <p className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                <span className="text-neon">✓</span>
+                <span className="text-white/80">FREN TAG REGISTERED</span>
+                <span className="font-mono text-white/40 normal-case">
+                  {handle}
+                  {spaceTag}
+                  {sinceBlock !== null && ` · block ${sinceBlock.toLocaleString()}`}
+                </span>
+              </p>
+              <p className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                <span className="text-ghost">✗</span>
+                <span className="text-white/80">CERTS — 0 OF {ARTIST_GATE_CERT_COUNT}</span>
+                <a href={CLASSES_URL} className="text-cyan underline hover:glow-cyan">
+                  EARN AT THE CLASSES ▸
+                </a>
+              </p>
+              <p className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                <span className="text-ghost">✗</span>
+                <span className="text-white/80">WALLET LINKED</span>
+                <span className="text-white/40">
+                  LINKING OPENS SOON — TAUGHT IN THE WALLET CLASS
+                </span>
+              </p>
+            </div>
+            <p className="mt-4 border-t-2 border-edge pt-4 font-body text-sm text-white/70">
+              No shortcuts, no paywalls — every requirement is free to earn, fren. Artist mode
+              unlocks the day this checklist goes green.
+            </p>
+          </div>
+        </section>
+
+        {/* Discovery — the tour after the gift. Invite, never sell. */}
+        <section className="border-b-0 py-0">
+          <p className="mb-2 font-pixel text-[10px] uppercase tracking-widest text-white/40">
+            YOUR TAG WAS FREE — SO IS THE REST OF THE TOUR
+          </p>
+          <h2 className="mb-4 font-arcade text-2xl text-cyan glow-cyan">MORE INSIDE THE ARCADE</h2>
+          <div className="grid gap-5 sm:grid-cols-3">
+            <div className="flex flex-col gap-3 border-2 border-cyan/40 bg-panel p-5">
+              <p className="font-pixel text-xs text-cyan">BROWSE THE ARCADE</p>
+              <p className="flex-1 font-body text-sm text-white/70">
+                See what other frens are building — live runs, high scores, fresh etchings.
+              </p>
+              <a
+                href="https://pacsarcade.org"
+                className="self-start font-pixel text-[10px] text-cyan underline hover:glow-cyan"
+              >
+                BROWSE ▸
+              </a>
+            </div>
+            <div className="flex flex-col gap-3 border-2 border-pink/40 bg-panel p-5">
+              <p className="font-pixel text-xs text-pink">LEARN</p>
+              <p className="flex-1 font-body text-sm text-white/70">
+                Free classes on the arcade floor — bitcoin, nostr, your wallet. Every class etches
+                a cert.
+              </p>
+              <a
+                href={CLASSES_URL}
+                className="self-start font-pixel text-[10px] text-cyan underline hover:glow-cyan"
+              >
+                SEE CLASSES ▸
+              </a>
+            </div>
+            <div className="flex flex-col gap-3 border-2 border-coin/40 bg-panel p-5">
+              <p className="font-pixel text-xs text-coin">SUPPORT THE ARCADE</p>
+              <p className="flex-1 font-body text-sm text-white/70">
+                Pac&apos;s Arcade is a non-profit. Coins keep the floor open and the classes free.
+              </p>
+              <a
+                href="https://pacsarcade.org"
+                className="self-start font-pixel text-[10px] text-cyan underline hover:glow-cyan"
+              >
+                SUPPORT ▸
+              </a>
+            </div>
           </div>
         </section>
 
