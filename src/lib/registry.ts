@@ -1,6 +1,6 @@
 import { promises as fs } from "fs";
 import path from "path";
-import { head, list, put, get, BlobNotFoundError } from "@vercel/blob";
+import { head, list, put, get, del, BlobNotFoundError } from "@vercel/blob";
 import { KNOWN_SPACES, SPACE_NAME } from "./identity-config";
 
 /**
@@ -30,6 +30,7 @@ export interface HandleEntry {
   batchId: string | null; // on-chain batch that committed it (R2)
   requestedAt: string; // ISO timestamp
   blockHeight?: number | null; // bitcoin tip when the claim entered the queue — bitcoin time, not calendar time (absent on pre-R2 entries; profile backfills via mempool.space)
+  matrix?: boolean; // matrix door cut for this tag (@handle:pacsarcade.org)
 }
 
 export function blobStoreEnabled(): boolean {
@@ -248,6 +249,73 @@ export async function claimHandle(
     return { ok: false, reason: "the claim queue isn't open on this deployment yet — check back soon" };
   }
   return { ok: true, entry, queuePosition: reg.entries.filter((e) => e.status === "queued").length };
+}
+
+/** Post-claim update (matrix door cut, etc.) — the one sanctioned rewrite
+    of a claim record. Pathname (and so uniqueness) never changes. */
+export async function updateEntry(
+  handle: string,
+  space: string | undefined,
+  patch: Partial<Pick<HandleEntry, "matrix">>
+): Promise<boolean> {
+  const s = normalizeSpace(space);
+  const existing = await getEntry(handle, s);
+  if (!existing) return false;
+  const next: HandleEntry = { ...existing, ...patch };
+  if (blobStoreEnabled()) {
+    try {
+      await put(blobPath(s, handle), JSON.stringify(next, null, 2), {
+        access: "public",
+        addRandomSuffix: false,
+        allowOverwrite: true,
+        contentType: "application/json",
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  const reg = await fileRead(s);
+  const i = reg.entries.findIndex((e) => e.handle === handle);
+  if (i < 0) return false;
+  reg.entries[i] = next;
+  try {
+    await fileWrite(s, reg);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Release a PENDING name back to the pool — the fren's right of exit while
+    the anchor hasn't etched. Etched entries are permanent by design. */
+export async function releaseHandle(
+  handle: string,
+  space?: string
+): Promise<{ ok: true } | { ok: false; reason: string }> {
+  const s = normalizeSpace(space);
+  const entry = await getEntry(handle, s);
+  if (!entry) return { ok: false, reason: "that tag isn't on the board" };
+  if (entry.status !== "queued") {
+    return { ok: false, reason: "already etched to Bitcoin — permanent is permanent" };
+  }
+  if (blobStoreEnabled()) {
+    try {
+      await del(blobPath(s, handle));
+    } catch {
+      return { ok: false, reason: "the registry hiccuped — try again in a moment" };
+    }
+  } else {
+    const reg = await fileRead(s);
+    reg.entries = reg.entries.filter((e) => e.handle !== handle);
+    try {
+      await fileWrite(s, reg);
+    } catch {
+      return { ok: false, reason: "the registry hiccuped — try again in a moment" };
+    }
+  }
+  npubCache.delete(entry.npub);
+  return { ok: true };
 }
 
 /* Reverse lookup for sign-in: which tag does this npub own? Scans every
