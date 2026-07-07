@@ -1,20 +1,10 @@
 @import "tailwindcss";
-
-/* Pac's Arcade merged design tokens — .com neon + .org arcade yellow.
-   coin = money/funding surfaces only; neon = success/live; ghost = danger. */
-@theme {
-  --color-void: #050505;
-  --color-panel: #1a1a1a;
-  --color-coin: #ffd700;
-  --color-neon: #39ff14;
-  --color-pink: #ff00ff;
-  --color-cyan: #00ffff;
-  --color-ghost: #e91e63;
-  --color-edge: #333333;
-  --font-arcade: var(--font-retronoid), var(--font-press-start), monospace;
-  --font-pixel: var(--font-press-start), monospace;
-  --font-body: var(--font-roboto), sans-serif;
-}
+/* One brand, every cabinet: tokens, glows, motion, easy mode, and arcade
+   themes come from the shared kit. App-specific ceremony effects stay below. */
+@import "@pacsarcade/arcade-ui/tailwind";
+/* Tailwind v4 does not scan node_modules — without this, utilities used
+   only by the packaged components never get generated (the giant-coin bug) */
+@source "../../node_modules/@pacsarcade/arcade-ui/react";
 
 :root {
   --background: #000000;
@@ -24,25 +14,6 @@
   --accent: #E91E63; /* Arcade pink */
   --border: #333333;
 }
-
-/* Neon glow utilities */
-.glow-coin { text-shadow: 0 0 6px rgba(255, 215, 0, 0.9), 0 0 24px rgba(255, 215, 0, 0.45); }
-.glow-neon { text-shadow: 0 0 6px rgba(57, 255, 20, 0.9), 0 0 24px rgba(57, 255, 20, 0.45); }
-.glow-pink { text-shadow: 0 0 6px rgba(255, 0, 255, 0.9), 0 0 24px rgba(255, 0, 255, 0.45); }
-.glow-cyan { text-shadow: 0 0 6px rgba(0, 255, 255, 0.9), 0 0 24px rgba(0, 255, 255, 0.45); }
-.glow-ghost { text-shadow: 0 0 6px rgba(233, 30, 99, 0.9), 0 0 24px rgba(233, 30, 99, 0.45); }
-
-@keyframes blink-cursor {
-  0%, 49% { opacity: 1; }
-  50%, 100% { opacity: 0; }
-}
-.blink { animation: blink-cursor 1.06s steps(1) infinite; }
-
-@keyframes neon-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.55; }
-}
-.pulse-neon { animation: neon-pulse 1.4s ease-in-out infinite; }
 
 /* CRT power-on: each letter blooms from a thin bright scanline into place,
    like an old tube giving life to the picture. Runs once per page load. */
@@ -299,7 +270,7 @@ section {
 .card {
   background-color: var(--secondary);
   border: 2px solid var(--border);
-  padding: 2rem;
+  padding: 1.5rem;
   text-align: center;
   transition: border-color 0.3s ease, transform 0.3s ease;
 }
@@ -309,11 +280,14 @@ section {
   transform: translateY(-5px);
 }
 
+/* Quarter headers: one row, never wrapped — sized so the longest title
+   ("2. LEARN FREE", 13 pixel-font glyphs) fits a 4-up column at max-w-5xl. */
 .card h3 {
   color: var(--primary);
   margin-bottom: 1rem;
-  font-size: 1rem;
+  font-size: 0.8rem;
   line-height: 1.5;
+  white-space: nowrap;
 }
 
 /* Forms */
