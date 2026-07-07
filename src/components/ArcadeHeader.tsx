@@ -14,6 +14,7 @@ export default function ArcadeHeader() {
     <SiteHeader
       wordmark="FRENS.EARTH"
       links={[
+        { href: "https://pacsarcade.org/play", label: "PLAY" },
         { href: "https://pacsarcade.org/classes", label: "LEARN" },
         { href: "https://pacsarcade.org/campaigns", label: "GROW" },
       ]}

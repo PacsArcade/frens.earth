@@ -5,9 +5,10 @@ import Link from "next/link";
 import type { HandleStatus } from "@/lib/registry";
 import { ANCHOR_BLOCKS_OUT, SPACE_ROLES } from "@/lib/identity-config";
 import { ARTIST_GATE_CERT_COUNT, CLASSES_URL } from "@/lib/classes";
-import { useTipHeight } from "@pacsarcade/arcade-ui";
+import { PixelAvatar, useTipHeight } from "@pacsarcade/arcade-ui";
 import ArcadeHeader from "@/components/ArcadeHeader";
 import ProfileEditor from "@/components/ProfileEditor";
+import ReleaseTag from "@/components/ReleaseTag";
 import useNostrProfile from "@/hooks/useNostrProfile";
 
 /* kind-0 websites arrive in every shape — make them clickable, never js: */
@@ -77,6 +78,7 @@ export default function FrenProfile({
   blockHeight,
   space,
   nip05Domain,
+  matrixProvisioned = false,
 }: {
   handle: string;
   npub: string;
@@ -85,6 +87,8 @@ export default function FrenProfile({
   blockHeight?: number | null;
   space: string;
   nip05Domain: string;
+  /** From the registry — set when the tag's Matrix door has been cut. */
+  matrixProvisioned?: boolean;
 }) {
   const spaceTag = `@${space}`;
   const nip05Id = `${handle}@${nip05Domain}`;
@@ -130,12 +134,8 @@ export default function FrenProfile({
               className="h-18 w-18 flex-none border-3 border-cyan object-cover"
             />
           ) : (
-            <div
-              className="grid h-18 w-18 flex-none place-items-center border-3 border-cyan bg-panel font-arcade text-3xl text-cyan"
-              aria-hidden
-            >
-              {handle[0]?.toUpperCase()}
-            </div>
+            /* same seeded pixel body the header chip wears — one face everywhere */
+            <PixelAvatar variant="player" seed={handle} size={72} />
           )}
           <div className="min-w-0 flex-1">
             <h1 className="break-all font-arcade text-[clamp(1.6rem,6vw,2.6rem)] leading-tight text-coin glow-coin">
@@ -224,6 +224,66 @@ export default function FrenProfile({
           )}
         </section>
 
+        {/* Artist mode — the workflow, right up top: running campaigns is
+            earned, not bought. LOCKED lives in the header (said once), the
+            border burns ghost-red until the checklist goes green, and every
+            requirement is a key — collect the keyring, open the floor. */}
+        <section className="border-b-0 py-0">
+          <p className="mb-2 font-pixel text-[10px] uppercase tracking-widest text-white/40">
+            RUNNING CAMPAIGNS IS EARNED, NOT BOUGHT
+          </p>
+          <h2 className="mb-4 font-arcade text-2xl text-ghost glow-ghost">
+            ARTIST MODE — 🔒 LOCKED
+          </h2>
+          <div className="border-2 border-ghost/60 bg-panel p-6">
+            <div className="space-y-3 font-pixel text-[10px] uppercase">
+              <p className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                <span className="text-neon" title="key earned">⚿</span>
+                <span className="text-white/80">FREN TAG REGISTERED</span>
+                <span className="font-mono text-white/40 normal-case">
+                  {handle}
+                  {spaceTag}
+                  {sinceBlock !== null && ` · block ${sinceBlock.toLocaleString()}`}
+                </span>
+              </p>
+              <p className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                <span className="text-ghost/70" title="key missing">⚿</span>
+                <span className="text-white/80">CERTS — 0 OF {ARTIST_GATE_CERT_COUNT}</span>
+                <a href={CLASSES_URL} className="text-cyan underline hover:glow-cyan">
+                  EARN AT THE CLASSES ▸
+                </a>
+              </p>
+              <p className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                <span className={matrixProvisioned ? "text-neon" : "text-ghost/70"} title={matrixProvisioned ? "key earned" : "key missing"}>⚿</span>
+                <span className="text-white/80">
+                  MATRIX DOOR{matrixProvisioned && " — CUT"}
+                </span>
+                {matrixProvisioned ? (
+                  <span className="font-mono text-white/40 normal-case">@{handle}:pacsarcade.org</span>
+                ) : (
+                  <a
+                    href="https://pacsarcade.org/login"
+                    className="text-cyan underline hover:glow-cyan"
+                  >
+                    CUT AT PACSARCADE.ORG ▸
+                  </a>
+                )}
+              </p>
+              <p className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                <span className="text-ghost/70" title="key missing">⚿</span>
+                <span className="text-white/80">WALLET LINKED</span>
+                <span className="text-white/40">
+                  LINKING OPENS SOON — TAUGHT IN THE WALLET CLASS
+                </span>
+              </p>
+            </div>
+            <p className="mt-4 border-t-2 border-ghost/30 pt-4 font-body text-sm text-white/70">
+              Four keys open this door, fren — every one free to earn. The border goes green
+              the day the keyring is full.
+            </p>
+          </div>
+        </section>
+
         {/* Live nostr signal — proof the profile exists beyond this site */}
         <section id="on-air" className="scroll-mt-6 border-2 border-edge bg-panel p-6">
           <p className="mb-4 font-pixel text-xs text-cyan">ON AIR — YOUR SIGNAL ON NOSTR</p>
@@ -268,7 +328,76 @@ export default function FrenProfile({
           )}
         </section>
 
-        {/* The controller — explicit continue into the nostr verse */}
+        {/* Matrix doors are @tag:pacsarcade.org school hardware — cut from
+            the pacsarcade.org profile, not here */}
+
+        {/* Certs — proof you showed up, etched not printed. Empty state until
+            the rune index + issuer attestations exist; honest by design. */}
+        <section className="border-b-0 py-0">
+          <p className="mb-2 font-pixel text-[10px] uppercase tracking-widest text-white/40">
+            PROOF YOU SHOWED UP — ETCHED, NOT PRINTED
+          </p>
+          <h2 className="mb-4 font-arcade text-2xl text-cyan glow-cyan">CERTS</h2>
+          <div className="border-2 border-edge bg-panel p-6">
+            <p className="mb-2 font-pixel text-xs text-white/60">NO CERTS YET</p>
+            <div className="flex flex-wrap items-center gap-5">
+              <p className="min-w-[16rem] flex-1 font-body text-sm text-white/80">
+                The arcade teaches free, fren. Take a class, earn a cert — one rune, etched to
+                your wallet, network fee on the house.
+              </p>
+              <a href={CLASSES_URL} className="button w-full text-center sm:w-auto">
+                SEE THE CLASSES ▸
+              </a>
+            </div>
+          </div>
+        </section>
+
+        {/* The showcase — runes and ordinals minted supporting projects.
+            Honest empty state until the rune index (knowledge-engine) gets
+            an HTTP bridge; each mint will then deep-link its campaign's
+            cabinet (/campaigns/[slug]) and the billboard rotation. */}
+        <section className="border-b-0 py-0">
+          <p className="mb-2 font-pixel text-[10px] uppercase tracking-widest text-white/40">
+            WHAT YOU MINTED ALONG THE WAY
+          </p>
+          <h2 className="mb-4 font-arcade text-2xl text-cyan glow-cyan">THE SHOWCASE</h2>
+          <div className="border-2 border-edge bg-panel p-6">
+            <p className="mb-2 font-pixel text-xs text-white/60">NO MINTS YET</p>
+            <div className="flex flex-wrap items-center gap-5">
+              <p className="min-w-[16rem] flex-1 font-body text-sm text-white/80">
+                Back a project and the runes and ordinals it mints land here — real artifacts on
+                Bitcoin, made in the arcade. Every piece on this shelf will link back to the
+                campaign that made it, so a fren who likes what they see can walk straight to
+                the cabinet and drop a quarter too.
+              </p>
+              <Link href="/campaigns" className="button w-full text-center sm:w-auto">
+                SEE THE FLOOR ▸
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        {/* 1UP supporters — the donor shelf (brand-kit-reference "in flight").
+            BTCPay invoices are anonymous today; badges arrive with Contribute
+            V2's nostr sign-in. No fake data — the shelf waits honestly. */}
+        <section className="border-b-0 py-0">
+          <p className="mb-2 font-pixel text-[10px] uppercase tracking-widest text-white/40">
+            PAYING IT FORWARD, ON THE RECORD
+          </p>
+          <h2 className="mb-4 font-arcade text-2xl text-coin glow-coin">1UP SUPPORTERS</h2>
+          <div className="border-2 border-coin/40 bg-panel p-6">
+            <p className="mb-2 font-pixel text-xs text-white/60">THE SHELF IS WAITING</p>
+            <p className="font-body text-sm text-white/80">
+              When you back a campaign with your tag signed in, the project&apos;s badge lights
+              up here — a 1UP for someone else&apos;s dream, worn on your profile. Supporters see
+              their backed projects; visitors see a fren who pays it forward. Contributions
+              stay wallet-to-wallet either way — the badge is bragging rights, not custody. 💛
+            </p>
+          </div>
+        </section>
+
+        {/* The controller — explicit continue into the nostr verse. Lives
+            below the working shelves: it's onboarding, not daily workflow. */}
         <section className="border-4 border-neon bg-panel p-6 shadow-[8px_8px_0_#ff00ff] sm:p-8">
           <p className="mb-2 font-pixel text-xs text-neon glow-neon">NEXT LEVEL</p>
           <h2 className="mb-4 font-arcade text-2xl text-cyan glow-cyan">ENTER THE NOSTR VERSE</h2>
@@ -366,164 +495,6 @@ export default function FrenProfile({
           </div>
         </section>
 
-        {/* Matrix doors are @tag:pacsarcade.org school hardware — they're cut
-            from the pacsarcade.org profile, not here (follow-up decision) */}
-
-        {/* Certs — proof you showed up, etched not printed. Empty state until
-            the rune index + issuer attestations exist; honest by design. */}
-        <section className="border-b-0 py-0">
-          <p className="mb-2 font-pixel text-[10px] uppercase tracking-widest text-white/40">
-            PROOF YOU SHOWED UP — ETCHED, NOT PRINTED
-          </p>
-          <h2 className="mb-4 font-arcade text-2xl text-cyan glow-cyan">CERTS</h2>
-          <div className="border-2 border-edge bg-panel p-6">
-            <p className="mb-2 font-pixel text-xs text-white/60">NO CERTS YET</p>
-            <div className="flex flex-wrap items-center gap-5">
-              <p className="min-w-[16rem] flex-1 font-body text-sm text-white/80">
-                The arcade teaches free, fren. Take a class, earn a cert — one rune, etched to
-                your wallet, network fee on the house.
-              </p>
-              <a href={CLASSES_URL} className="button w-full text-center sm:w-auto">
-                SEE THE CLASSES ▸
-              </a>
-            </div>
-          </div>
-        </section>
-
-        {/* The showcase — runes and ordinals minted supporting projects.
-            Honest empty state until the rune index (knowledge-engine) gets
-            an HTTP bridge; each mint will then deep-link its campaign's
-            cabinet (/campaigns/[slug]) and the billboard rotation. */}
-        <section className="border-b-0 py-0">
-          <p className="mb-2 font-pixel text-[10px] uppercase tracking-widest text-white/40">
-            WHAT YOU MINTED ALONG THE WAY
-          </p>
-          <h2 className="mb-4 font-arcade text-2xl text-cyan glow-cyan">THE SHOWCASE</h2>
-          <div className="border-2 border-edge bg-panel p-6">
-            <p className="mb-2 font-pixel text-xs text-white/60">NO MINTS YET</p>
-            <div className="flex flex-wrap items-center gap-5">
-              <p className="min-w-[16rem] flex-1 font-body text-sm text-white/80">
-                Back a project and the runes and ordinals it mints land here — real artifacts on
-                Bitcoin, made in the arcade. Every piece on this shelf will link back to the
-                campaign that made it, so a fren who likes what they see can walk straight to
-                the cabinet and drop a quarter too.
-              </p>
-              <Link href="/campaigns" className="button w-full text-center sm:w-auto">
-                SEE THE FLOOR ▸
-              </Link>
-            </div>
-          </div>
-        </section>
-
-        {/* 1UP supporters — the donor shelf (brand-kit-reference "in flight").
-            BTCPay invoices are anonymous today; badges arrive with Contribute
-            V2's nostr sign-in. No fake data — the shelf waits honestly. */}
-        <section className="border-b-0 py-0">
-          <p className="mb-2 font-pixel text-[10px] uppercase tracking-widest text-white/40">
-            PAYING IT FORWARD, ON THE RECORD
-          </p>
-          <h2 className="mb-4 font-arcade text-2xl text-coin glow-coin">1UP SUPPORTERS</h2>
-          <div className="border-2 border-coin/40 bg-panel p-6">
-            <p className="mb-2 font-pixel text-xs text-white/60">THE SHELF IS WAITING</p>
-            <p className="font-body text-sm text-white/80">
-              When you back a campaign with your tag signed in, the project&apos;s badge lights
-              up here — a 1UP for someone else&apos;s dream, worn on your profile. Supporters see
-              their backed projects; visitors see a fren who pays it forward. Contributions
-              stay wallet-to-wallet either way — the badge is bragging rights, not custody. 💛
-            </p>
-          </div>
-        </section>
-
-        {/* Artist mode — running campaigns is earned, not bought. The real
-            gate is server-side when it ships; this checklist never lies. */}
-        <section className="border-b-0 py-0">
-          <p className="mb-2 font-pixel text-[10px] uppercase tracking-widest text-white/40">
-            RUNNING CAMPAIGNS IS EARNED, NOT BOUGHT
-          </p>
-          <h2 className="mb-4 font-arcade text-2xl text-cyan glow-cyan">ARTIST MODE</h2>
-          <div className="border-2 border-edge bg-panel p-6">
-            <p className="mb-4 font-pixel text-xs text-ghost glow-ghost">
-              🔒 ARTIST MODE — LOCKED
-            </p>
-            <div className="space-y-3 font-pixel text-[10px] uppercase">
-              <p className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                <span className="text-neon">✓</span>
-                <span className="text-white/80">FREN TAG REGISTERED</span>
-                <span className="font-mono text-white/40 normal-case">
-                  {handle}
-                  {spaceTag}
-                  {sinceBlock !== null && ` · block ${sinceBlock.toLocaleString()}`}
-                </span>
-              </p>
-              <p className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                <span className="text-ghost">✗</span>
-                <span className="text-white/80">CERTS — 0 OF {ARTIST_GATE_CERT_COUNT}</span>
-                <a href={CLASSES_URL} className="text-cyan underline hover:glow-cyan">
-                  EARN AT THE CLASSES ▸
-                </a>
-              </p>
-              <p className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                <span className="text-ghost">✗</span>
-                <span className="text-white/80">WALLET LINKED</span>
-                <span className="text-white/40">
-                  LINKING OPENS SOON — TAUGHT IN THE WALLET CLASS
-                </span>
-              </p>
-            </div>
-            <p className="mt-4 border-t-2 border-edge pt-4 font-body text-sm text-white/70">
-              No shortcuts, no paywalls — every requirement is free to earn, fren. Artist mode
-              unlocks the day this checklist goes green.
-            </p>
-          </div>
-        </section>
-
-        {/* Discovery — the tour after the gift. Invite, never sell. */}
-        <section className="border-b-0 py-0">
-          <p className="mb-2 font-pixel text-[10px] uppercase tracking-widest text-white/40">
-            YOUR TAG WAS FREE — SO IS THE REST OF THE TOUR
-          </p>
-          <h2 className="mb-4 font-arcade text-2xl text-cyan glow-cyan">MORE INSIDE THE ARCADE</h2>
-          <div className="grid gap-5 sm:grid-cols-3">
-            <div className="flex flex-col gap-3 border-2 border-cyan/40 bg-panel p-5">
-              <p className="font-pixel text-xs text-cyan">BROWSE THE ARCADE</p>
-              <p className="flex-1 font-body text-sm text-white/70">
-                See what other frens are building — live runs, high scores, fresh etchings.
-              </p>
-              <a
-                href="https://pacsarcade.org"
-                className="self-start font-pixel text-[10px] text-cyan underline hover:glow-cyan"
-              >
-                BROWSE ▸
-              </a>
-            </div>
-            <div className="flex flex-col gap-3 border-2 border-pink/40 bg-panel p-5">
-              <p className="font-pixel text-xs text-pink">LEARN</p>
-              <p className="flex-1 font-body text-sm text-white/70">
-                Free classes on the arcade floor — bitcoin, nostr, your wallet. Every class etches
-                a cert.
-              </p>
-              <a
-                href={CLASSES_URL}
-                className="self-start font-pixel text-[10px] text-cyan underline hover:glow-cyan"
-              >
-                SEE CLASSES ▸
-              </a>
-            </div>
-            <div className="flex flex-col gap-3 border-2 border-coin/40 bg-panel p-5">
-              <p className="font-pixel text-xs text-coin">SUPPORT THE ARCADE</p>
-              <p className="flex-1 font-body text-sm text-white/70">
-                Pac&apos;s Arcade is a non-profit. Coins keep the floor open and the classes free.
-              </p>
-              <a
-                href="https://pacsarcade.org"
-                className="self-start font-pixel text-[10px] text-cyan underline hover:glow-cyan"
-              >
-                SUPPORT ▸
-              </a>
-            </div>
-          </div>
-        </section>
-
         {/* The plumbing — keys and addresses, copy-ready */}
         <section className="border-2 border-edge bg-panel p-6">
           <p className="mb-4 font-pixel text-xs text-cyan">PLAYER DATA</p>
@@ -564,6 +535,54 @@ export default function FrenProfile({
                 Bookmark it, share it — this is your start screen. Frens without keys can still
                 see you here.
               </p>
+            </div>
+          </div>
+        </section>
+
+        {/* The right of exit — pending names only; etched is forever */}
+        <ReleaseTag handle={handle} space={space} status={status} nip05Domain={nip05Domain} />
+
+        {/* The three doors — the whole arcade from any profile, no dupes */}
+        <section className="border-b-0 py-0">
+          <p className="mb-2 text-center font-pixel text-[10px] uppercase tracking-widest text-white/40">
+            THE THREE DOORS OF THE ARCADE
+          </p>
+          <div className="grid gap-5 sm:grid-cols-3">
+            <div className="flex flex-col gap-3 border-2 border-coin/40 bg-panel p-5">
+              <p className="font-pixel text-xs text-coin">PLAY</p>
+              <p className="flex-1 font-body text-sm text-white/70">
+                The game portal — POKE worlds where playing IS learning.
+              </p>
+              <a
+                href="https://pacsarcade.org/play"
+                className="self-start font-pixel text-[10px] text-cyan underline hover:glow-cyan"
+              >
+                INSERT COIN ▸
+              </a>
+            </div>
+            <div className="flex flex-col gap-3 border-2 border-pink/40 bg-panel p-5">
+              <p className="font-pixel text-xs text-pink">LEARN</p>
+              <p className="flex-1 font-body text-sm text-white/70">
+                Free classes, live with Pacman — every one etches a cert.
+              </p>
+              <a
+                href={CLASSES_URL}
+                className="self-start font-pixel text-[10px] text-cyan underline hover:glow-cyan"
+              >
+                SEE CLASSES ▸
+              </a>
+            </div>
+            <div className="flex flex-col gap-3 border-2 border-cyan/40 bg-panel p-5">
+              <p className="font-pixel text-xs text-cyan">GROW</p>
+              <p className="flex-1 font-body text-sm text-white/70">
+                The community floor — frens funding frens, wallet to wallet.
+              </p>
+              <a
+                href="https://pacsarcade.org/campaigns"
+                className="self-start font-pixel text-[10px] text-cyan underline hover:glow-cyan"
+              >
+                WALK THE FLOOR ▸
+              </a>
             </div>
           </div>
         </section>

@@ -100,6 +100,7 @@ export default async function FrenProfileRoute({
       blockHeight={entry.blockHeight}
       space={space}
       nip05Domain={nip05Domain}
+      matrixProvisioned={entry.matrix ?? false}
     />
   );
 }
