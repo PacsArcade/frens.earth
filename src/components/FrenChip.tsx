@@ -41,7 +41,11 @@ export default function FrenChip() {
       ) : (
         <PixelAvatar variant="player" seed={fren.handle} size={32} />
       )}
-      <span className="hidden max-w-28 truncate font-pixel text-[10px] text-cyan md:block">
+      <span
+        className={`hidden max-w-28 truncate font-pixel text-[10px] md:block ${
+          fren.space === "pacsarcade" ? "text-pink" : "text-cyan"
+        }`}
+      >
         {fren.handle.toUpperCase()}
       </span>
     </span>

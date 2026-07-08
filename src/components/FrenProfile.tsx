@@ -189,12 +189,18 @@ export default function FrenProfile({
         {/* Badges — verified only because the checks actually hold. The
             space chip answers "which profile am I in?" — two doors, one arcade. */}
         <section className="flex flex-wrap gap-3 border-b-0 py-0">
+          {/* the floor banner — a full row under the profile box; the accent
+              says which door this identity lives behind (pink school, cyan
+              play). Same colors as the chip and menu stripe. */}
           <span
-            className={`border-2 px-3 py-1.5 font-pixel text-[10px] uppercase ${
-              space === "pacsarcade" ? "border-pink/60 text-pink" : "border-cyan/60 text-cyan"
+            className={`w-full border-2 px-3 py-1.5 text-center font-pixel text-[10px] uppercase ${
+              space === "pacsarcade"
+                ? "border-pink/60 bg-pink/5 text-pink"
+                : "border-cyan/60 bg-cyan/5 text-cyan"
             }`}
           >
-            {spaceTag} · {SPACE_ROLES[space] ?? "VERSE"}
+            {space === "pacsarcade" ? "◆ ARTIST FLOOR" : "● PLAY FLOOR"} — {spaceTag} ·{" "}
+            {SPACE_ROLES[space] ?? "VERSE"}
           </span>
           <span className="border-2 border-cyan/60 px-3 py-1.5 font-pixel text-[10px] text-cyan">
             ✓ NOSTR VERIFIED — {nip05Id}
