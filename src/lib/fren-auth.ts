@@ -65,11 +65,14 @@ export function makeFrenToken(handle: string, space: string): string {
   return `${handle}.${space}.${exp}.${hmac(`${handle}|${space}|${exp}`)}`;
 }
 
-export function frenFromRequest(request: Request): { handle: string; space: string } | null {
-  const cookie = request.headers.get("cookie") ?? "";
-  const match = cookie.match(new RegExp(`${FREN_COOKIE}=([^;]+)`));
-  if (!match) return null;
-  const [handle, space, exp, sig] = match[1].split(".");
+/* The cookie can carry SEVERAL tokens joined by "~" (a legal cookie-value
+   char; tokens themselves only use [a-z0-9-.]). First token = the active
+   door. One key, two tags, zero re-signing — the door switcher. */
+const TOKEN_JOIN = "~";
+export const MAX_SESSIONS = 4;
+
+function parseToken(raw: string): { handle: string; space: string } | null {
+  const [handle, space, exp, sig] = raw.split(".");
   if (!handle || !space || !exp || !sig) return null;
   if (Date.now() > Number(exp)) return null;
   const expected = hmac(`${handle}|${space}|${exp}`);
@@ -79,4 +82,31 @@ export function frenFromRequest(request: Request): { handle: string; space: stri
     return null;
   }
   return { handle, space };
+}
+
+/** Every valid session in the cookie, in order (first = active). */
+export function sessionsFromRequest(
+  request: Request
+): { token: string; handle: string; space: string }[] {
+  const cookie = request.headers.get("cookie") ?? "";
+  const match = cookie.match(new RegExp(`${FREN_COOKIE}=([^;]+)`));
+  if (!match) return [];
+  const out: { token: string; handle: string; space: string }[] = [];
+  for (const raw of match[1].split(TOKEN_JOIN)) {
+    const fren = parseToken(raw);
+    if (fren && !out.some((o) => o.handle === fren.handle && o.space === fren.space)) {
+      out.push({ token: raw, ...fren });
+    }
+  }
+  return out.slice(0, MAX_SESSIONS);
+}
+
+/** Join tokens back into one cookie value (first = active). */
+export function joinSessionTokens(tokens: string[]): string {
+  return tokens.slice(0, MAX_SESSIONS).join(TOKEN_JOIN);
+}
+
+export function frenFromRequest(request: Request): { handle: string; space: string } | null {
+  const sessions = sessionsFromRequest(request);
+  return sessions.length ? { handle: sessions[0].handle, space: sessions[0].space } : null;
 }

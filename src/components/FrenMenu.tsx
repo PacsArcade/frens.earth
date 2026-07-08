@@ -1,19 +1,27 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { PixelAvatar } from "@pacsarcade/arcade-ui";
 import useFrenSession from "@/hooks/useFrenSession";
 import useNostrProfile from "@/hooks/useNostrProfile";
+import { SPACE_ROLES } from "@/lib/identity-config";
+
+/* Floor accents: pink = school/artist, cyan = play. The same colors the
+   profile banner wears — a fren always knows which door they're behind. */
+function accentText(space: string): string {
+  return space === "pacsarcade" ? "text-pink" : "text-cyan";
+}
 
 /**
- * The menu's identity rows — who you are up top, then your doors. Signed
- * in: identity block (avatar + tag + network) and MY PROFILE. Signed out:
- * the LOGIN door. SIGN OUT lives in the menu footer now (FrenMenuFooter),
- * split with the easy-eyes toggle. Injected into SiteHeader's menuSlot on
- * every page via ArcadeHeader.
+ * The menu's identity rows — who you are up top (accent-striped by floor),
+ * then your doors. Signed in: identity block, MY PROFILE, and a SWITCH row
+ * for every other door signed in on this browser. Signed out: the LOGIN
+ * door. SIGN OUT lives in the menu footer (split with easy-eyes).
  */
 export default function FrenMenu() {
-  const { fren } = useFrenSession();
+  const router = useRouter();
+  const { fren, accounts, switchTo } = useFrenSession();
   const { profile } = useNostrProfile(fren?.npub);
 
   if (!fren) {
@@ -27,10 +35,16 @@ export default function FrenMenu() {
     );
   }
 
+  const others = accounts.filter((a) => !(a.handle === fren.handle && a.space === fren.space));
+
   return (
     <>
-      {/* who you are — full identity: avatar, tag, and the network below */}
-      <div className="flex items-center gap-3 border-b-2 border-edge bg-void px-4 py-3">
+      {/* who you are — full identity, striped with the floor's accent */}
+      <div
+        className={`flex items-center gap-3 border-b-2 border-l-4 border-edge bg-void px-4 py-3 ${
+          fren.space === "pacsarcade" ? "border-l-pink" : "border-l-cyan"
+        }`}
+      >
         {profile?.picture ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -45,8 +59,8 @@ export default function FrenMenu() {
           <span className="block truncate font-pixel text-[10px] text-cyan">
             {fren.handle.toUpperCase()}
           </span>
-          <span className="block font-mono text-[10px] text-white/40">
-            @{fren.space} · {fren.space === "pacsarcade" ? "school" : "play"}
+          <span className={`block font-mono text-[10px] ${accentText(fren.space)}`}>
+            @{fren.space} · {(SPACE_ROLES[fren.space] ?? "verse").toLowerCase()}
           </span>
         </span>
       </div>
@@ -56,6 +70,23 @@ export default function FrenMenu() {
       >
         MY PROFILE
       </Link>
+      {/* the door switcher — every other signed-in door, one press away */}
+      {others.map((a) => (
+        <button
+          key={`${a.handle}@${a.space}`}
+          type="button"
+          onClick={async () => {
+            if (await switchTo(a.handle, a.space)) router.refresh();
+          }}
+          className="flex min-h-11 w-full cursor-pointer items-center gap-2 border-b-2 border-edge px-4 text-left font-pixel text-[10px] text-white/60 hover:text-cyan"
+        >
+          <span aria-hidden>⇄</span>
+          <span className="truncate">
+            {a.handle.toUpperCase()}
+            <span className={`ml-1 normal-case ${accentText(a.space)}`}>@{a.space}</span>
+          </span>
+        </button>
+      ))}
     </>
   );
 }
