@@ -1,5 +1,6 @@
 import { verifyFrenLogin, makeFrenToken, frenFromRequest, FREN_COOKIE } from "@/lib/fren-auth";
 import { getEntry } from "@/lib/registry";
+import { spaceForHost } from "@/lib/identity-config";
 
 /* Who am I — the header's FrenChip asks on every page load. npub rides
    along so the chip can tune the fren's kind-0 picture from the relays. */
@@ -18,8 +19,11 @@ export async function POST(request: Request) {
   } catch {
     return Response.json({ ok: false, reason: "invalid request" }, { status: 400 });
   }
+  /* the host decides the preferred door — pacsarcade.org logins land the
+     school tag when a key holds both */
+  const preferred = spaceForHost(request.headers.get("host")).space;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const result = await verifyFrenLogin(body.event as any);
+  const result = await verifyFrenLogin(body.event as any, preferred);
   if (!result.ok) {
     return Response.json(result, { status: 403 });
   }

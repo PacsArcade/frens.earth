@@ -23,15 +23,19 @@ function hmac(payload: string): string {
   return crypto.createHmac("sha256", secret()).update(payload).digest("hex");
 }
 
-export async function verifyFrenLogin(event: {
-  content?: string;
-  pubkey?: string;
-  sig?: string;
-  kind?: number;
-  created_at?: number;
-  tags?: unknown;
-  id?: string;
-}): Promise<{ ok: true; handle: string; space: string } | { ok: false; reason: string }> {
+export async function verifyFrenLogin(
+  event: {
+    content?: string;
+    pubkey?: string;
+    sig?: string;
+    kind?: number;
+    created_at?: number;
+    tags?: unknown;
+    id?: string;
+  },
+  /** The host's space — a key holding tags behind both doors lands here. */
+  preferSpace?: string
+): Promise<{ ok: true; handle: string; space: string } | { ok: false; reason: string }> {
   if (!event?.content || !event.pubkey || !event.sig) {
     return { ok: false, reason: "signed challenge required" };
   }
@@ -45,11 +49,12 @@ export async function verifyFrenLogin(event: {
     return { ok: false, reason: "signature check failed" };
   }
   const npub = nip19.npubEncode(event.pubkey);
-  const owner = await findHandleByNpub(npub);
+  const owner = await findHandleByNpub(npub, preferSpace);
   if (!owner) {
     return {
       ok: false,
-      reason: "that key doesn't own a tag on the board yet — register first, it's free",
+      reason:
+        "that key doesn't own a tag on the board — check which profile your signer is using, or register free",
     };
   }
   return { ok: true, ...owner };

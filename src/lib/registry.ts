@@ -319,26 +319,44 @@ export async function releaseHandle(
 }
 
 /* Reverse lookup for sign-in: which tag does this npub own? Scans every
-   space; cached briefly — the registry is small and sign-ins are rare. */
-const npubCache = new Map<string, { at: number; value: { handle: string; space: string } | null }>();
+   space; positive results cached briefly. Two lessons from the pacster
+   double-door sign-in (2026-07-07): NEVER cache a miss (one transient read
+   hiccup made "no tag" sticky for a minute), and when a key holds tags in
+   more than one space, the HOST's door wins — signing in on pacsarcade.org
+   should land the school tag, not whichever space scans first. */
+const npubCache = new Map<string, { at: number; value: { handle: string; space: string } }>();
 const NPUB_CACHE_TTL_MS = 60_000;
 
 export async function findHandleByNpub(
-  npub: string
+  npub: string,
+  preferSpace?: string
 ): Promise<{ handle: string; space: string } | null> {
   const hit = npubCache.get(npub);
-  if (hit && Date.now() - hit.at < NPUB_CACHE_TTL_MS) return hit.value;
-  let value: { handle: string; space: string } | null = null;
-  for (const space of KNOWN_SPACES) {
+  if (
+    hit &&
+    Date.now() - hit.at < NPUB_CACHE_TTL_MS &&
+    (!preferSpace || hit.value.space === preferSpace)
+  ) {
+    return hit.value;
+  }
+
+  const spaces = [...KNOWN_SPACES] as string[];
+  if (preferSpace && spaces.includes(preferSpace)) {
+    spaces.splice(spaces.indexOf(preferSpace), 1);
+    spaces.unshift(preferSpace);
+  }
+
+  for (const space of spaces) {
     const entries = blobStoreEnabled() ? await blobEntries(space) : (await fileRead(space)).entries;
     const match = entries.find((e) => e.npub === npub);
     if (match) {
-      value = { handle: match.handle, space };
-      break;
+      const value = { handle: match.handle, space };
+      npubCache.set(npub, { at: Date.now(), value });
+      return value;
     }
   }
-  npubCache.set(npub, { at: Date.now(), value });
-  return value;
+  /* no match: return null WITHOUT caching — the next attempt re-scans */
+  return null;
 }
 
 /** NIP-05 mapping (name -> hex pubkey) served at /.well-known/nostr.json */
