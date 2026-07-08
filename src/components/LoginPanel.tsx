@@ -6,12 +6,22 @@ import { useRouter } from "next/navigation";
 import SigningExplainer from "@/components/SigningExplainer";
 import SignerNudge from "@/components/SignerNudge";
 import useFrenSession, { applyFrenSession } from "@/hooks/useFrenSession";
+import { useBrand, type DoorAccent } from "@/lib/brand";
 
 /* one-shot environment read, hydration-safe and lint-clean */
 const noopSubscribe = () => () => {};
 function useHasSigner(): boolean | null {
   return useSyncExternalStore(noopSubscribe, () => !!window.nostr, () => null);
 }
+
+/* Static per-accent class map — Tailwind v4 only generates classes it can see
+   as complete literals, so door tints are looked up, never interpolated. */
+const DOOR_ACCENT: Record<DoorAccent, { border: string; label: string; cta: string }> = {
+  cyan: { border: "border-cyan/40", label: "text-cyan", cta: "text-cyan hover:glow-cyan" },
+  pink: { border: "border-pink/40", label: "text-pink", cta: "text-cyan hover:glow-cyan" },
+  coin: { border: "border-coin/40", label: "text-coin", cta: "text-cyan hover:glow-cyan" },
+  neon: { border: "border-neon/40", label: "text-neon", cta: "text-cyan hover:glow-cyan" },
+};
 
 /**
  * The arcade's front door for returning frens: sign a fresh challenge with
@@ -25,6 +35,7 @@ export default function LoginPanel() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { fren: existing, signOut } = useFrenSession();
+  const { copy, doors } = useBrand();
 
   async function signIn() {
     setError(null);
@@ -83,12 +94,9 @@ export default function LoginPanel() {
           </button>
         </div>
       ) : (
-        <div className="mx-auto w-full max-w-md border-4 border-cyan bg-panel p-6 shadow-[8px_8px_0_#ff00ff]">
-          <p className="mb-2 font-pixel text-xs text-cyan glow-cyan">RETURNING FREN?</p>
-          <p className="mb-5 font-body text-sm text-white/70">
-            Your key is your login — sign a fresh challenge and land on your profile. No
-            password, nothing stored, nothing to leak.
-          </p>
+        <div className="mx-auto w-full max-w-md border-4 border-cyan bg-panel p-6 shadow-[8px_8px_0_var(--color-pink)]">
+          <p className="mb-2 font-pixel text-xs text-cyan glow-cyan">{copy.returningTitle}</p>
+          <p className="mb-5 font-body text-sm text-white/70">{copy.returningBlurb}</p>
           {hasSigner === false ? (
             <SignerNudge />
           ) : (
@@ -97,7 +105,7 @@ export default function LoginPanel() {
               disabled={busy}
               className="button block w-full text-center disabled:opacity-50"
             >
-              {busy ? "WAITING FOR YOUR KEY…" : "▶ SIGN IN WITH MY KEY"}
+              {busy ? copy.signingCta : copy.signInCta}
             </button>
           )}
           {error && <p className="mt-3 font-pixel text-[9px] uppercase text-ghost">{error}</p>}
@@ -109,41 +117,34 @@ export default function LoginPanel() {
 
       <div className="space-y-4">
         <p className="text-center font-pixel text-[10px] uppercase tracking-widest text-white/40">
-          NO ACCOUNT? TWO DOORS, ONE ARCADE
+          {copy.doorsHeading}
         </p>
         {/* the doors stand side by side — pick like a character select */}
-        <div className="grid gap-4 sm:grid-cols-2 sm:auto-rows-fr">
-        <div className="border-2 border-cyan/40 bg-panel p-5">
-          <p className="mb-1 font-pixel text-[10px] text-cyan">@FRENS · THE PLAY ACCOUNT</p>
-          <p className="mb-3 font-body text-sm text-white/70">
-            Free for everyone. Learn together, test, tinker, join classes, back campaigns —
-            the account you can afford to experiment with. As frens, we learn together.
-          </p>
-          <a
-            href="https://frens.earth"
-            className="font-pixel text-[10px] uppercase text-cyan underline hover:glow-cyan"
-          >
-            GET YOUR PLAY TAG — FREE ▸
-          </a>
+        <div
+          className={`grid gap-4 sm:auto-rows-fr ${doors.length > 1 ? "sm:grid-cols-2" : ""}`}
+        >
+          {doors.map((door) => {
+            const tint = DOOR_ACCENT[door.accent];
+            return (
+              <div key={door.tag} className={`border-2 bg-panel p-5 ${tint.border}`}>
+                <p className={`mb-1 font-pixel text-[10px] ${tint.label}`}>
+                  {door.tag} · {door.role}
+                </p>
+                <p className="mb-3 font-body text-sm text-white/70">{door.blurb}</p>
+                {door.href.startsWith("http") ? (
+                  <a href={door.href} className={`font-pixel text-[10px] uppercase underline ${tint.cta}`}>
+                    {door.cta}
+                  </a>
+                ) : (
+                  <Link href={door.href} className={`font-pixel text-[10px] uppercase underline ${tint.cta}`}>
+                    {door.cta}
+                  </Link>
+                )}
+              </div>
+            );
+          })}
         </div>
-        <div className="border-2 border-pink/40 bg-panel p-5">
-          <p className="mb-1 font-pixel text-[10px] text-pink">@PACSARCADE · THE SCHOOL ACCOUNT</p>
-          <p className="mb-3 font-body text-sm text-white/70">
-            The step up when you commit to the path: classes → etched certs → the artist gate →
-            running campaigns. When you&apos;re ready for school, this is enrollment.
-          </p>
-          <Link
-            href="/register"
-            className="font-pixel text-[10px] uppercase text-cyan underline hover:glow-cyan"
-          >
-            SET UP YOUR SCHOOL ACCOUNT ▸
-          </Link>
-        </div>
-        </div>
-        <p className="text-center font-body text-xs text-white/50">
-          Two accounts is a feature, fren: experiment on one, keep the other clean — blast
-          radius is self-custody&apos;s first habit.
-        </p>
+        <p className="text-center font-body text-xs text-white/50">{copy.doorsFootnote}</p>
       </div>
     </div>
   );

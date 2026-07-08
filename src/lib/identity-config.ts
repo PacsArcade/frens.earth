@@ -29,10 +29,13 @@ export const SPACE_HOSTS: Record<string, SpaceConfig> = {
   "www.frens.earth": { space: "frens", nip05Domain: "frens.earth" },
   "pacsarcade.org": { space: "pacsarcade", nip05Domain: "pacsarcade.org" },
   "www.pacsarcade.org": { space: "pacsarcade", nip05Domain: "pacsarcade.org" },
+  // Degen Wonderland — @degen tags on degenwonderland.com (themeable sign-in).
+  "degenwonderland.com": { space: "degen", nip05Domain: "degenwonderland.com" },
+  "www.degenwonderland.com": { space: "degen", nip05Domain: "degenwonderland.com" },
 };
 
 /** Every space that may have a claim registry. */
-export const KNOWN_SPACES = ["frens", "pacsarcade"] as const;
+export const KNOWN_SPACES = ["frens", "pacsarcade", "degen"] as const;
 
 export function spaceForHost(host?: string | null): SpaceConfig {
   const h = (host ?? "").toLowerCase().split(":")[0];
@@ -51,4 +54,5 @@ export function domainForSpace(space: string): string {
 export const SPACE_ROLES: Record<string, string> = {
   frens: "PLAY",
   pacsarcade: "SCHOOL",
+  degen: "WONDER",
 };
