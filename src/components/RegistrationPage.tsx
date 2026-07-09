@@ -3,6 +3,7 @@
 import { useState } from "react";
 import TagClaim from "@/components/TagClaim";
 import ArcadeHeader from "@/components/ArcadeHeader";
+import EarthFooter from "@/components/EarthFooter";
 
 /* Marquee title: letters CRT-bloom into place on load, then a couple of tubes
    flicker sporadically — once — and the sign burns steady. `flickers` maps
@@ -121,28 +122,7 @@ export default function RegistrationPage({
         </div>
       </section>
 
-      <footer className="border-t-2 border-edge px-6 py-10 text-center">
-        <p className="font-pixel text-xs leading-relaxed text-white/40">
-          PAC&apos;S ARCADE IS A NON-PROFIT ·{" "}
-          {space === "frens" ? (
-            <>
-              A PAC&apos;S ARCADE PROJECT —{" "}
-              <a href="https://pacsarcade.org" className="text-cyan hover:glow-cyan">
-                PACSARCADE.ORG
-              </a>{" "}·{" "}
-            </>
-          ) : null}
-          YOUR TAG BELONGS TO YOU — WE NEVER SEE OR STORE YOUR SECRET KEY · POWERED BY THE{" "}
-          <a
-            href="https://spacesprotocol.org"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-cyan hover:glow-cyan"
-          >
-            SPACES PROTOCOL
-          </a>
-        </p>
-      </footer>
+      <EarthFooter />
     </main>
   );
 }

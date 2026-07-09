@@ -7,6 +7,7 @@ import { ANCHOR_BLOCKS_OUT, SPACE_ROLES } from "@/lib/identity-config";
 import { ARTIST_GATE_CERT_COUNT, CLASSES_URL } from "@/lib/classes";
 import { PixelAvatar, useTipHeight } from "@pacsarcade/arcade-ui";
 import ArcadeHeader from "@/components/ArcadeHeader";
+import EarthFooter from "@/components/EarthFooter";
 import PokeArcadeCard from "@/components/PokeArcadeCard";
 import ProfileEditor from "@/components/ProfileEditor";
 import ReleaseTag from "@/components/ReleaseTag";
@@ -644,23 +645,7 @@ export default function FrenProfile({
         </p>
       </div>
 
-      <footer className="border-t-2 border-edge px-6 py-10 text-center">
-        <p className="font-pixel text-xs leading-relaxed text-white/40">
-          A PROJECT OF THE PAC&apos;S ARCADE NON-PROFIT —{" "}
-          <a href="https://pacsarcade.org" className="text-cyan hover:glow-cyan">
-            PACSARCADE.ORG
-          </a>{" "}·{" "}
-          YOUR TAG BELONGS TO YOU — WE NEVER SEE OR STORE YOUR SECRET KEY · POWERED BY THE{" "}
-          <a
-            href="https://spacesprotocol.org"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-cyan hover:glow-cyan"
-          >
-            SPACES PROTOCOL
-          </a>
-        </p>
-      </footer>
+      <EarthFooter />
     </main>
   );
 }
