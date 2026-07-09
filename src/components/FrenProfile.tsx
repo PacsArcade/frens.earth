@@ -7,9 +7,11 @@ import { ANCHOR_BLOCKS_OUT, SPACE_ROLES } from "@/lib/identity-config";
 import { ARTIST_GATE_CERT_COUNT, CLASSES_URL } from "@/lib/classes";
 import { PixelAvatar, useTipHeight } from "@pacsarcade/arcade-ui";
 import ArcadeHeader from "@/components/ArcadeHeader";
+import PokeArcadeCard from "@/components/PokeArcadeCard";
 import ProfileEditor from "@/components/ProfileEditor";
 import ReleaseTag from "@/components/ReleaseTag";
 import useNostrProfile from "@/hooks/useNostrProfile";
+import type { PokeProfile } from "@/lib/poke";
 
 /* kind-0 websites arrive in every shape — make them clickable, never js: */
 function safeUrl(raw?: string): string | null {
@@ -79,6 +81,7 @@ export default function FrenProfile({
   space,
   nip05Domain,
   matrixProvisioned = false,
+  poke = null,
 }: {
   handle: string;
   npub: string;
@@ -89,6 +92,8 @@ export default function FrenProfile({
   nip05Domain: string;
   /** From the registry — set when the tag's Matrix door has been cut. */
   matrixProvisioned?: boolean;
+  /** Live stats from the fren's POKE node — null when the node is dark. */
+  poke?: PokeProfile | null;
 }) {
   const spaceTag = `@${space}`;
   const nip05Id = `${handle}@${nip05Domain}`;
@@ -218,6 +223,10 @@ export default function FrenProfile({
             </span>
           )}
         </section>
+
+        {/* The game floor — live stats from the fren's POKE node; the card
+            only exists while the node answers (graceful dark-node fallback) */}
+        {poke && <PokeArcadeCard poke={poke} handle={handle} />}
 
         {/* Artist mode — compact milestone rail in the enrollment order
             (nostr → matrix → classes → wallet). LOCKED lives in the header,

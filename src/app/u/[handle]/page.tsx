@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import FrenProfile from "@/components/FrenProfile";
 import GameOverTag from "@/components/GameOverTag";
 import { getEntry, validateHandle } from "@/lib/registry";
+import { getPokeProfile } from "@/lib/poke";
 import { spaceForHost, domainForSpace, KNOWN_SPACES } from "@/lib/identity-config";
 
 /* Where "press start" leads: frens.earth's root IS its registration page;
@@ -70,7 +71,12 @@ export default async function FrenProfileRoute({
       />
     );
   }
-  const entry = await getEntry(valid.handle, space);
+  /* Registry and game node answer in parallel; the node is best-effort —
+     unreachable means the profile simply renders without the arcade panel. */
+  const [entry, poke] = await Promise.all([
+    getEntry(valid.handle, space),
+    getPokeProfile(valid.handle),
+  ]);
   if (!entry) {
     /* Before declaring a tag homeless, check the other doors. */
     let elsewhere: string | null = null;
@@ -101,6 +107,7 @@ export default async function FrenProfileRoute({
       space={space}
       nip05Domain={nip05Domain}
       matrixProvisioned={entry.matrix ?? false}
+      poke={poke}
     />
   );
 }
