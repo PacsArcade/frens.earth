@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import ArcadeHeader from "@/components/ArcadeHeader";
+import EarthFooter from "@/components/EarthFooter";
 import LoginPanel from "@/components/LoginPanel";
 
 export const metadata: Metadata = {
@@ -21,11 +22,7 @@ export default function LoginPage() {
         </div>
         <LoginPanel />
       </div>
-      <footer className="border-t-2 border-edge px-6 py-10 text-center">
-        <p className="font-pixel text-xs leading-relaxed text-white/40">
-          YOUR KEY IS YOUR LOGIN — WE NEVER SEE OR STORE IT · PAC&apos;S ARCADE IS A NON-PROFIT
-        </p>
-      </footer>
+      <EarthFooter />
     </main>
   );
 }
