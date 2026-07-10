@@ -10,6 +10,9 @@ import { loadBuddies, upsertBuddy } from "@/lib/bb/store";
 import Hatchery from "@/components/bb/Hatchery";
 import BuddyDevice from "@/components/bb/BuddyDevice";
 
+/** Short npub for display + starship naming: "npub18…h6w6" (npub + 2 + … + last 4). */
+export const shortNpub = (n: string) => (n.length > 15 ? `${n.slice(0, 7)}…${n.slice(-4)}` : n);
+
 /**
  * The /bb front door + hatchery. Bitcoin Buddies work with ANY nostr key
  * (Pac, 2026-07-10): a fren session npub is used when present, otherwise a
@@ -85,7 +88,7 @@ export default function BbConsole() {
         <button onClick={connect} className="button w-full sm:w-auto">▶ CONNECT YOUR KEY</button>
         {connectErr && <p className="font-mono text-xs text-ghost">{connectErr}</p>}
         <a href="/" className="font-mono text-[11px] uppercase tracking-widest text-pink hover:underline">
-          New to frens? Come get your @frens tag ▸
+          Claim your @frens tag ▸
         </a>
       </div>
     );
@@ -111,11 +114,11 @@ export default function BbConsole() {
           <p className="font-pixel text-[11px] text-neon glow-neon">
             {fren ? `✓ ${fren.handle.toUpperCase()}@${fren.space.toUpperCase()}` : "✓ KEY CONNECTED"}
           </p>
-          <p className="mt-0.5 break-all font-mono text-[10px] text-cyan">{npub}</p>
+          <p className="mt-0.5 font-mono text-[10px] text-cyan">{shortNpub(npub)}</p>
         </div>
         {!fren && (
           <a href="/" className="font-mono text-[10px] uppercase tracking-wider text-pink hover:underline">
-            get your @frens tag ▸
+            Claim your @frens tag ▸
           </a>
         )}
       </section>
