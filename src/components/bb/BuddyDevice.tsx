@@ -30,7 +30,7 @@ export default function BuddyDevice({
   const [alive, setAlive] = useState<boolean>(buddy.alive);
   const [cause, setCause] = useState<string | undefined>(buddy.cause);
   const [speech, setSpeech] = useState("");
-  const [, forceTick] = useState(0); // drives cooldown-shade repaint
+  const [cooldowns, setCooldowns] = useState<Partial<Record<BuddyCareAction, number>>>({}); // action → end-ts
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const spriteRef = useRef<HTMLImageElement | null>(null);
@@ -101,7 +101,13 @@ export default function BuddyDevice({
     const res = applyCare(a, vitalsRef.current, STAGES[index]);
     say(res.quip);
     if (!res.reaction) return; // e.g. too tired to play — no cooldown, no change
-    coolRef.current[a] = Date.now() + COOLDOWN[a] * 1000;
+    const end = Date.now() + COOLDOWN[a] * 1000;
+    coolRef.current[a] = end;
+    setCooldowns((c) => ({ ...c, [a]: end }));
+    setTimeout(() => {
+      delete coolRef.current[a];
+      setCooldowns((c) => { const n = { ...c }; delete n[a]; return n; });
+    }, COOLDOWN[a] * 1000);
     reactionRef.current = { type: res.reaction, until: Date.now() + 1100 };
     vitalsRef.current = res.vitals;
     setVitals(res.vitals);
@@ -125,12 +131,6 @@ export default function BuddyDevice({
     return () => clearInterval(id);
   }, [die]);
 
-  // cooldown-shade repaint
-  useEffect(() => {
-    const id = setInterval(() => forceTick((n) => (n + 1) % 1_000_000), 200);
-    return () => clearInterval(id);
-  }, []);
-
   // persist on unmount so a quick visit isn't lost
   useEffect(() => () => { persistRef.current(); }, []);
 
@@ -144,15 +144,26 @@ export default function BuddyDevice({
     let raf = 0;
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+    // cache the sky gradient once (W/H are fixed) instead of rebuilding it every frame
+    const sky = ctx.createLinearGradient(0, 0, 0, H);
+    sky.addColorStop(0, "#0c1a14"); sky.addColorStop(0.6, "#0a130e"); sky.addColorStop(1, "#0a0f0c");
+    // pre-render the moon emoji offscreen, only when the phase changes (fillText per frame was the drain)
+    const moonCanvas = document.createElement("canvas"); moonCanvas.width = moonCanvas.height = 48;
+    const mctx = moonCanvas.getContext("2d")!;
+    let moonIdx = -1;
+
     const draw = (t: number) => {
-      // garden
-      const sky = ctx.createLinearGradient(0, 0, 0, H);
-      sky.addColorStop(0, "#0c1a14"); sky.addColorStop(0.6, "#0a130e"); sky.addColorStop(1, "#0a0f0c");
       ctx.fillStyle = sky; ctx.fillRect(0, 0, W, H);
+      const mp = moonPhase(blockRef.current);
+      if (mp.index !== moonIdx) {
+        moonIdx = mp.index;
+        mctx.clearRect(0, 0, 48, 48);
+        mctx.font = "30px serif"; mctx.textAlign = "center"; mctx.textBaseline = "middle";
+        mctx.fillText(mp.emoji, 24, 24);
+      }
       ctx.globalAlpha = aliveRef.current ? 1 : 0.5;
-      ctx.font = "30px serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-      ctx.fillText(moonPhase(blockRef.current).emoji, W - 50, 50);
-      ctx.globalAlpha = 1; ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+      ctx.drawImage(moonCanvas, W - 74, 26);
+      ctx.globalAlpha = 1;
       ctx.fillStyle = "rgba(241,239,231,0.5)";
       for (let i = 0; i < 16; i++) {
         const sx = (i * 53) % W, sy = (i * 29) % 110, tw = reduce ? 1 : 0.5 + 0.5 * Math.sin(t / 600 + i);
@@ -203,7 +214,6 @@ export default function BuddyDevice({
   const stage = stageForAgeDays(ageDays).stage;
   const status = statusLine(buddy.name, vitals);
   const animal = yearAnimal(buddy.bornBlock);
-  const now = Date.now();
 
   return (
     <div className="mx-auto w-full max-w-md rounded-2xl border-2 border-edge bg-panel p-5">
@@ -266,22 +276,18 @@ export default function BuddyDevice({
       </div>
 
       {/* actions */}
+      <style>{`@keyframes bbCooldown { from { height: 100%; } to { height: 0%; } }`}</style>
       <div className="mt-4 grid grid-cols-4 gap-2">
         {ACTIONS.map(({ a, icon, label }) => {
-          const until = coolRef.current[a] ?? 0;
-          const cooling = alive && until > now;
-          const remain = cooling ? Math.max(0, until - now) : 0;
-          const pct = cooling ? (remain / (COOLDOWN[a] * 1000)) * 100 : 0;
+          const cooling = alive && (cooldowns[a] ?? 0) > Date.now();
           return (
             <button key={a} onClick={() => doAction(a)} disabled={!alive || cooling}
               className="relative flex flex-col items-center gap-1.5 overflow-hidden rounded-xl border border-edge bg-gradient-to-b from-[#1c2a20] to-[#131b15] px-1.5 pb-3 pt-3 font-mono text-[11px] uppercase tracking-wider text-white transition enabled:hover:border-neon disabled:cursor-not-allowed disabled:text-white/40">
               <span className="text-[17px] leading-none" aria-hidden>{icon}</span>
               {label}
               {cooling && (
-                <>
-                  <span className="pointer-events-none absolute inset-x-0 bottom-0 border-t border-cyan/50 bg-cyan/20 transition-[height] duration-100" style={{ height: `${pct}%` }} />
-                  <span className="absolute right-1.5 top-1 font-mono text-[9px] text-cyan tabular-nums">{Math.ceil(remain / 1000)}s</span>
-                </>
+                <span key={cooldowns[a]} className="pointer-events-none absolute inset-x-0 bottom-0 border-t border-cyan/50 bg-cyan/20"
+                  style={{ animation: `bbCooldown ${COOLDOWN[a]}s linear forwards` }} />
               )}
             </button>
           );
