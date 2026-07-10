@@ -84,8 +84,8 @@ export default function BbConsole() {
         </p>
         <button onClick={connect} className="button w-full sm:w-auto">▶ CONNECT YOUR KEY</button>
         {connectErr && <p className="font-mono text-xs text-ghost">{connectErr}</p>}
-        <a href="https://pacsarcade.org/register" className="font-mono text-[11px] uppercase tracking-widest text-pink hover:underline">
-          No key yet? Claim a @frens tag ▸
+        <a href="/" className="font-mono text-[11px] uppercase tracking-widest text-pink hover:underline">
+          New to frens? Come get your @frens tag ▸
         </a>
       </div>
     );
@@ -114,8 +114,8 @@ export default function BbConsole() {
           <p className="mt-0.5 break-all font-mono text-[10px] text-cyan">{npub}</p>
         </div>
         {!fren && (
-          <a href="https://pacsarcade.org/register" className="font-mono text-[10px] uppercase tracking-wider text-pink hover:underline">
-            claim @frens ▸
+          <a href="/" className="font-mono text-[10px] uppercase tracking-wider text-pink hover:underline">
+            get your @frens tag ▸
           </a>
         )}
       </section>
