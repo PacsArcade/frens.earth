@@ -56,7 +56,7 @@ export const frensEarthTheme: BrandTheme = {
     signingCta: "READING YOUR SIGNATURE…",
     doorsHeading: "NO TAG YET? THE GARDEN HAS A GATE",
     doorsFootnote:
-      "Tick tock — every tag gets tied to the block. Start free, stay sovereign, grow with your frens.",
+      "Tick tock — every tag gets tied to the block. It's free and it's yours — stay sovereign, grow with your frens.",
   },
   doors: [
     {
@@ -65,7 +65,7 @@ export const frensEarthTheme: BrandTheme = {
       blurb:
         "Free forever. Your tag, your keys, your patch of earth — play, learn, back your frens. The digital renaissance starts at home.",
       href: "/",
-      cta: "CLAIM YOUR TAG — FREE ▸",
+      cta: "CLAIM YOUR TAG ▸",
       accent: "neon",
     },
     {

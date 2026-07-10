@@ -14,7 +14,7 @@ export default function EarthFooter() {
         <a href="https://pacsarcade.org" className="text-pink hover:glow-pink">
           PAC&apos;S ARCADE
         </a>{" "}
-        💜 · A 501(C)(3) NON-PROFIT
+        · A 501(C)(3) NON-PROFIT
       </p>
     </footer>
   );

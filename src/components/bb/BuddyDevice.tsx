@@ -186,10 +186,12 @@ export default function BuddyDevice({
           else lastDanceRef.current = now;
         }
         if (reacting) {
-          const p = 1 - (reactionRef.current!.until - now) / 1100;
-          if (reactionRef.current!.type === "feed") { const s = 1 + Math.sin(p * Math.PI * 3) * 0.1; sx = s; sy = 2 - s; }
-          if (reactionRef.current!.type === "play") rot = p * Math.PI * 2;
-          if (reactionRef.current!.type === "sleep") { const s = 1 - p * 0.12; sx = s; sy = s; }
+          const p = Math.min(1, Math.max(0, 1 - (reactionRef.current!.until - now) / 1100)); // 0→1
+          const e = Math.sin(p * Math.PI); // smooth 0→1→0 envelope — starts & ends at rest, no snap
+          const type = reactionRef.current!.type;
+          if (type === "feed") { sy = 1 + e * 0.18; sx = 1 - e * 0.1; }         // happy stretch up
+          else if (type === "play") { rot = Math.sin(p * Math.PI * 3) * 0.28 * e; bob += -e * 10; } // wiggle + hop (no jagged spin)
+          else if (type === "sleep") { sy = 1 - e * 0.22; sx = 1 + e * 0.08; }  // gentle settle down
         }
         const ageDays = Math.max(0, (blockRef.current - buddy.bornBlock) / 144);
         const grow = 1 + stageForAgeDays(ageDays).index * 0.12;
