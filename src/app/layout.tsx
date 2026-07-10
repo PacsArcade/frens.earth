@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Press_Start_2P, Roboto } from "next/font/google";
 import localFont from "next/font/local";
 import { CRTOverlay, EASY_MODE_BOOT_SCRIPT } from "@pacsarcade/arcade-ui";
+import { BrandProvider, frensEarthTheme } from "@/lib/brand";
 import "./globals.css";
 
 const retronoid = localFont({
@@ -31,9 +32,9 @@ const roboto = Roboto({
 });
 
 export const metadata: Metadata = {
-  title: "Claim your player tag — Pac's Arcade",
+  title: "Claim your fren tag — frens.earth",
   description:
-    "Free sovereign bitcoin handles. Your name, your keys — verifiable on nostr today, permanent on Bitcoin at the next batch.",
+    "Free sovereign bitcoin handles. Your name, your keys — verifiable on nostr today, permanent on Bitcoin at the next batch. Made with love at Pac's Arcade 💜",
 };
 
 export default function RootLayout({
@@ -48,7 +49,9 @@ export default function RootLayout({
     >
       <body>
         <script dangerouslySetInnerHTML={{ __html: EASY_MODE_BOOT_SCRIPT }} />
-        {children}
+        {/* Digital Renaissance is frens.earth's MAIN theme (Pac, 2026-07-09).
+            The dressing room (/admin/brand) still previews candidates on top. */}
+        <BrandProvider theme={frensEarthTheme}>{children}</BrandProvider>
         <CRTOverlay />
       </body>
     </html>
