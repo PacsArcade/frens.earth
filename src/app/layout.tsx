@@ -3,6 +3,7 @@ import { Press_Start_2P, Roboto } from "next/font/google";
 import localFont from "next/font/local";
 import { CRTOverlay, EASY_MODE_BOOT_SCRIPT } from "@pacsarcade/arcade-ui";
 import { BrandProvider, frensEarthTheme } from "@/lib/brand";
+import BftClock from "@/components/BftClock";
 import "./globals.css";
 
 const retronoid = localFont({
@@ -51,7 +52,10 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: EASY_MODE_BOOT_SCRIPT }} />
         {/* Digital Renaissance is frens.earth's MAIN theme (Pac, 2026-07-09).
             The dressing room (/admin/brand) still previews candidates on top. */}
-        <BrandProvider theme={frensEarthTheme}>{children}</BrandProvider>
+        <BrandProvider theme={frensEarthTheme}>
+          {children}
+          <BftClock />
+        </BrandProvider>
         <CRTOverlay />
       </body>
     </html>
