@@ -14,7 +14,9 @@ export default function ArcadeHeader() {
     <SiteHeader
       wordmark="FRENS.EARTH"
       links={[
-        { href: "https://pacsarcade.org/play", label: "PLAY" },
+        // PLAY = frens.earth's own game — Bitcoin Buddy (/bb), the only game here for now.
+        // LEARN/GROW stay under Pac's Arcade until frens.earth grows its own.
+        { href: "/bb", label: "PLAY" },
         { href: "https://pacsarcade.org/classes", label: "LEARN" },
         { href: "https://pacsarcade.org/campaigns", label: "GROW" },
       ]}
