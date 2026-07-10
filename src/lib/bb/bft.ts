@@ -58,14 +58,19 @@ export function moonPhase(height: number): { emoji: string; name: string; index:
   return { emoji, name, index };
 }
 
+// 13 animals — the traditional 12 plus the CAT as the 13th (Pac, 2026-07-10). The cat is the
+// famous "left-out" sign of the Great Race (the Rat tricked it) and a real sign in the Vietnamese
+// zodiac; BB seats it as the 13th to match the 13-month year (and Ophiuchus, the 13th sign). Here
+// it's the "Astronomical Cat" — the flying cat of Adult Swim's Perfect Hair Forever.
 const YEAR_ANIMALS: ReadonlyArray<readonly [string, string]> = [
   ["🐀", "Rat"], ["🐂", "Ox"], ["🐅", "Tiger"], ["🐇", "Rabbit"], ["🐉", "Dragon"], ["🐍", "Snake"],
   ["🐎", "Horse"], ["🐐", "Goat"], ["🐒", "Monkey"], ["🐓", "Rooster"], ["🐕", "Dog"], ["🐖", "Pig"],
+  ["🐈", "Astronomical Cat"],
 ];
 
-/** 12-animal year sign. AB 0 (2009) = Ox; the new year falls on a new moon. */
+/** 13-animal year sign. AB 0 (2009) = Ox; the new year falls on a new moon (M01·D01). */
 export function yearAnimal(height: number): { emoji: string; name: string } {
-  const [emoji, name] = YEAR_ANIMALS[(bft(height).year + 1) % 12];
+  const [emoji, name] = YEAR_ANIMALS[(bft(height).year + 1) % 13];
   return { emoji, name };
 }
 
