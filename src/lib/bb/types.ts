@@ -70,6 +70,24 @@ export const BB_EVENT_KINDS = {
   CARE_ACTION: 1337,
 } as const;
 
+/**
+ * A buddy as persisted for the live /bb (v1: localStorage keyed by owner npub).
+ * This carries the live vitals + sprite the device needs; the same fields map
+ * onto the BUDDY_DEFINITION + BUDDY_STATE nostr events when that wiring lands.
+ */
+export interface StoredBuddy extends Buddy {
+  owners: Npub[];
+  bornBlock: number;
+  vitals: BuddyVitals;
+  /** ms timestamp of the last decay reconciliation (vitals decay on real ≈ block time). */
+  lastTick: number;
+  /** 64×64 transparent-bg PNG data URL. */
+  sprite: string;
+  alive: boolean;
+  /** Epitaph cause, set once dead. */
+  cause?: string;
+}
+
 /** A care action a fren can take on a buddy (design notes Part 1). */
 export type BuddyCareAction = "feed" | "play" | "sleep" | "talk";
 
