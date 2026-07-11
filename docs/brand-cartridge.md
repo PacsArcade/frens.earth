@@ -1,6 +1,6 @@
 # The Brand Cartridge — /a/brand goes SCAR (spark for GLYPH)
 
-*Sparked 2026-07-11 by the admiral, from GLYPH's own "Brand Cartridge"
+*Sparked 0018.04.15 a₿ by the admiral, from GLYPH's own "Brand Cartridge"
 wireframe. Two halves: GLYPH restyles the dressing room; Claude plumbs the
 sovereign cartridge format underneath.*
 

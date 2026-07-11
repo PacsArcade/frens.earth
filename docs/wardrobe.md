@@ -1,6 +1,6 @@
 # The Wardrobe — many tags, one front (round-3 spec)
 
-*Spec'd 2026-07-11 (a₿ 0018.04.15) from the admiral's direction: users carry
+*Spec'd 0018.04.15 a₿ from the admiral's direction: users carry
 many identities (Pac tests with 6–7), profiles should link a fren's tags
 across spaces, and a fren presents as ONE name while switching freely.
 Division of labor: **frens.earth plumbing = Claude (this repo)**;

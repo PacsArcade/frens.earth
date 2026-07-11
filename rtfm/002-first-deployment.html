@@ -84,6 +84,14 @@
   #rtfm-magic .secret { font-family:var(--mono); margin-top:16px; border:1px dashed var(--edge); border-radius:8px; padding:10px 12px; }
   #rtfm-magic .secret b { color:var(--heart); }
   #rtfm-magic .foot { color:var(--muted); font-size:.85rem; margin-top:14px; }
+
+  /* clickable ceremony boxes — each step jumps to its section */
+  .flow { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:14px 0; }
+  .flow a.box { display:inline-block; border:2px solid var(--edge); border-radius:8px; background:var(--panel); padding:10px 14px; font-family:var(--mono); font-size:12px; color:var(--sprout); text-decoration:none; }
+  .flow a.box:hover { border-color:var(--sprout); }
+  .flow a.box small { display:block; color:var(--muted); font-size:9px; text-transform:uppercase; letter-spacing:.08em; }
+  .flow .arr { color:var(--muted); font-family:var(--mono); }
+  .sys { font-family:var(--mono); font-size:.9em; color:var(--teal); }
 </style>
 </head>
 <body>
@@ -98,16 +106,29 @@
 <div class="wrap">
 
   <section id="s0">
-    <div class="head"><span class="num">CEREMONY</span><h2>The git flow, drawn</h2></div>
-    <div class="term">
-      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;how a change becomes real</div>
-<pre>
-  idea ──▶ <span class="k">branch</span> ──▶ <span class="k">commits</span> ──▶ <span class="s">PR — the proposal</span>
-                                        │
-                                        │  <span class="p">you merge = you approve</span>
-                                        ▼
-  <span class="s">LIVE SITE</span> ◀── <span class="k">deploy</span> ◀── <span class="k">main — the truth</span>
-</pre>
+    <div class="head"><span class="num">CEREMONY</span><h2>How it really works here — click a box</h2></div>
+    <p>The real workflow on <span class="sys">frens.earth</span> — you never write the code yourself:</p>
+    <div class="flow">
+      <a class="box" href="#s0"><small>you</small>idea</a><span class="arr">──▶</span>
+      <a class="box" href="#s0"><small>you</small>tell the agent</a><span class="arr">──▶</span>
+      <a class="box" href="https://github.com/PacsArcade/frens.earth/pulls"><small>the agent (Claude)</small>drafts commits + a PR</a><span class="arr">──▶</span>
+      <a class="box" href="https://frens.earth/a/scar"><small>the admiral — you</small>approve at SCARLET</a><span class="arr">──▶</span>
+      <a class="box" href="#s6"><small>the agent</small>deploys — it's live</a>
+    </div>
+    <ul class="plain">
+      <li><b>the site</b> — <a href="https://frens.earth">frens.earth</a> (what the world sees)</li>
+      <li><b>the repo</b> — <a href="https://github.com/PacsArcade/frens.earth">github.com/PacsArcade/frens.earth</a> (the master copy)</li>
+      <li><b>SCARLET</b> — <a href="https://frens.earth/a/scar">frens.earth/a/scar</a> (your approval desk)</li>
+      <li><b>the host</b> — Vercel project <span class="sys">adminpacmans-projects / frens-earth</span></li>
+    </ul>
+    <p>And the classic git flow underneath, each step a box you can click:</p>
+    <div class="flow">
+      <a class="box" href="#s1"><small>01</small>get the ship</a><span class="arr">──▶</span>
+      <a class="box" href="#s2"><small>02</small>first flight</a><span class="arr">──▶</span>
+      <a class="box" href="#s3"><small>03</small>make it yours</a><span class="arr">──▶</span>
+      <a class="box" href="#s4"><small>04</small>go live</a><span class="arr">──▶</span>
+      <a class="box" href="#s5"><small>05</small>the rhythm</a><span class="arr">──▶</span>
+      <a class="box" href="#s6"><small>06</small>hook up approvals</a>
     </div>
     <ul class="plain">
       <li><b>branch</b> — a safe side copy</li>
@@ -197,10 +218,33 @@ NEXT_PUBLIC_NIP05_DOMAIN=<span class="s">yourspace.example</span>
     <ul class="plain">
       <li>proposals arrive as numbered PRs</li>
       <li>read it, merge it, deploy it</li>
-      <li>or authorize from /a/scar — signature merges</li>
+      <li>or approve at <a href="https://frens.earth/a/scar">SCARLET (frens.earth/a/scar)</a> — needs <a href="#s6">phase 06</a> once</li>
       <li>order rarely matters; overlaps get flagged</li>
     </ul>
     <div class="call check"><span class="lab">The finish line</span><p>A live site whose every change passed through your hands. The merge is the ceremony; the deploy is the broadcast.</p></div>
+  </section>
+
+  <section id="s6">
+    <div class="head"><span class="num">06</span><h2>Hook up approvals at SCARLET (once)</h2></div>
+    <p>So the <span class="sys">MERGE QUEUE</span> at <a href="https://frens.earth/a/scar">frens.earth/a/scar</a> can list and merge proposals, it needs one key from GitHub. Two steps, five minutes, once.</p>
+    <h3>Step A — make the key (on GitHub)</h3>
+    <ul class="plain">
+      <li>go to <a href="https://github.com/settings/personal-access-tokens/new">github.com → Settings → Developer settings → Fine-grained tokens → Generate</a></li>
+      <li>name: <code>frens-earth-scar-merges</code> · expiry: 90 days</li>
+      <li><b>Resource owner: PacsArcade</b> (the org, not you)</li>
+      <li>repository access: only <span class="sys">PacsArcade/frens.earth</span></li>
+      <li>permissions: <b>Contents</b> + <b>Pull requests</b> — both read &amp; write, nothing else</li>
+      <li>Generate → copy it now (shown once)</li>
+    </ul>
+    <h3>Step B — paste it (on the site — no Vercel needed)</h3>
+    <ul class="plain">
+      <li>open <a href="https://frens.earth/a/scar">frens.earth/a/scar</a>, signed in as operator</li>
+      <li>the queue shows <b>CONNECT YOUR GITHUB — PASTE, SAVE, APPROVE</b></li>
+      <li>paste the key → <b>▶ CONNECT</b> — done, forever</li>
+      <li>the key stores write-only; nobody can read it back, not even you</li>
+    </ul>
+    <div class="call tip"><span class="lab">The Vercel back door (only if the box is unreachable)</span><p>Vercel project <span class="sys">adminpacmans-projects / frens-earth</span> → Settings → Environment Variables → add <code>GITHUB_TOKEN</code> = the key → then deploy again (law ①: env changes need a deploy).</p></div>
+    <div class="call check"><span class="lab">Checkpoint</span><p>SCARLET lists every open proposal with <b>✍ AUTHORIZE &amp; MERGE</b>. Your signature — bound to the exact code — is the whole approval. No more GitHub tabs.</p></div>
   </section>
 
   <footer>

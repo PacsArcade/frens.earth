@@ -64,7 +64,7 @@ Both gate on the existing operator session (`fe-operator` cookie — a NIP-07
 ```json
 { "ok": true, "space": "frens", "count": 128,
   "entries": [ { "handle": "alice", "npub": "npub1…",
-                 "requestedAt": "2026-07-10T…", "blockHeight": 957510 } ] }
+                 "requestedAt": "0018.04.14 a₿T…", "blockHeight": 957510 } ] }
 ```
 
 **`POST /api/admin/batch/commit`** → record the outcome:

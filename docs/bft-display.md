@@ -1,6 +1,6 @@
 # Displaying Bitcoin Time — the house standard
 
-*Codified 2026-07-11 from the admiral's direction. The lore is ours; the
+*Codified 0018.04.15 a₿ from the admiral's direction. The lore is ours; the
 ergonomics are borrowed from the clock every person already reads — the OS
 tray. Easy for people. Implementation lives in `src/lib/bb/bft.ts`.*
 
@@ -8,7 +8,7 @@ tray. Easy for people. Implementation lives in `src/lib/bb/bft.ts`.*
 
 Wherever SCAR (and the site) shows the running clock, use the **stacked
 tray-clock** layout — time on top, date below, exactly like the OS taskbar
-(admiral's screenshot, 2026-07-11):
+(admiral's screenshot, 0018.04.15 a₿):
 
 ```
    14:30          ← bftTime(height)   — bigger line
@@ -28,7 +28,7 @@ tray-clock** layout — time on top, date below, exactly like the OS taskbar
 | a running clock | `bftTime(h)` over `bftDatePlain(h)` | `14:30` / `0018.04.15` |
 | when a thing happened (rows, logs, tickets) | `bftDateTime(h)` | `0018.04.15 14:30` |
 | a date alone | `bftDatePlain(h)` | `0018.04.15` |
-| a ceremonial/formal date | `bftDate(h)` | `0018.04.15 a₿` — the marker rides AFTER the date (amended 2026-07-11); pre-genesis wears `b₿` the same way |
+| a ceremonial/formal date | `bftDate(h)` | `0018.04.15 a₿` — the marker rides AFTER the date (amended 0018.04.15 a₿); pre-genesis wears `b₿` the same way |
 | the block itself matters | prefix `▣ {h.toLocaleString()} · ` | `▣ 957,580 · 0018.04.15 14:30` |
 | an estimated stamp (no recorded block) | prefix `~ ` | `~ 0018.04.15 14:30` |
 

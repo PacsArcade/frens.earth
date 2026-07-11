@@ -1,6 +1,6 @@
 # The Operator Console — a module, not furniture
 
-*Declared 2026-07-11 (Pac): the console is a GENERAL FRAMEWORK to template
+*Declared 0018.04.15 a₿ (Pac): the console is a GENERAL FRAMEWORK to template
 when building sites from this repository. First consumers besides
 frens.earth: **pacsarcade-org** and **onecocreation**.*
 
