@@ -8,15 +8,16 @@ import useFrenSession from "@/hooks/useFrenSession";
 import useNostrProfile from "@/hooks/useNostrProfile";
 import { SPACE_ROLES } from "@/lib/identity-config";
 
-/* The admin deck row — only for a live operator session. The fe-operator
-   cookie is httpOnly, so the menu asks the whoami endpoint; everyone else
-   never sees the row (the admin side stays a door, not a signpost). */
+/* The admin deck row — for a live operator session OR a fren whose key is on
+   the operator allowlist (`eligible`: the door shows, the gate still takes a
+   fresh signature). Cookies are httpOnly, so the menu asks the whoami
+   endpoint; everyone else never sees the row. */
 function useIsOperator(): boolean {
   const [isOp, setIsOp] = useState(false);
   useEffect(() => {
     fetch("/api/admin/session")
       .then((r) => r.json())
-      .then((d) => setIsOp(!!d.ok))
+      .then((d) => setIsOp(!!d.ok || !!d.eligible))
       .catch(() => {});
   }, []);
   return isOp;

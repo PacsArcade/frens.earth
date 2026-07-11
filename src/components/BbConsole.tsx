@@ -139,9 +139,9 @@ export default function BbConsole() {
   const identityLine = fren ? `${fren.handle.toUpperCase()}@${fren.space.toUpperCase()}` : "KEY CONNECTED";
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col items-center gap-6">
-      {/* who's holding the collar — mobile: a slim inline strip */}
-      <section className="flex w-full max-w-md flex-wrap items-center gap-3 rounded-2xl border border-neon/40 bg-panel px-4 py-2 lg:hidden">
+    <div className="relative mx-auto flex w-full max-w-3xl flex-col items-center gap-6">
+      {/* who's holding the collar — below xl: a slim inline strip */}
+      <section className="flex w-full max-w-md flex-wrap items-center gap-3 rounded-2xl border border-neon/40 bg-panel px-4 py-2 xl:hidden">
         <PixelAvatar variant="player" seed={fren?.handle ?? npub} size={32} />
         <div className="min-w-0 flex-1">
           <p className="truncate font-pixel text-[10px] text-neon glow-neon">✓ {identityLine}</p>
@@ -154,11 +154,22 @@ export default function BbConsole() {
         )}
       </section>
 
-      {/* desktop: the mini rail — minimal on purpose; the buddy is the star */}
-      <aside className="fixed right-4 top-32 z-40 hidden w-40 flex-col items-center gap-2 rounded-xl border border-edge/70 bg-panel/85 p-3 text-center backdrop-blur-sm lg:flex">
+      {/* desktop: the mini rail — anchored to the game column (not the
+          viewport, the ultrawide lesson), handle and @space stacked so long
+          tags never shred. Minimal on purpose; the buddy is the star. */}
+      <aside className="absolute left-full top-0 ml-6 hidden w-40 flex-col items-center gap-2 rounded-xl border border-edge/70 bg-panel/85 p-3 text-center backdrop-blur-sm xl:flex">
         <PixelAvatar variant="player" seed={fren?.handle ?? npub} size={36} />
-        <p className="w-full truncate font-pixel text-[9px] text-neon">{identityLine}</p>
-        {!fren && <p className="w-full truncate font-mono text-[9px] text-cyan">{shortNpub(npub)}</p>}
+        {fren ? (
+          <p className="w-full font-pixel text-[9px] leading-relaxed text-neon">
+            <span className="block truncate">{fren.handle.toUpperCase()}</span>
+            <span className="block truncate font-mono text-[9px] text-cyan">@{fren.space}</span>
+          </p>
+        ) : (
+          <p className="w-full font-pixel text-[9px] leading-relaxed text-neon">
+            <span className="block">KEY CONNECTED</span>
+            <span className="block truncate font-mono text-[9px] text-cyan">{shortNpub(npub)}</span>
+          </p>
+        )}
         {fren ? (
           <a
             href={`/u/${fren.handle}@${fren.space}`}
