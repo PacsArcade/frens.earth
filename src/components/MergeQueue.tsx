@@ -178,20 +178,40 @@ export default function MergeQueue() {
 
 /** The connect box — paste a fine-grained PAT (contents + pull-requests
     write, this repo only), save write-once, and the queue lights up. The
-    token is masked forever after; no deployment env required. */
+    token is masked forever after; no deployment env required.
+
+    On connect, SCARLET runs THE HANDSHAKE in front of the captain — each
+    stage is a real check, shown as manual-style flow boxes (equal grid,
+    chip top-left, label stacked — the house box standard), ending with a
+    plain-words "you did great". The training dashboard's first instance. */
+
+type StageState = "wait" | "run" | "done" | "fail";
+const STAGE_LABELS = ["key received", "reaching github", "queue online"] as const;
+
+const pause = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
 function ConnectGithub({ onConnected }: { onConnected: () => void }) {
   const [token, setToken] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [stages, setStages] = useState<StageState[] | null>(null);
+  const [prCount, setPrCount] = useState<number | null>(null);
+  const [great, setGreat] = useState(false);
 
-  async function save() {
+  const setStage = (i: number, s: StageState) =>
+    setStages((prev) => prev?.map((v, j) => (j === i ? s : j === i + 1 && s === "done" ? "run" : v)) ?? prev);
+
+  async function connect() {
     setErr(null);
     if (!token.trim()) {
       setErr("paste a token first");
       return;
     }
     setBusy(true);
+    setGreat(false);
+    setStages(["run", "wait", "wait"]);
     try {
+      // stage 1 — the key lands in the vault (write-only)
       const res = await fetch("/api/admin/nodes", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -199,45 +219,147 @@ function ConnectGithub({ onConnected }: { onConnected: () => void }) {
       });
       const data = await res.json();
       if (!data.ok) {
-        setErr(data.reason ?? "couldn't save");
+        setStage(0, "fail");
+        setErr(data.reason ?? "couldn't save the key");
         return;
       }
       setToken("");
-      onConnected(); // reload — the queue lists now
+      await pause(600);
+      setStage(0, "done"); // advances stage 2 to "run"
+
+      // stages 2 + 3 — the key actually opens the repo and lists the queue
+      const check = await fetch("/api/admin/merges");
+      const queue = await check.json().catch(() => null);
+      if (!queue?.ok || queue.setup) {
+        setStage(1, "fail");
+        setErr(
+          queue?.setup === "connect-github"
+            ? "the key saved, but GitHub didn't answer to it — check the resource owner (the org), repo access, and Contents + Pull requests (read/write)"
+            : (queue?.setup ?? queue?.reason ?? "GitHub didn't answer — try again"),
+        );
+        return;
+      }
+      await pause(600);
+      setStage(1, "done");
+      await pause(600);
+      setPrCount(Array.isArray(queue.prs) ? queue.prs.length : 0);
+      setStage(2, "done");
+      setGreat(true);
+      await pause(4200); // let the moment land, then the live queue takes over
+      onConnected();
     } catch {
-      setErr("save hiccuped — try again");
+      setStages(null);
+      setErr("couldn't reach the server — check your connection and try again");
     } finally {
       setBusy(false);
     }
   }
 
+  const stageStyle: Record<StageState, string> = {
+    wait: "border-edge text-white/30",
+    run: "border-cyan text-cyan animate-pulse",
+    done: "border-neon text-neon",
+    fail: "border-ghost text-ghost",
+  };
+  const stageMark: Record<StageState, string> = { wait: "", run: "▸ ", done: "✓ ", fail: "✗ " };
+
   return (
     <div className="border-2 border-coin/60 bg-coin/5 p-4">
       <p className="mb-2 font-pixel text-[10px] uppercase text-coin">CONNECT YOUR GITHUB — PASTE, SAVE, APPROVE</p>
-      <p className="mb-3 font-body text-xs text-white/70">
-        The repo is private, so the queue needs a key to see it. GitHub → Settings → Developer
-        settings → <span className="text-cyan">Fine-grained tokens</span>: resource owner ={" "}
-        <span className="text-cyan">your org</span>, this repo only, permissions{" "}
-        <span className="text-cyan">Contents + Pull requests (read/write)</span>. Paste it once —
-        it&apos;s stored write-only and never shown again.
-      </p>
-      <div className="flex flex-wrap gap-2">
-        <input
-          value={token}
-          onChange={(e) => setToken(e.target.value)}
-          type="password"
-          placeholder="github_pat_…"
-          className="min-w-0 flex-1 border-2 border-edge bg-void px-3 py-2 font-mono text-xs text-cyan placeholder:text-white/25 focus:border-cyan focus:outline-none"
-        />
-        <button
-          onClick={save}
-          disabled={busy}
-          className="min-h-11 border-2 border-coin px-4 font-pixel text-[9px] uppercase text-coin hover:glow-coin disabled:opacity-50"
-        >
-          {busy ? "SAVING…" : "▶ CONNECT"}
-        </button>
-      </div>
+      {!stages && (
+        <p className="mb-3 font-body text-xs text-white/70">
+          The repo is private, so the queue needs a key to see it. GitHub → Settings → Developer
+          settings →{" "}
+          <a
+            href="https://github.com/settings/personal-access-tokens/new"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-cyan underline hover:text-white"
+          >
+            Fine-grained tokens ▸
+          </a>
+          : name under 40 chars, resource owner = <span className="text-cyan">your org</span>, this
+          repo only, permissions <span className="text-cyan">Contents + Pull requests (read/write)</span>.
+          Paste it once — it&apos;s stored write-only and never shown again.
+        </p>
+      )}
+
+      {/* THE HANDSHAKE — three real checks the captain watches happen */}
+      {stages && (
+        <div className="mb-3 grid grid-cols-1 items-stretch gap-2 sm:grid-cols-[1fr_16px_1fr_16px_1fr]">
+          {stages.map((s, i) => (
+            <FragmentedStage key={STAGE_LABELS[i]} index={i} state={s} style={stageStyle[s]} mark={stageMark[s]} />
+          ))}
+        </div>
+      )}
+
+      {great && (
+        <div className="mb-3 border-2 border-neon bg-neon/10 p-4">
+          <p className="font-pixel text-[11px] uppercase tracking-widest text-neon">
+            ✓ YOU DID GREAT, CAPTAIN.
+          </p>
+          <p className="mt-2 font-body text-sm text-white/85">
+            Key received. GitHub answered.{" "}
+            {prCount === 0
+              ? "The board is clean — proposals will line up here."
+              : `${prCount} proposal${prCount === 1 ? "" : "s"} waiting for your signature.`}{" "}
+            SCARLET has the conn.
+          </p>
+        </div>
+      )}
+
+      {!great && (
+        <div className="flex flex-wrap gap-2">
+          <input
+            value={token}
+            onChange={(e) => setToken(e.target.value)}
+            type="password"
+            placeholder="github_pat_…"
+            disabled={busy}
+            className="min-w-0 flex-1 border-2 border-edge bg-void px-3 py-2 font-mono text-xs text-cyan placeholder:text-white/25 focus:border-cyan focus:outline-none disabled:opacity-50"
+          />
+          <button
+            onClick={connect}
+            disabled={busy}
+            className="min-h-11 border-2 border-coin px-4 font-pixel text-[9px] uppercase text-coin hover:glow-coin disabled:opacity-50"
+          >
+            {busy ? "SHAKING HANDS…" : "▶ CONNECT"}
+          </button>
+        </div>
+      )}
       {err && <p className="mt-2 font-pixel text-[9px] uppercase text-ghost">{err}</p>}
     </div>
+  );
+}
+
+/** One handshake box + its leading arrow (skipped for the first). Equal grid
+    cells, chip top-left, label stacked — docs/glyph box standard. */
+function FragmentedStage({
+  index,
+  state,
+  style,
+  mark,
+}: {
+  index: number;
+  state: StageState;
+  style: string;
+  mark: string;
+}) {
+  return (
+    <>
+      {index > 0 && (
+        <span className="hidden place-self-center font-mono text-[11px] text-white/30 sm:grid">▶</span>
+      )}
+      <div className={`flex flex-col gap-1 border-2 bg-panel p-2.5 ${style}`}>
+        <span className="font-mono text-[8px] uppercase tracking-widest opacity-60">
+          {String(index + 1).padStart(2, "0")}
+        </span>
+        <span className="font-pixel text-[9px] uppercase">
+          {mark}
+          {STAGE_LABELS[index]}
+          {state === "run" && "…"}
+        </span>
+      </div>
+    </>
   );
 }
