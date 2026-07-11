@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- ═══════════════════════════════════════════════════════════════════════
+     RTFM ARTICLE TEMPLATE
+     Copy this file to  NNN-slug.html  (e.g. 002-your-topic.html), then:
+       1. set the <title>            → "NNN · Your Title — RTFM"
+       2. set the eyebrow            → "RTFM · NNN · one-line what-it-is"
+       3. write the <h1> + subtitle
+       4. fill the sections; use .term for commands, .call.* for callouts
+       5. KEEP the magic block at the bottom (that's the whole point)
+     House style = the frens.earth night-garden, terminal treatment. Both
+     light + dark themes are handled by the tokens; don't hardcode colors.
+     ═══════════════════════════════════════════════════════════════════════ -->
+<title>002 · Your First Deployment — RTFM</title>
+<style>
+  :root {
+    --void:#0d1210; --panel:#151d18; --edge:#2f4033;
+    --ink:#e8ede9; --muted:#839388;
+    --sprout:#5ef78a; --teal:#53e0d4; --gold:#f7c948; --ghost:#ff6b6b; --heart:#b795ff;
+    --mono: ui-monospace,"Cascadia Code","JetBrains Mono","SFMono-Regular",Menlo,Consolas,monospace;
+    --sans: ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --maxw:900px;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --void:#f3f6f1; --panel:#fff; --edge:#d6ded3; --ink:#17211b; --muted:#5a6b60;
+      --sprout:#12924a; --teal:#0e8b82; --gold:#a97c07; --ghost:#c23a3a; --heart:#6f4dc0;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--void); color:var(--ink); font-family:var(--sans); font-size:16px; line-height:1.65; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:var(--maxw); margin:0 auto; padding:0 20px 96px; }
+  a { color:var(--teal); text-decoration:none; border-bottom:1px solid transparent; }
+  a:hover { border-bottom-color:currentColor; }
+  a:focus-visible { outline:2px solid var(--teal); outline-offset:2px; }
+  code,.mono { font-family:var(--mono); }
+
+  header.hero { max-width:var(--maxw); margin:0 auto; padding:64px 20px 36px; }
+  .eyebrow { font-family:var(--mono); font-size:12px; letter-spacing:.22em; text-transform:uppercase; color:var(--sprout); display:flex; align-items:center; gap:10px; margin-bottom:20px; }
+  .eyebrow::before { content:""; width:22px; height:1px; background:var(--sprout); }
+  h1.title { font-family:var(--mono); font-weight:700; font-size:clamp(2rem,6vw,3.2rem); line-height:1.04; letter-spacing:-.01em; margin:0; text-wrap:balance; }
+  h1.title .glow { color:var(--sprout); text-shadow:0 0 24px color-mix(in srgb,var(--sprout) 45%,transparent); }
+  .subtitle { color:var(--muted); font-size:1.05rem; max-width:62ch; margin:14px 0 0; }
+  .mission { margin-top:22px; padding:14px 18px; border-left:3px solid var(--heart); background:color-mix(in srgb,var(--heart) 9%,transparent); font-size:.95rem; border-radius:0 6px 6px 0; max-width:64ch; }
+  .mission b { color:var(--heart); }
+
+  section { margin-top:52px; scroll-margin-top:20px; }
+  .head { display:flex; align-items:baseline; gap:14px; border-bottom:1px solid var(--edge); padding-bottom:12px; margin-bottom:20px; }
+  .head .num { font-family:var(--mono); font-size:13px; color:var(--void); background:var(--sprout); padding:3px 9px; border-radius:5px; font-weight:700; }
+  h2 { font-family:var(--mono); font-size:clamp(1.35rem,3.4vw,1.85rem); margin:0; letter-spacing:-.01em; text-wrap:balance; }
+  h3 { font-family:var(--mono); font-size:1.02rem; margin:28px 0 10px; color:var(--teal); }
+  p, ul { max-width:68ch; }
+  ul.plain { padding-left:20px; }
+  ul.plain li { margin:5px 0; }
+  strong { color:var(--ink); }
+
+  .term { margin:14px 0; border:1px solid var(--edge); border-radius:8px; overflow:hidden; background:color-mix(in srgb,var(--panel) 82%,var(--void)); }
+  .term .bar { display:flex; align-items:center; gap:8px; padding:7px 12px; border-bottom:1px solid var(--edge); font-family:var(--mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); background:var(--panel); }
+  .term .bar .dot { width:9px; height:9px; border-radius:50%; background:var(--edge); }
+  .term .bar .dot.g { background:var(--sprout); }
+  .term pre { margin:0; padding:14px 16px; overflow-x:auto; font-family:var(--mono); font-size:13px; line-height:1.7; }
+  .term pre .c { color:var(--muted); } .term pre .p { color:var(--sprout); } .term pre .s { color:var(--gold); }
+
+  .call { margin:18px 0; padding:14px 16px 14px 18px; border-radius:8px; border:1px solid var(--edge); border-left-width:3px; background:var(--panel); }
+  .call .lab { font-family:var(--mono); font-size:11px; letter-spacing:.14em; text-transform:uppercase; font-weight:700; margin-bottom:6px; display:block; }
+  .call p { margin:0; }
+  .call.danger { border-left-color:var(--ghost); background:color-mix(in srgb,var(--ghost) 8%,var(--panel)); } .call.danger .lab { color:var(--ghost); }
+  .call.check  { border-left-color:var(--sprout); background:color-mix(in srgb,var(--sprout) 8%,var(--panel)); } .call.check .lab { color:var(--sprout); }
+  .call.tip    { border-left-color:var(--teal); } .call.tip .lab { color:var(--teal); }
+
+  footer { max-width:var(--maxw); margin:56px auto 0; padding:24px 20px 0; border-top:1px solid var(--edge); color:var(--muted); font-family:var(--mono); font-size:12px; }
+  footer b { color:var(--heart); }
+  .kbd { font-family:var(--mono); font-size:.82em; border:1px solid var(--edge); border-bottom-width:2px; border-radius:4px; padding:1px 6px; color:var(--ink); }
+
+  /* the magic — keep this. RTFM rewards the readers. */
+  #rtfm-magic { position:fixed; inset:0; display:grid; place-items:center; padding:24px; background:rgba(5,8,6,.82); z-index:9999; }
+  #rtfm-magic[hidden] { display:none; }
+  #rtfm-magic .card { max-width:440px; width:100%; border:2px solid var(--sprout); border-radius:12px; background:var(--panel); padding:28px; text-align:center; box-shadow:0 0 44px color-mix(in srgb,var(--sprout) 34%,transparent); }
+  #rtfm-magic .eye { font-family:var(--mono); font-size:11px; letter-spacing:.2em; text-transform:uppercase; color:var(--sprout); }
+  #rtfm-magic h2 { font-family:var(--mono); font-size:1.6rem; margin:.35em 0 .5em; }
+  #rtfm-magic .secret { font-family:var(--mono); margin-top:16px; border:1px dashed var(--edge); border-radius:8px; padding:10px 12px; }
+  #rtfm-magic .secret b { color:var(--heart); }
+  #rtfm-magic .foot { color:var(--muted); font-size:.85rem; margin-top:14px; }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="eyebrow">RTFM · 002 · clone it, run it, ship it</div>
+  <h1 class="title">Your first<br><span class="glow">deployment.</span></h1>
+  <p class="subtitle">Zero to a live site — for a captain who's never sailed git. Short bullets, real commands, one ceremony.</p>
+  <div class="mission"><b>The one idea.</b> GitHub holds the master copy. Changes arrive as proposals. Your merge is the approval. A deploy publishes it. That's the whole religion.</div>
+</header>
+
+<div class="wrap">
+
+  <section id="s0">
+    <div class="head"><span class="num">CEREMONY</span><h2>The git flow, drawn</h2></div>
+    <div class="term">
+      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;how a change becomes real</div>
+<pre>
+  idea ──▶ <span class="k">branch</span> ──▶ <span class="k">commits</span> ──▶ <span class="s">PR — the proposal</span>
+                                        │
+                                        │  <span class="p">you merge = you approve</span>
+                                        ▼
+  <span class="s">LIVE SITE</span> ◀── <span class="k">deploy</span> ◀── <span class="k">main — the truth</span>
+</pre>
+    </div>
+    <ul class="plain">
+      <li><b>branch</b> — a safe side copy</li>
+      <li><b>commit</b> — one saved step, with a note</li>
+      <li><b>PR</b> — "please accept these steps"</li>
+      <li><b>merge</b> — your signature; it's law now</li>
+      <li><b>deploy</b> — publish the law to the world</li>
+    </ul>
+  </section>
+
+  <section id="s1">
+    <div class="head"><span class="num">01</span><h2>Get the ship (clone)</h2></div>
+    <div class="term">
+      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;one folder, whole repo</div>
+<pre><span class="p">$</span> git clone https://github.com/PacsArcade/frens.earth my-space
+<span class="p">$</span> cd my-space
+</pre>
+    </div>
+    <ul class="plain">
+      <li>clone = download the repo, once</li>
+      <li>needs git installed, nothing else</li>
+      <li>private repo? sign in: <code>gh auth login</code></li>
+      <li>pull = refresh later: <code>git pull</code></li>
+    </ul>
+  </section>
+
+  <section id="s2">
+    <div class="head"><span class="num">02</span><h2>First flight (run it)</h2></div>
+    <div class="term">
+      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;the whole install</div>
+<pre><span class="p">$</span> npm install
+<span class="p">$</span> npm run dev
+</pre>
+    </div>
+    <ul class="plain">
+      <li>first run writes your .env.local itself</li>
+      <li>open <code>http://localhost:3000</code></li>
+      <li>claim a tag — forge keys in-browser</li>
+      <li>hit PLAY — the buddy works already</li>
+    </ul>
+    <div class="call check"><span class="lab">Checkpoint</span><p>You claimed a tag and signed in, locally. That's the whole machine, running on your desk.</p></div>
+  </section>
+
+  <section id="s3">
+    <div class="head"><span class="num">03</span><h2>Make it yours (two lines)</h2></div>
+    <div class="term">
+      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;.env.local — your space, your domain</div>
+<pre>NEXT_PUBLIC_SPACE_NAME=<span class="s">yourspace</span>
+NEXT_PUBLIC_NIP05_DOMAIN=<span class="s">yourspace.example</span>
+</pre>
+    </div>
+    <ul class="plain">
+      <li>space name = the @tag you issue</li>
+      <li>domain = where the site lives</li>
+      <li>everything else already works</li>
+    </ul>
+  </section>
+
+  <section id="s4">
+    <div class="head"><span class="num">04</span><h2>Go live (deploy)</h2></div>
+    <div class="term">
+      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;vercel — once to set up, one line forever after</div>
+<pre><span class="p">$</span> npx vercel login
+<span class="p">$</span> npx vercel link          <span class="c"># create the project</span>
+<span class="p">$</span> npx vercel blob create-store my-registry
+<span class="p">$</span> npx vercel env add SEAT_SECRET production
+<span class="p">$</span> npx vercel env add OPERATOR_NPUBS production
+<span class="p">$</span> npx vercel deploy --prod  <span class="c"># ← the publish button</span>
+</pre>
+    </div>
+    <ul class="plain">
+      <li>SEAT_SECRET = any long random string</li>
+      <li>OPERATOR_NPUBS = your npub — opens /a</li>
+      <li>GITHUB_TOKEN later — merges from the panel</li>
+    </ul>
+    <div class="call danger"><span class="lab">The two laws of deploys</span><p>① New env vars do NOTHING until you deploy again. ② Merging does NOT deploy — <code>npx vercel deploy --prod</code> is the publish button.</p></div>
+  </section>
+
+  <section id="s5">
+    <div class="head"><span class="num">05</span><h2>The rhythm (every change after)</h2></div>
+    <div class="term">
+      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;your two commands, forever</div>
+<pre><span class="p">$</span> gh pr merge <span class="s">N</span> --merge      <span class="c"># accept proposal N</span>
+<span class="p">$</span> npx vercel deploy --prod   <span class="c"># publish the truth</span>
+</pre>
+    </div>
+    <ul class="plain">
+      <li>proposals arrive as numbered PRs</li>
+      <li>read it, merge it, deploy it</li>
+      <li>or authorize from /a/scar — signature merges</li>
+      <li>order rarely matters; overlaps get flagged</li>
+    </ul>
+    <div class="call check"><span class="lab">The finish line</span><p>A live site whose every change passed through your hands. The merge is the ceremony; the deploy is the broadcast.</p></div>
+  </section>
+
+  <footer>
+    <b>frens.earth</b> · RTFM 002 · the admiral was the test subject<br>
+    <span style="opacity:.32">the frens who read to the end find the magic. ↑ ↑ ↓ ↓ …</span>
+  </footer>
+</div>
+
+<div id="rtfm-magic" hidden>
+  <div class="card">
+    <p class="eye">RTFM ▸ you looked hard enough</p>
+    <h2>🌱 the magic</h2>
+    <p>You read the manual. Most won't. First deploy, first honors.</p>
+    <p class="secret">secret word: <b>merge-ceremony</b></p>
+    <p class="foot">Whisper it to the attendant — first-deploy frens get their tag gilded. Esc to close.</p>
+  </div>
+</div>
+<script>
+  (function () {
+    var seq = ["arrowup","arrowup","arrowdown","arrowdown","arrowleft","arrowright","arrowleft","arrowright","b","a"];
+    var i = 0, el = document.getElementById("rtfm-magic");
+    if (!el) return;
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") { el.hidden = true; return; }
+      var k = e.key.toLowerCase();
+      if (k === seq[i]) { i++; if (i === seq.length) { i = 0; el.hidden = false; } }
+      else { i = (k === seq[0] ? 1 : 0); }
+    });
+    el.addEventListener("click", function (e) { if (e.target === el) el.hidden = true; });
+  })();
+</script>
+</body>
+</html>
