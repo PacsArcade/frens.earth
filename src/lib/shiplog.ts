@@ -33,6 +33,16 @@ export const SHIP_LOG: ShipLogEntry[] = [
     ],
   },
   {
+    height: 957618,
+    title: "THE ARTIST DOOR OPENS",
+    bullets: [
+      "Artist Registry shipped (/artist) — the brand kit's sibling to the tag claim: request your name on the Spaces protocol, read the live auction board, watch names per-npub",
+      "Gated behind the artist-training entitlement — operator-editable npub roster (ARTIST_NPUBS bootstrap), with the honest LEVEL LOCKED screen for everyone else",
+      "Every auction surface degrades honestly: no node → says so, node down → says why, never a fake board",
+      "Request lifecycle laid down: REQUESTED → AUCTION → WON/LOST → ANCHORED; the crew bids from the node wallet — keys never touch the app",
+    ],
+  },
+  {
     height: 957580,
     title: "THE DAY THE EARTHSHIP CAME ALIVE",
     bullets: [
