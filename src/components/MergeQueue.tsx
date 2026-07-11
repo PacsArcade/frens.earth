@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Notice from "@/components/Notice";
 
 /**
  * The merge queue — SCAR's authorize-with-key lane. Each open PR gets one
@@ -111,10 +112,8 @@ export default function MergeQueue() {
       {!prs ? (
         <p className="font-body text-sm text-white/50">Reading the queue…</p>
       ) : setup ? (
-        <div className="border-2 border-coin/60 bg-coin/5 p-4">
-          <p className="mb-1 font-pixel text-[10px] uppercase text-coin">CONNECT YOUR GITHUB</p>
-          <p className="font-body text-sm text-white/80">{setup}</p>
-        </div>
+        /* our first NOTIFICATION — compact + dismissible, not a giant card */
+        <Notice id="github-token">connect your GitHub: {setup}</Notice>
       ) : prs.length === 0 ? (
         <p className="border-2 border-edge bg-panel p-4 font-body text-sm text-white/60">
           Nothing waiting to merge — the board is clean. 🌱

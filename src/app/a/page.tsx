@@ -3,6 +3,7 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import OperatorGate from "@/components/OperatorGate";
 import CertCase from "@/components/CertCase";
+import AdminNav from "@/components/AdminNav";
 import { operatorFromCookieHeader, operatorsConfigured } from "@/lib/operator-auth";
 import { specimenShelf } from "@/lib/certs";
 
@@ -35,6 +36,7 @@ export default async function AdminDeckPage() {
   const shelf = specimenShelf();
   return (
     <main className="min-h-screen bg-void">
+      <AdminNav current="deck" />
       <div className="mx-auto max-w-5xl px-6 py-10">
         <p className="mb-2 font-pixel text-[10px] uppercase tracking-widest text-white/40">
           OPERATOR CONSOLE ▸ FRENS.EARTH

@@ -22,5 +22,10 @@ prototype in `C:\dev\aceo-playground` (has the SHOW CARD pattern) plus
    Plumbing: composite + NIP-07 signEvent + relay publish; GLYPH: the frame,
    the sticker sheet, the moment.
 
+5. **TOP-OF-PAGE CUTOFF** (screenshot 2026-07-11) — the /bb header area
+   clips/blurs under the main frens.earth menu on some viewports; the KEY
+   CONNECTED card gets cut. Layout/overflow pass on the /bb page top —
+   assigned to GLYPH with the rest of the /bb visual round.
+
 House rules apply: keys never leave the signer; posting is one explicit
 button, never automatic; npub is plumbing, the tag is the name.

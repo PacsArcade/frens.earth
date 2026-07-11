@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, type ReactNode } from "react";
-import { bftDate, estimateHeight } from "@/lib/bb/bft";
+import { bftDate, bftDateTime, estimateHeight } from "@/lib/bb/bft";
 
 /**
  * The Spaces node console, v2 (the admiral's cleanup, 2026-07-11):
@@ -43,12 +43,13 @@ function shortNpub(n: string): string {
   return n.length > 15 ? `${n.slice(0, 10)}…${n.slice(-4)}` : n;
 }
 
-/** BFT stamp for a queue row: the real block when recorded, a ~estimate from
-    the claim timestamp when not (old rows predate block stamping). */
+/** BFT stamp for a queue row, house standard (yyyy.mm.dd hh:mm — the a₿
+    marker is assumed on new items): the real block when recorded, a
+    ~estimate from the claim timestamp when not. */
 function bftStamp(e: QueuedEntry): string {
   if (e.blockHeight != null)
-    return `▣ ${e.blockHeight.toLocaleString()} · ${bftDate(e.blockHeight)}`;
-  return `~ ${bftDate(estimateHeight(new Date(e.requestedAt).getTime()))}`;
+    return `▣ ${e.blockHeight.toLocaleString()} · ${bftDateTime(e.blockHeight)}`;
+  return `~ ${bftDateTime(estimateHeight(new Date(e.requestedAt).getTime()))}`;
 }
 
 function Pill({ ok, children }: { ok: boolean; children: ReactNode }) {
