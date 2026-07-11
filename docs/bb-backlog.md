@@ -1,6 +1,6 @@
 # Bitcoin Buddy — the admiral's wishlist (GLYPH's round)
 
-*Parked 2026-07-11. Design lead: GLYPH. Reference build: the earlier /bb
+*Parked 0018.04.15 a₿. Design lead: GLYPH. Reference build: the earlier /bb
 prototype in `C:\dev\aceo-playground` (has the SHOW CARD pattern) plus
 `C:\dev\bitcoin-buddy-prototype.html` / `bb-cartridge-wireframe.html` and
 `C:\dev\pet-game-design-notes.md`. Plumbing hooks below are Claude's lane.*
@@ -22,7 +22,7 @@ prototype in `C:\dev\aceo-playground` (has the SHOW CARD pattern) plus
    Plumbing: composite + NIP-07 signEvent + relay publish; GLYPH: the frame,
    the sticker sheet, the moment.
 
-5. **TOP-OF-PAGE CUTOFF** (screenshot 2026-07-11) — the /bb header area
+5. **TOP-OF-PAGE CUTOFF** (screenshot 0018.04.15 a₿) — the /bb header area
    clips/blurs under the main frens.earth menu on some viewports; the KEY
    CONNECTED card gets cut. Layout/overflow pass on the /bb page top —
    assigned to GLYPH with the rest of the /bb visual round.

@@ -1,6 +1,6 @@
 # GLYPH's Queue — the open design commissions
 
-*Consolidated 2026-07-11 so the whole slate lives in one place. House rules
+*Consolidated 0018.04.15 a₿ so the whole slate lives in one place. House rules
 bind everything here — especially rule 1: **no Disney, ever**
 ([house-rules.md](house-rules.md)).*
 
@@ -20,7 +20,7 @@ bind everything here — especially rule 1: **no Disney, ever**
    → [scar-fleet-ranks.md](scar-fleet-ranks.md)
 5. **The wardrobe rack** — the door-rack switcher, "+ ADD A PORTAL".
    → [wardrobe.md](wardrobe.md)
-6. **NEW — Baroque explorations (the admiral's spark, 2026-07-11)**: a few
+6. **NEW — Baroque explorations (the admiral's spark, 0018.04.15 a₿)**: a few
    designs in the baroque style, keyed to the art in the **Degen Wonderland
    reference folder** (`C:\dev\degenwonderland` / the DW reference set).
    Dramatic light, ornament, deep composition — filtered through the
@@ -31,7 +31,7 @@ bind everything here — especially rule 1: **no Disney, ever**
    prophecies, and ceremony words RENDER in the console and MUD verse
    (GLYPH's home turf); then **Proph-₿** (`C:\dev\proph-b.skill` — the
    prophet voice) reviews the displayed result for weight and rhythm.
-   Writer → typesetter → writer's proof. (Admiral, 2026-07-11.)
+   Writer → typesetter → writer's proof. (Admiral, 0018.04.15 a₿.)
 
 ## Standing notes
 

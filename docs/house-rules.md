@@ -1,6 +1,6 @@
 # House Rules — the standing laws of the earthship
 
-*Consolidated 2026-07-11. These bind every contributor, human or agent, on
+*Consolidated 0018.04.15 a₿. These bind every contributor, human or agent, on
 every surface: code, copy, art, docs, lore.*
 
 ## Content & style
@@ -8,14 +8,17 @@ every surface: code, copy, art, docs, lore.*
 1. **NO DISNEY. EVER.** No references to, imitations of, or stylistic echoes
    of any Disney property, character, element, or house style — in art,
    copy, names, or lore (the admiral's standing order, reaffirmed
-   2026-07-11). When in doubt, it's out. Our wells are: the NES/arcade era,
+   0018.04.15 a₿). When in doubt, it's out. Our wells are: the NES/arcade era,
    the demoscene/ANSI world, Star-Trek-adjacent fleet structure, Lewis
    Carroll (public domain), baroque art (public domain), and our own
    Bitcoin-time lore.
 2. **The semantic color contract is locked**: gold/coin = money ONLY ·
    neon = live/success · cyan = info · ghost = danger · pink = flair.
 3. **Bitcoin time only.** The old calendar is burned; formats per
-   [bft-display.md](bft-display.md). The year is bitcoin's age.
+   [bft-display.md](bft-display.md). The year is bitcoin's age. **This
+   binds documents too** — a doc's written-on stamp, changelog line, or
+   referenced date is a BFT date (the admiral caught a gregorian slip
+   0018.04.15 a₿; never again).
 4. **Honest empty states** — a screen never pretends. "No certs yet" beats a
    fake shelf.
 5. **npub is plumbing; the tag is the name.** An npub only shows when no tag
