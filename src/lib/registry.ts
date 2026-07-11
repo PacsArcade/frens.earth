@@ -31,6 +31,8 @@ export interface HandleEntry {
   requestedAt: string; // ISO timestamp
   blockHeight?: number | null; // bitcoin tip when the claim entered the queue — bitcoin time, not calendar time (absent on pre-R2 entries; profile backfills via mempool.space)
   matrix?: boolean; // matrix door cut for this tag (@handle:pacsarcade.org)
+  proof?: string | null; // Spaces subspace inclusion proof — opaque string from the node, set at commit
+  committedAt?: string; // ISO timestamp of the queued->committed batch flip (absent while queued)
 }
 
 export function blobStoreEnabled(): boolean {
@@ -374,4 +376,123 @@ export async function nip05Names(space?: string): Promise<Record<string, string>
     }
   }
   return names;
+}
+
+// ---------------------------------------------------------------------------
+// Batch anchoring (Spaces subspaces) — audit item A1
+//
+// A claimed tag is `queued` and verifies over NIP-05 immediately. Permanence
+// comes from the Spaces protocol: the space owner's `spaced` node commits a
+// batch of subspace names as a single on-chain Merkle root, and each name gets
+// an inclusion proof. That commit uses the owner's WALLET, which lives on the
+// node — never in this web app. So the app's only role is to (1) hand the node
+// the queued set and (2) record the outcome. The two-step operator handoff:
+//   GET  /api/admin/batch/export  -> the queued set (ceremony input)
+//   POST /api/admin/batch/commit  -> { batchId, items:[{handle, proof}] }
+// The node endpoint is configurable per deployment (each space runs its own
+// node), so nothing here is host-specific. See docs/spaces-anchoring.md.
+// ---------------------------------------------------------------------------
+
+/** All still-queued claims in a space — the authoritative input to a batch
+    ceremony (reads the per-handle blobs directly, never a cache). */
+export async function queuedEntries(space?: string): Promise<HandleEntry[]> {
+  const s = normalizeSpace(space);
+  const entries = blobStoreEnabled() ? await blobEntries(s) : (await fileRead(s)).entries;
+  return entries.filter((e) => e.status === "queued");
+}
+
+/** Rewrite one existing claim record in place — the pathname (and so the
+    uniqueness guarantee) never changes, only the record's fields. */
+async function writeEntryRecord(space: string, entry: HandleEntry): Promise<boolean> {
+  if (blobStoreEnabled()) {
+    try {
+      await put(blobPath(space, entry.handle), JSON.stringify(entry, null, 2), {
+        access: "public",
+        addRandomSuffix: false,
+        allowOverwrite: true, // an existing record, not a new claim
+        contentType: "application/json",
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  const reg = await fileRead(space);
+  const i = reg.entries.findIndex((e) => e.handle === entry.handle);
+  if (i < 0) return false;
+  reg.entries[i] = entry;
+  try {
+    await fileWrite(space, reg);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export interface BatchCommitItem {
+  handle: string;
+  /** Opaque per-name inclusion proof produced by the Spaces node. */
+  proof: string;
+}
+
+export interface BatchCommitResult {
+  ok: true;
+  batchId: string;
+  committed: string[];
+  skipped: { handle: string; reason: string }[];
+}
+
+/**
+ * The batch-anchoring writer — the one sanctioned queued->committed flip. Run
+ * AFTER the Spaces node has committed the batch's Merkle root on-chain: it
+ * stamps each name with the on-chain `batchId` + its inclusion proof and marks
+ * it `committed` (permanent). This only records an outcome the node already
+ * produced — no keys or wallet here. Already-committed names are skipped, so a
+ * re-run (e.g. a retried callback) is safe.
+ */
+export async function commitBatch(
+  space: string | undefined,
+  batchId: string,
+  items: BatchCommitItem[]
+): Promise<BatchCommitResult> {
+  const s = normalizeSpace(space);
+  const committed: string[] = [];
+  const skipped: { handle: string; reason: string }[] = [];
+  const committedAt = new Date().toISOString();
+
+  for (const item of items) {
+    const handle = typeof item?.handle === "string" ? item.handle.trim().toLowerCase() : "";
+    if (!handle) {
+      skipped.push({ handle: String(item?.handle ?? ""), reason: "missing handle" });
+      continue;
+    }
+    const existing = await getEntry(handle, s);
+    if (!existing) {
+      skipped.push({ handle, reason: "not in registry" });
+      continue;
+    }
+    if (existing.status === "committed") {
+      skipped.push({ handle, reason: "already committed" });
+      continue;
+    }
+    const next: HandleEntry = {
+      ...existing,
+      status: "committed",
+      batchId,
+      proof: typeof item.proof === "string" ? item.proof : null,
+      committedAt,
+    };
+    if (!(await writeEntryRecord(s, next))) {
+      skipped.push({ handle, reason: "write failed" });
+      continue;
+    }
+    // The npub reverse-lookup cache can hold a stale (queued) copy of this entry.
+    npubCache.delete(existing.npub);
+    committed.push(handle);
+    // TODO(A1xA3): once the aggregated read-index (PR #6) lands, route this flip
+    // through its reindex() hook so nip05Names/findHandleByNpub reflect the
+    // committed status immediately instead of waiting for a cache rebuild.
+  }
+
+  return { ok: true, batchId, committed, skipped };
 }
