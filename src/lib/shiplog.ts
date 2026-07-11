@@ -14,6 +14,16 @@ export interface ShipLogEntry {
 
 export const SHIP_LOG: ShipLogEntry[] = [
   {
+    height: 957627,
+    title: "THE FLEET WEARS YOUR NAME",
+    bullets: [
+      "RTFM 004 shipped — Wear Your Own Name: the two door patterns (the arcade's straight redirect vs our gated rewrite, DNS steps for both), running + branding your own orbee floor (verified against imperviousinc/orbee: station names are runtime config, the app's skin is a fork — no docker in that repo, honest flag raised; Apache-2.0 fork route documented), and one fleet, many doors via /a/chat",
+      "Scope grew mid-voyage on the admiral's order: THE WHOLE FLEET WEARS YOUR NAME — masking table for every tool in the suite (orbee, Matrix classrooms, the MUD, BTCPay, the spaced node, RTFM, the console); Matrix headline verified: server_name is a tattoo (set once, forever), Element re-brands by config.json alone — the arcade's portal cabinet is the live proof",
+      "NUMBER ONE ON THE FLOOR spec parked at docs/number-one-bridge.md — @no1 gets its own key ceremony (never the admiral's key), a VPS bridge daemon, speaks-only-when-spoken-to rules, operator mute, three phases (presence → mention-reply → SCAR announcements), staff-meeting questions listed",
+      "RTFM 005 commissioned: CLASSROOM SETUPS & MANAGEMENT — the Matrix homeserver drill",
+    ],
+  },
+  {
     height: 957620,
     title: "THE DOOR GETS A GATE",
     bullets: [
