@@ -125,6 +125,13 @@ function blobPrefix(space: string): string {
   return `registry/${space}/`;
 }
 
+/** Aggregated read-cache blob. Underscore-prefixed so it can never collide
+    with a real handle (validateHandle forbids a leading '_'); listings and
+    counts skip it so it is never mistaken for a claim. */
+function indexPath(space: string): string {
+  return `registry/${space}/_index.json`;
+}
+
 async function blobExists(space: string, handle: string): Promise<boolean> {
   try {
     await head(blobPath(space, handle));
@@ -135,38 +142,155 @@ async function blobExists(space: string, handle: string): Promise<boolean> {
   }
 }
 
-/** Total claims in a space (metadata only — no content fetches). */
+/** Total claims in a space (metadata only — no content fetches). Skips the
+    aggregated index blob so it is never counted as a claim. */
 async function blobCount(space: string): Promise<number> {
+  const idx = indexPath(space);
   let count = 0;
   let cursor: string | undefined;
   do {
     const page = await list({ prefix: blobPrefix(space), cursor });
-    count += page.blobs.length;
+    count += page.blobs.filter((b) => b.pathname !== idx).length;
     cursor = page.hasMore ? page.cursor : undefined;
   } while (cursor);
   return count;
 }
 
+/** Every claim in a space, read straight from the authoritative per-handle
+    blobs (one content fetch each — the N+1 the index cache exists to avoid).
+    Skips the aggregated index blob so it is never parsed as a handle. */
 async function blobEntries(space: string): Promise<HandleEntry[]> {
+  const idx = indexPath(space);
   const entries: HandleEntry[] = [];
   let cursor: string | undefined;
   do {
     const page = await list({ prefix: blobPrefix(space), cursor });
     const contents = await Promise.all(
-      page.blobs.map(async (b) => {
-        try {
-          const res = await get(b.pathname, { access: "public" });
-          if (!res || res.statusCode !== 200) return null;
-          return JSON.parse(await new Response(res.stream).text()) as HandleEntry;
-        } catch {
-          return null; // skip malformed entries rather than break everyone
-        }
-      })
+      page.blobs
+        .filter((b) => b.pathname !== idx)
+        .map(async (b) => {
+          try {
+            const res = await get(b.pathname, { access: "public" });
+            if (!res || res.statusCode !== 200) return null;
+            return JSON.parse(await new Response(res.stream).text()) as HandleEntry;
+          } catch {
+            return null; // skip malformed entries rather than break everyone
+          }
+        })
     );
     for (const e of contents) if (e) entries.push(e);
     cursor = page.hasMore ? page.cursor : undefined;
   } while (cursor);
   return entries;
+}
+
+// ---------------------------------------------------------------------------
+// Aggregated index cache (Blob driver)
+//
+// The per-handle blobs above stay AUTHORITATIVE: they back the atomic
+// allowOverwrite:false uniqueness check, and isAvailable/claimHandle read them
+// directly (via blobExists) — never this index. The index is a REBUILDABLE
+// CACHE, one blob per space mapping handle -> HandleEntry, so the hot read
+// paths (nip05Names, findHandleByNpub) cost ~1 content fetch instead of one
+// get() per handle.
+//
+// Write-through: every mutation funnels through reindex() — the SINGLE index
+// hook. claimHandle adds, releaseHandle removes, updateEntry patches. A1's
+// future batch-commit writer must call reindex() too, so the index stays warm
+// after a batch flip instead of being invalidated wholesale.
+//
+// Consistency trade-off: the index is written with allowOverwrite:true, so two
+// simultaneous mutations that both read-modify-write it can drop one change
+// (last writer wins). This is tolerated because (a) availability and claim read
+// the authoritative per-handle blob, so a lost index update can NEVER permit a
+// double-claim, and (b) reads self-heal — a missing index, or a findHandleByNpub
+// lookup miss (which may be a dropped write), rebuilds the index from the
+// authoritative blobs and re-checks. A dropped entry is therefore eventually
+// restored; correctness never depends on the cache being current.
+// ---------------------------------------------------------------------------
+
+/** Build the index map straight from the authoritative per-handle blobs. */
+async function blobBuildIndexMap(space: string): Promise<Record<string, HandleEntry>> {
+  const map: Record<string, HandleEntry> = {};
+  for (const e of await blobEntries(space)) map[e.handle] = e;
+  return map;
+}
+
+/** Fetch the aggregated index blob, or null if absent/unreadable. */
+async function blobReadIndex(space: string): Promise<Record<string, HandleEntry> | null> {
+  try {
+    const res = await get(indexPath(space), { access: "public" });
+    if (!res || res.statusCode !== 200) return null;
+    return JSON.parse(await new Response(res.stream).text()) as Record<string, HandleEntry>;
+  } catch {
+    return null; // missing or malformed — caller rebuilds from authoritative blobs
+  }
+}
+
+/** Persist the index cache. allowOverwrite:true — it is a cache, not the
+    uniqueness-bearing record, so overwriting is expected (see the note above). */
+async function blobWriteIndex(space: string, index: Record<string, HandleEntry>): Promise<void> {
+  await put(indexPath(space), JSON.stringify(index), {
+    access: "public",
+    addRandomSuffix: false,
+    allowOverwrite: true,
+    contentType: "application/json",
+  });
+}
+
+/** Rebuild the index from the authoritative blobs and persist it best-effort.
+    Persist failure is swallowed: the freshly built map is still returned, so a
+    read never breaks just because the cache could not be refreshed. */
+async function blobRebuildIndex(space: string): Promise<Record<string, HandleEntry>> {
+  const rebuilt = await blobBuildIndexMap(space);
+  try {
+    await blobWriteIndex(space, rebuilt);
+  } catch {
+    // cache stayed stale; the next read that needs it will heal it again
+  }
+  return rebuilt;
+}
+
+/** The ONE index-mutation hook. Read-modify-write, rebuilding a missing cache
+    first so a cold index heals on the next mutation. Best-effort by design:
+    the authoritative per-handle blob is already written by the time we get
+    here, so a failed index update must never fail the mutation — it just
+    leaves a stale entry for a read to self-heal.
+    A1's batch-commit writer should route its status flips through here too. */
+async function reindex(
+  space: string,
+  mutate: (index: Record<string, HandleEntry>) => void
+): Promise<void> {
+  try {
+    const index = (await blobReadIndex(space)) ?? (await blobBuildIndexMap(space));
+    mutate(index);
+    await blobWriteIndex(space, index);
+  } catch {
+    // index is a cache — leave it stale rather than fail the mutation
+  }
+}
+
+/** Hot-path entry list: the aggregated index in one content fetch, rebuilding
+    (and persisting) a missing cache. Warm-cache happy path is ~1 fetch. */
+async function blobIndexEntries(space: string): Promise<HandleEntry[]> {
+  const cached = await blobReadIndex(space);
+  if (cached) return Object.values(cached);
+  return Object.values(await blobRebuildIndex(space)); // cold cache — self-heal
+}
+
+/** Reverse lookup within one space via the index cache. A cache HIT is ~1
+    content fetch. A miss might be a dropped index write, so we rebuild from the
+    authoritative blobs and re-check before trusting the miss — the self-heal
+    for the concurrent-write race. (This is no costlier than the pre-index code,
+    which scanned every blob on a miss anyway; the win is that hits now cost 1.) */
+async function blobFindByNpub(space: string, npub: string): Promise<HandleEntry | null> {
+  const index = await blobReadIndex(space);
+  if (index) {
+    const hit = Object.values(index).find((e) => e.npub === npub);
+    if (hit) return hit;
+  }
+  const rebuilt = await blobRebuildIndex(space);
+  return Object.values(rebuilt).find((e) => e.npub === npub) ?? null;
 }
 
 // ---------------------------------------------------------------------------
@@ -235,6 +359,10 @@ export async function claimHandle(
       }
       return { ok: false, reason: "the claim queue hiccuped — try again in a moment" };
     }
+    // Authoritative blob is committed above; warm the read-cache write-through.
+    await reindex(s, (index) => {
+      index[valid.handle] = entry;
+    });
     return { ok: true, entry, queuePosition: await blobCount(s) };
   }
 
@@ -269,6 +397,10 @@ export async function updateEntry(
         addRandomSuffix: false,
         allowOverwrite: true,
         contentType: "application/json",
+      });
+      // Authoritative record rewritten above; patch the read-cache too.
+      await reindex(s, (index) => {
+        index[handle] = next;
       });
       return true;
     } catch {
@@ -305,6 +437,10 @@ export async function releaseHandle(
     } catch {
       return { ok: false, reason: "the registry hiccuped — try again in a moment" };
     }
+    // Authoritative blob removed above; drop it from the read-cache too.
+    await reindex(s, (index) => {
+      delete index[handle];
+    });
   } else {
     const reg = await fileRead(s);
     reg.entries = reg.entries.filter((e) => e.handle !== handle);
@@ -347,8 +483,9 @@ export async function findHandleByNpub(
   }
 
   for (const space of spaces) {
-    const entries = blobStoreEnabled() ? await blobEntries(space) : (await fileRead(space)).entries;
-    const match = entries.find((e) => e.npub === npub);
+    const match = blobStoreEnabled()
+      ? await blobFindByNpub(space, npub) // index cache, self-healing on a miss
+      : (await fileRead(space)).entries.find((e) => e.npub === npub) ?? null;
     if (match) {
       const value = { handle: match.handle, space };
       npubCache.set(npub, { at: Date.now(), value });
@@ -363,7 +500,7 @@ export async function findHandleByNpub(
 export async function nip05Names(space?: string): Promise<Record<string, string>> {
   const { nip19 } = await import("nostr-tools");
   const s = normalizeSpace(space);
-  const entries = blobStoreEnabled() ? await blobEntries(s) : (await fileRead(s)).entries;
+  const entries = blobStoreEnabled() ? await blobIndexEntries(s) : (await fileRead(s)).entries;
   const names: Record<string, string> = {};
   for (const e of entries) {
     try {
