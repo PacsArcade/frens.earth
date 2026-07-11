@@ -373,23 +373,44 @@ export default function FrenProfile({
         {/* Matrix doors are @tag:pacsarcade.org school hardware — cut from
             the pacsarcade.org profile, not here */}
 
-        {/* Certs — proof you showed up, etched not printed. Empty state until
-            the rune index + issuer attestations exist; honest by design. */}
+        {/* Certs — proof you showed up, etched not printed. The shelf renders
+            each cert as NES-era box art (CertCase) once the rune index lands;
+            until then an honest empty slot + the case legend. Rarity is told
+            by Bitcoin Time: the etch block decides the case (src/lib/certs.ts). */}
         <section className="border-b-0 py-0">
           <p className="mb-2 font-pixel text-[10px] uppercase tracking-widest text-white/40">
             PROOF YOU SHOWED UP — ETCHED, NOT PRINTED
           </p>
           <h2 className="mb-4 font-arcade text-2xl text-cyan glow-cyan">CERTS</h2>
           <div className="border-2 border-edge bg-panel p-6">
-            <p className="mb-2 font-pixel text-xs text-white/60">NO CERTS YET</p>
+            <p className="mb-2 font-pixel text-xs text-white/60">THE SHELF IS EMPTY — FOR NOW</p>
             <div className="flex flex-wrap items-center gap-5">
-              <p className="min-w-[16rem] flex-1 font-body text-sm text-white/80">
-                The arcade teaches free, fren. Take a class, earn a cert — one rune, etched to
-                your wallet, network fee on the house.
-              </p>
-              <a href={CLASSES_URL} className="button w-full text-center sm:w-auto">
-                SEE THE CLASSES ▸
-              </a>
+              {/* the empty slot — a case-shaped hole waiting for the first cart */}
+              <div
+                aria-hidden
+                className="grid h-40 w-32 flex-none place-items-center border-2 border-dashed border-edge"
+              >
+                <span className="px-2 text-center font-pixel text-[8px] uppercase leading-relaxed text-white/30">
+                  YOUR FIRST
+                  <br />
+                  CART GOES
+                  <br />
+                  HERE
+                </span>
+              </div>
+              <div className="min-w-[16rem] flex-1">
+                <p className="font-body text-sm text-white/80">
+                  The arcade teaches free, fren. Take a class, earn a cert — one rune, etched to
+                  your wallet, network fee on the house. Every cert ships as box art, and{" "}
+                  <span className="text-cyan">the block decides the case</span>: full moons mint{" "}
+                  silver, epoch boundaries mint <span className="text-coin">gold</span> — like the
+                  Zelda cartridge — and halvings mint the{" "}
+                  <span className="text-pink">astronomical</span> tier.
+                </p>
+                <a href={CLASSES_URL} className="button mt-4 inline-block text-center">
+                  SEE THE CLASSES ▸
+                </a>
+              </div>
             </div>
           </div>
         </section>

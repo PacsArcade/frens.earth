@@ -37,6 +37,14 @@
 
 .neon-letter { display: inline-block; }
 
+/* Cert-case shine: the gold-cartridge glint sweeping across rare cases.
+   The element hides itself under prefers-reduced-motion (motion-reduce:hidden). */
+@keyframes case-shine {
+  0% { transform: translateX(-140%) rotate(12deg); }
+  55%, 100% { transform: translateX(520%) rotate(12deg); }
+}
+.case-shine { animation: case-shine 3.2s ease-in-out infinite; }
+
 /* Danger reveal: pulsing red warning for the secret key ceremony */
 @keyframes danger-pulse {
   0%, 100% { box-shadow: 0 0 8px rgba(233, 30, 99, 0.6), inset 0 0 8px rgba(233, 30, 99, 0.25); }

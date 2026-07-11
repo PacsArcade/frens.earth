@@ -1,11 +1,37 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { PixelAvatar } from "@pacsarcade/arcade-ui";
 import useFrenSession from "@/hooks/useFrenSession";
 import useNostrProfile from "@/hooks/useNostrProfile";
 import { SPACE_ROLES } from "@/lib/identity-config";
+
+/* The admin deck row — only for a live operator session. The fe-operator
+   cookie is httpOnly, so the menu asks the whoami endpoint; everyone else
+   never sees the row (the admin side stays a door, not a signpost). */
+function useIsOperator(): boolean {
+  const [isOp, setIsOp] = useState(false);
+  useEffect(() => {
+    fetch("/api/admin/session")
+      .then((r) => r.json())
+      .then((d) => setIsOp(!!d.ok))
+      .catch(() => {});
+  }, []);
+  return isOp;
+}
+
+function AdminDeckRow() {
+  return (
+    <Link
+      href="/a"
+      className="flex min-h-11 items-center gap-2 border-b-2 border-edge px-4 font-pixel text-[10px] text-coin glow-coin"
+    >
+      <span aria-hidden>⚓</span> ADMIN DECK
+    </Link>
+  );
+}
 
 /* Floor accents: pink = school/artist, cyan = play. The same colors the
    profile banner wears — a fren always knows which door they're behind. */
@@ -23,15 +49,19 @@ export default function FrenMenu() {
   const router = useRouter();
   const { fren, accounts, switchTo } = useFrenSession();
   const { profile } = useNostrProfile(fren?.npub);
+  const isOperator = useIsOperator();
 
   if (!fren) {
     return (
-      <Link
-        href="/login"
-        className="flex min-h-11 items-center border-b-2 border-edge px-4 font-pixel text-[10px] text-coin glow-coin"
-      >
-        🕹️ LOGIN
-      </Link>
+      <>
+        <Link
+          href="/login"
+          className="flex min-h-11 items-center border-b-2 border-edge px-4 font-pixel text-[10px] text-coin glow-coin"
+        >
+          🕹️ LOGIN
+        </Link>
+        {isOperator && <AdminDeckRow />}
+      </>
     );
   }
 
@@ -70,6 +100,7 @@ export default function FrenMenu() {
       >
         MY PROFILE
       </Link>
+      {isOperator && <AdminDeckRow />}
       {/* the door switcher — every other signed-in door, one press away */}
       {others.map((a) => (
         <button
