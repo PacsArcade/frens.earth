@@ -1,5 +1,12 @@
 import { operatorFromCookieHeader } from "@/lib/operator-auth";
-import { listOpenPrs, listAuthorizations, authorizeMerge, mergeExecutionEnabled } from "@/lib/merges";
+import {
+  listOpenPrs,
+  listPrFiles,
+  listAuthorizations,
+  authorizeMerge,
+  mergeExecutionEnabled,
+  tokenExpiration,
+} from "@/lib/merges";
 
 export const dynamic = "force-dynamic";
 
@@ -10,11 +17,20 @@ export async function GET(request: Request) {
   if (!operatorFromCookieHeader(request.headers.get("cookie"))) {
     return Response.json({ ok: false, reason: "operator sign-in required" }, { status: 401 });
   }
+  /* ?files=N — the change list for one proposal (the captain's review) */
+  const filesFor = new URL(request.url).searchParams.get("files");
+  if (filesFor) {
+    try {
+      return Response.json({ ok: true, files: await listPrFiles(Number(filesFor)) });
+    } catch {
+      return Response.json({ ok: false, reason: "couldn't read the change list — review on GitHub" });
+    }
+  }
   const auths = await listAuthorizations();
   const canExecute = await mergeExecutionEnabled();
   try {
     const prs = await listOpenPrs();
-    return Response.json({ ok: true, canExecute, prs, auths });
+    return Response.json({ ok: true, canExecute, prs, auths, tokenExpiresAt: tokenExpiration() });
   } catch (err) {
     /* Private repo without a token (404), rate limit, or GitHub down — the
        lane still opens with the connect box + the audit log intact. */
