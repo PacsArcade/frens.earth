@@ -25,6 +25,10 @@ export interface NodeConfig {
   spacesToken: string;
   mudUrl: string;
   mudToken: string;
+  /** The chat floor — an orbee (nostr NIP-29 group chat) door. No token:
+      orbee needs no write, the floor resolves tags live. Unset falls through
+      env to the house floor at chat.frens.earth. */
+  chatUrl: string;
   /** GitHub link for the SCAR merge queue — paste-in from the GUI, so the
       admiral never has to touch deployment env (Pac, 2026-07-11). */
   githubToken: string;
@@ -37,10 +41,15 @@ const EMPTY: NodeConfig = {
   spacesToken: "",
   mudUrl: "",
   mudToken: "",
+  chatUrl: "",
   githubToken: "",
   githubRepo: "",
   ceremony: { certTemplate: "bft-auto", welcomeMessage: "" },
 };
+
+/** The house floor — where the chat door opens when nothing is pointed.
+    Mirrors the arcade: chat.pacsarcade.org is orbee's door there, chat.frens.earth here. */
+export const CHAT_URL_DEFAULT = "https://chat.frens.earth";
 
 const BLOB_PATH = "config/nodes.json";
 const filePath = () => path.join(process.cwd(), "data", "nodes.json");
@@ -106,6 +115,20 @@ export async function effectiveMudNode(): Promise<{ url: string; token: string }
     url: c.mudUrl || process.env.MUD_NODE_URL?.trim() || "",
     token: c.mudToken || process.env.MUD_ADMIN_TOKEN?.trim() || "",
   };
+}
+
+/** The chat door, with its provenance — stored config first, env bootstrap
+    second, the house floor last (the one node link with a default: a fresh
+    fork's chat door still opens somewhere honest). */
+export async function effectiveChatNode(): Promise<{
+  url: string;
+  source: "stored" | "env" | "default";
+}> {
+  const c = await readNodeConfig();
+  if (c.chatUrl) return { url: c.chatUrl, source: "stored" };
+  const env = process.env.CHAT_NODE_URL?.trim();
+  if (env) return { url: env, source: "env" };
+  return { url: CHAT_URL_DEFAULT, source: "default" };
 }
 
 export async function effectiveGithub(): Promise<{ repo: string; token: string }> {

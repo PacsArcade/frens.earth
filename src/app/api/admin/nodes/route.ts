@@ -13,12 +13,14 @@ function masked(c: NodeConfig) {
     spacesTokenSet: !!c.spacesToken,
     mudUrl: c.mudUrl,
     mudTokenSet: !!c.mudToken,
+    chatUrl: c.chatUrl,
     githubRepo: c.githubRepo,
     githubTokenSet: !!c.githubToken || !!process.env.GITHUB_TOKEN?.trim(),
     ceremony: c.ceremony,
     envFallback: {
       spacesUrl: process.env.SPACES_NODE_URL?.trim() || null,
       mudUrl: process.env.MUD_NODE_URL?.trim() || null,
+      chatUrl: process.env.CHAT_NODE_URL?.trim() || null,
     },
   };
 }
@@ -45,6 +47,7 @@ export async function PUT(request: Request) {
   if (typeof body.spacesToken === "string") patch.spacesToken = body.spacesToken.trim();
   if (typeof body.mudUrl === "string") patch.mudUrl = body.mudUrl.trim();
   if (typeof body.mudToken === "string") patch.mudToken = body.mudToken.trim();
+  if (typeof body.chatUrl === "string") patch.chatUrl = body.chatUrl.trim();
   if (typeof body.githubToken === "string") patch.githubToken = body.githubToken.trim();
   if (typeof body.githubRepo === "string") patch.githubRepo = body.githubRepo.trim();
   if (body.ceremony && typeof body.ceremony === "object") {

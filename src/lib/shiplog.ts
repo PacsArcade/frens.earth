@@ -24,6 +24,15 @@ export const SHIP_LOG: ShipLogEntry[] = [
     ],
   },
   {
+    height: 957619,
+    title: "THE FLOOR GETS A DOOR",
+    bullets: [
+      "CHAT room joins the console manifest — the deck and bridge rail pick it up from lib/console.ts, nothing re-coded",
+      "/a/chat: point·save·test your orbee door (chatUrl in the nodeconfig store, dual-driver), honest REACHABLE/UNREACHABLE states, OPEN THE CHAT ▸ in a new tab",
+      "Mirrors the arcade's lesson: orbee is the nostr NIP-29 floor and its domain is a DOOR, not an iframe — unset deployments fall back to the house floor at chat.frens.earth",
+    ],
+  },
+  {
     height: 957580,
     title: "THE DAY THE EARTHSHIP CAME ALIVE",
     bullets: [

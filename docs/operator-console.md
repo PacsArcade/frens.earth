@@ -17,6 +17,7 @@ Everything behind `/a`, as one portable layer:
 | tickets (raise/work) | `TicketsPanel`, `lib/tickets` | works with zero infra |
 | merge queue (sign to authorize) | `MergeQueue`, `lib/merges` | `GITHUB_TOKEN`, `GITHUB_REPO` |
 | node links (spaced / MUD) | `SpacesPanel`, `MudPanel`, `lib/nodeconfig` | from the GUI |
+| chat floor (the orbee door) | `ChatPanel`, `lib/nodeconfig` | from the GUI; falls back to `CHAT_NODE_URL`, then chat.frens.earth |
 | notifications | `Notice` | per-id, drop in anywhere |
 | ship's log | `ShipsLog`, `lib/shiplog` | committed entries |
 | time | `lib/bb/bft` + `docs/bft-display.md` | the standard |
