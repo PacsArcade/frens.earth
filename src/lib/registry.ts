@@ -625,10 +625,10 @@ export async function commitBatch(
     }
     // The npub reverse-lookup cache can hold a stale (queued) copy of this entry.
     npubCache.delete(existing.npub);
+    // Route the flip through the aggregated read-index (A3) so nip05Names /
+    // findHandleByNpub reflect the committed status without a cache rebuild.
+    if (blobStoreEnabled()) await reindex(s, (index) => (index[handle] = next));
     committed.push(handle);
-    // TODO(A1xA3): once the aggregated read-index (PR #6) lands, route this flip
-    // through its reindex() hook so nip05Names/findHandleByNpub reflect the
-    // committed status immediately instead of waiting for a cache rebuild.
   }
 
   return { ok: true, batchId, committed, skipped };
