@@ -32,6 +32,10 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+# local dev claim registry — recreated by `predev`; prod uses Vercel Blob.
+# Tracking it churned git on every dev run and risked test claims in history.
+/data/*-registry.json
+
 # vercel
 .vercel
 
