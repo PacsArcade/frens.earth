@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { bftDate } from "@/lib/bb/bft";
 import type { HandleStatus } from "@/lib/registry";
 import { ANCHOR_BLOCKS_OUT, SPACE_ROLES } from "@/lib/identity-config";
 import { ARTIST_GATE_CERT_COUNT, CLASSES_URL } from "@/lib/classes";
@@ -156,7 +157,8 @@ export default function FrenProfile({
             {sinceBlock !== null ? (
               <p className="mt-1 font-pixel text-[10px] text-white/40">
                 PLAYER SINCE BLOCK <span className="text-cyan">{sinceBlock.toLocaleString()}</span>
-                {registeredLabel && <span className="text-white/25">{" "}({registeredLabel})</span>}
+                {/* Bitcoin time, not the old calendar (Pac, 2026-07-11) */}
+                <span className="text-white/25">{" "}· {bftDate(sinceBlock)}</span>
               </p>
             ) : (
               registeredLabel && (

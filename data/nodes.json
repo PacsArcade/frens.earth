@@ -1,0 +1,10 @@
+{
+  "spacesUrl": "http://127.0.0.1:7225",
+  "spacesToken": "testtoken",
+  "mudUrl": "",
+  "mudToken": "",
+  "ceremony": {
+    "certTemplate": "keepsake",
+    "welcomeMessage": "Welcome home, fren."
+  }
+}
