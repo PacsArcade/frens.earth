@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import OperatorGate from "@/components/OperatorGate";
 import MudPanel from "@/components/MudPanel";
+import AdminNav from "@/components/AdminNav";
 import { operatorFromCookieHeader, operatorsConfigured } from "@/lib/operator-auth";
 
 /**
@@ -21,5 +22,10 @@ export default async function AdminMudPage() {
   if (!operator) {
     return <OperatorGate configured={operatorsConfigured()} />;
   }
-  return <MudPanel />;
+  return (
+    <main className="min-h-screen bg-void">
+      <AdminNav current="mud" />
+      <MudPanel />
+    </main>
+  );
 }

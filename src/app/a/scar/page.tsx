@@ -3,6 +3,8 @@ import { headers } from "next/headers";
 import OperatorGate from "@/components/OperatorGate";
 import TicketsPanel from "@/components/TicketsPanel";
 import MergeQueue from "@/components/MergeQueue";
+import AdminNav from "@/components/AdminNav";
+import ShipsLog from "@/components/ShipsLog";
 import { operatorFromCookieHeader, operatorsConfigured } from "@/lib/operator-auth";
 
 /**
@@ -24,9 +26,13 @@ export default async function AdminTicketsPage() {
     return <OperatorGate configured={operatorsConfigured()} />;
   }
   return (
-    <main className="min-h-screen bg-void pt-10">
-      <MergeQueue />
-      <TicketsPanel mode="crew" />
+    <main className="min-h-screen bg-void">
+      <AdminNav current="scar" />
+      <div className="pt-6">
+        <MergeQueue />
+        <TicketsPanel mode="crew" />
+        <ShipsLog />
+      </div>
     </main>
   );
 }

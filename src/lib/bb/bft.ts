@@ -39,6 +39,28 @@ export function bftDate(height: number): string {
   return `a₿ ${pad(b.year, 4)}.${pad(b.month, 2)}.${pad(b.day, 2)}`;
 }
 
+/* The display standard (Pac, 2026-07-11): date = yyyy.mm.dd · time = hh:mm
+   (the 144-block day mapped onto a 24h clock — 6 blocks an hour, ten
+   "minutes" a block) · date+time = "yyyy.mm.dd hh:mm". The a₿ marker is
+   ASSUMED on new items (queues, requests, logs) — no prefix clutter. */
+
+/** Plain BFT date, marker assumed: "0018.04.15". */
+export function bftDatePlain(height: number): string {
+  const b = bft(height);
+  return `${pad(b.year, 4)}.${pad(b.month, 2)}.${pad(b.day, 2)}`;
+}
+
+/** BFT time of day, 24h: block-in-day → "hh:mm" (steps of 10). */
+export function bftTime(height: number): string {
+  const bid = ((height % BLOCKS_PER_DAY) + BLOCKS_PER_DAY) % BLOCKS_PER_DAY;
+  return `${pad(Math.floor(bid / 6), 2)}:${pad((bid % 6) * 10, 2)}`;
+}
+
+/** Full stamp: "yyyy.mm.dd hh:mm" — the standard for new items. */
+export function bftDateTime(height: number): string {
+  return `${bftDatePlain(height)} ${bftTime(height)}`;
+}
+
 /** Pre-genesis wall-clock (negative-time / ghost side): "b₿ yyyy.dd.mm[.ss]". */
 export function beforeBitcoin(year: number, month: number, day: number, second?: number): string {
   const base = `b₿ ${pad(year, 4)}.${pad(day, 2)}.${pad(month, 2)}`;

@@ -1,0 +1,29 @@
+/**
+ * The ship's log — the daily work summaries, bulleted, riding the SCAR duty
+ * roster (Pac, 2026-07-11: "send the logs like you do now, but added to the
+ * roster"). Static and committed on purpose: every deploy carries its log,
+ * the log survives every store, and the repo IS the record. Newest first.
+ * Stamps are block heights — rendered in the BFT standard, marker assumed.
+ */
+
+export interface ShipLogEntry {
+  height: number; // block at log time — BFT-stamped in the UI
+  title: string;
+  bullets: string[];
+}
+
+export const SHIP_LOG: ShipLogEntry[] = [
+  {
+    height: 957580,
+    title: "THE DAY THE EARTHSHIP CAME ALIVE",
+    bullets: [
+      "Production login raised from the dead — four causes deep (missing redeploy, misleading error copy, wrong signer profile, malformed operator npub); first successful login in frens.earth history, then the admiral himself walked in",
+      "Round-2 stack shipped: earth-sprout brand, fork fixes, registry perf index, admin console (/a), tickets (/support + /a/scar), RTFM knowledge repo, instant-start template",
+      "Cert cases forged: NES box art with rarity minted by Bitcoin time — grey/silver/GOLD (the Zelda)/crystal/astronomical",
+      "SCAR merge queue armed: merges authorized by key signature, sha-bound, audit-logged; forged signatures refused",
+      "Spaces console v2: URL boxes (point·save·test), the 🗑 for bad registrations, NODE/ANCHOR/CEREMONY tabs, welcome-letter config per POKE node",
+      "Specs parked for GLYPH: the wardrobe (+ ADD A PORTAL), SCAR Fleet ranks (BLOCK→EPOCH→HALVING→ASTRONOMICAL ADMIRAL), the /bb wishlist",
+      "The old calendar burned — dates and times read in blocks now",
+    ],
+  },
+];

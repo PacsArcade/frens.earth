@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import BrandTester from "@/components/BrandTester";
 import OperatorGate from "@/components/OperatorGate";
+import AdminNav from "@/components/AdminNav";
 import { operatorFromCookieHeader, operatorsConfigured } from "@/lib/operator-auth";
 
 /**
@@ -23,5 +24,10 @@ export default async function AdminBrandPage() {
   if (!operator) {
     return <OperatorGate configured={operatorsConfigured()} />;
   }
-  return <BrandTester />;
+  return (
+    <div className="min-h-screen bg-void">
+      <AdminNav current="brand" />
+      <BrandTester />
+    </div>
+  );
 }
