@@ -9,6 +9,11 @@ import Notice from "@/components/Notice";
  * signature binds the exact commit (a moved branch voids it), is verified
  * against the allowlist server-side, recorded as the audit trail, and — when
  * the deployment has a GITHUB_TOKEN — executes the merge right here.
+ *
+ * ✎ NOTE rides the same rails: sign `PACS-NOTE-<pr>-<ts>\n<body>` (the
+ * signature covers the note's exact words), the server verifies + records
+ * it, and — token connected — posts it onto the PR's GitHub conversation
+ * with a footer citing the signature.
  */
 
 interface OpenPr {
@@ -27,6 +32,8 @@ interface MergeAuth {
   merged: boolean;
   mergeNote?: string;
   closed?: boolean;
+  kind?: "note"; // absent = merge authorization
+  note?: string; // the note body, exactly as signed
 }
 interface PrFile {
   file: string;
@@ -52,6 +59,8 @@ export default function MergeQueue() {
   const [err, setErr] = useState<string | null>(null);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
   const [changes, setChanges] = useState<Record<number, PrFile[] | "loading">>({});
+  const [drafts, setDrafts] = useState<Record<number, string>>({});
+  const [noteBusy, setNoteBusy] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     setErr(null);
@@ -138,7 +147,7 @@ export default function MergeQueue() {
      signature's timestamp (a new build IS the deploy on this ship). */
   const builtAt = process.env.NEXT_PUBLIC_BUILD_AT ?? "";
   const latestByPr = new Map<number, MergeAuth>();
-  for (const x of auths) if (!x.closed) latestByPr.set(x.pr, x);
+  for (const x of auths) if (!x.closed && x.kind !== "note") latestByPr.set(x.pr, x);
   const inFlight = [...latestByPr.values()].filter(
     (x) => x.merged && !(prs ?? []).some((p) => p.number === x.pr),
   );
@@ -200,7 +209,73 @@ export default function MergeQueue() {
     }
   }
 
-  const authFor = (pr: OpenPr) => auths.filter((a) => a.pr === pr.number).at(-1);
+  /** ✎ NOTE — the row's signed comment box, collapsible like ▸ CHANGES. */
+  function toggleNote(pr: number) {
+    setDrafts((p) => {
+      const next = { ...p };
+      if (pr in next) delete next[pr];
+      else next[pr] = "";
+      return next;
+    });
+  }
+
+  /** Sign the note's exact words with the operator key and hand it to the
+      server: verified, recorded, and — token connected — posted onto the
+      PR's GitHub conversation with the signature cited in the footer. */
+  async function signAndPostNote(pr: number) {
+    setErr(null);
+    setNote(null);
+    const text = (drafts[pr] ?? "").trim();
+    if (!text) {
+      setErr("write the note first — the signature covers its exact words");
+      return;
+    }
+    if (!window.nostr?.signEvent) {
+      setErr("no signer extension found — the note is your signature");
+      return;
+    }
+    setNoteBusy(pr);
+    let event;
+    try {
+      event = await window.nostr.signEvent({
+        kind: 22242,
+        created_at: Math.floor(Date.now() / 1000),
+        tags: [],
+        content: `PACS-NOTE-${pr}-${Date.now()}\n${text}`,
+      });
+    } catch {
+      setErr("signing was declined — nothing sent");
+      setNoteBusy(null);
+      return;
+    }
+    try {
+      const res = await fetch("/api/admin/merges", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ note: event }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.ok) {
+        setErr(data?.reason ?? `the server hiccuped (HTTP ${res.status}) — your signature was fine`);
+        return;
+      }
+      setNote(`PR #${data.pr}: note ${data.note}`);
+      setDrafts((p) => {
+        const next = { ...p };
+        delete next[pr];
+        return next;
+      });
+      load();
+    } catch {
+      setErr("couldn't reach the server — check your connection and try again");
+    } finally {
+      setNoteBusy(null);
+    }
+  }
+
+  const authFor = (pr: OpenPr) =>
+    auths.filter((a) => a.pr === pr.number && a.kind !== "note").at(-1);
+  const notesFor = (pr: OpenPr) => auths.filter((a) => a.pr === pr.number && a.kind === "note");
 
   return (
     <div className="mx-auto mb-10 max-w-3xl px-6">
@@ -254,6 +329,12 @@ export default function MergeQueue() {
                     >
                       {changes[pr.number] ? "▾" : "▸"} CHANGES
                     </button>
+                    <button
+                      onClick={() => toggleNote(pr.number)}
+                      className="border-2 border-edge px-3 py-1.5 font-pixel text-[9px] uppercase text-pink hover:border-pink"
+                    >
+                      {pr.number in drafts ? "▾" : "✎"} NOTE
+                    </button>
                     <a
                       href={pr.url}
                       target="_blank"
@@ -305,6 +386,45 @@ export default function MergeQueue() {
                           </div>
                         );
                       })
+                    )}
+                  </div>
+                )}
+                {pr.number in drafts && (
+                  /* the signed note — your words, your key. The signature
+                     covers the exact text; GitHub gets it as a PR comment
+                     with the signature cited (or it records, honestly). */
+                  <div className="mt-3 border-t border-edge pt-3">
+                    <textarea
+                      value={drafts[pr.number]}
+                      onChange={(e) => setDrafts((p) => ({ ...p, [pr.number]: e.target.value }))}
+                      rows={3}
+                      disabled={noteBusy === pr.number}
+                      placeholder="leave a note on this change — your key signs the exact words"
+                      className="w-full border-2 border-edge bg-void px-3 py-2 font-mono text-xs text-white/85 placeholder:text-white/25 focus:border-pink focus:outline-none disabled:opacity-50"
+                    />
+                    <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+                      <p className="font-mono text-[10px] text-white/40">
+                        {canExecute
+                          ? "lands on the PR's GitHub page, signature cited"
+                          : "no GitHub key connected — the note records to the audit log"}
+                      </p>
+                      <button
+                        onClick={() => signAndPostNote(pr.number)}
+                        disabled={noteBusy === pr.number}
+                        className="border-2 border-pink px-3 py-1.5 font-pixel text-[9px] uppercase text-pink hover:bg-pink/10 disabled:opacity-50"
+                      >
+                        {noteBusy === pr.number ? "SIGNING…" : "✍ SIGN & POST"}
+                      </button>
+                    </div>
+                    {notesFor(pr).length > 0 && (
+                      <div className="mt-2 space-y-1 border-t border-edge/50 pt-2">
+                        {notesFor(pr).map((n, i) => (
+                          <p key={i} className="font-mono text-[10px] text-white/40">
+                            ✎ <span className="whitespace-pre-wrap text-white/70">{n.note}</span>{" "}
+                            — {n.by.slice(0, 8)}… · {n.mergeNote}
+                          </p>
+                        ))}
+                      </div>
                     )}
                   </div>
                 )}

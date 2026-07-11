@@ -1,10 +1,11 @@
 import { promises as fs } from "fs";
 import path from "path";
 import { put, get } from "@vercel/blob";
-import { verifyEvent } from "nostr-tools";
+import { verifyEvent, nip19 } from "nostr-tools";
 import { blobStoreEnabled } from "./registry";
 import { isOperatorHex } from "./operator-auth";
 import { effectiveGithub } from "./nodeconfig";
+import { bftDateTime, estimateHeight } from "./bb/bft";
 
 /**
  * Merge authorizations — the admiral signs merges from the SCAR console.
@@ -20,6 +21,11 @@ import { effectiveGithub } from "./nodeconfig";
  * authorization also EXECUTES the merge. Without it, the signed go-ahead is
  * recorded and the merge happens on GitHub — the signature is the sign-off
  * either way. Someday the log itself gets tied to the block.
+ *
+ * Review NOTES ride the same rails: content `PACS-NOTE-<pr>-<ts>\n<body>`,
+ * verified identically, appended to this same log (kind: "note"), and — when
+ * the token is connected — posted onto the PR's GitHub conversation with a
+ * footer citing the signature.
  */
 
 const GH = "https://api.github.com";
@@ -123,6 +129,8 @@ export interface MergeAuth {
   merged: boolean;
   mergeNote?: string;
   closed?: boolean; // the change stays on the admiral's queue until closed
+  kind?: "note"; // absent = merge authorization (records predating notes stay valid)
+  note?: string; // the note body, exactly as signed (kind "note" entries only)
 }
 
 /** The admiral's close-out — the signature OPENS a change; only the close
@@ -131,7 +139,7 @@ export async function closeAuthorization(pr: number): Promise<boolean> {
   const log = await readLog();
   let hit = false;
   for (const e of log) {
-    if (e.pr === pr && !e.closed) {
+    if (e.pr === pr && !e.closed && e.kind !== "note") {
       e.closed = true;
       hit = true;
     }
@@ -253,4 +261,88 @@ export async function authorizeMerge(event: {
   log.push(entry);
   await writeLog(log);
   return { ok: true, pr, merged: entry.merged, note };
+}
+
+// ── signed review notes ─────────────────────────────────────────────────────
+
+/** Verify a signed review note and record it; with a GitHub token connected,
+    post it onto the PR's conversation too. The signature covers the note's
+    exact words — content `PACS-NOTE-<pr>-<ts>\n<body>`, kind 22242, an
+    allowlisted operator key — so the GitHub comment can cite a signature
+    anyone can check against the audit log. Same verification ladder as
+    authorizeMerge: shape → freshness → allowlist → signature. */
+export async function postNote(event: {
+  content?: string;
+  pubkey?: string;
+  sig?: string;
+  kind?: number;
+  created_at?: number;
+  tags?: unknown;
+  id?: string;
+}): Promise<
+  | { ok: true; pr: number; posted: boolean; note: string }
+  | { ok: false; reason: string }
+> {
+  if (!event?.content || !event.pubkey || !event.sig) {
+    return { ok: false, reason: "signed note required" };
+  }
+  const m = event.content.match(/^PACS-NOTE-(\d+)-(\d+)\n([\s\S]+)$/);
+  if (!m) return { ok: false, reason: "not a signed note" };
+  const [, prStr, ts, body] = m;
+  const pr = Number(prStr);
+  if (Math.abs(Date.now() - Number(ts)) > CHALLENGE_WINDOW_MS) {
+    return { ok: false, reason: "note expired — sign a fresh one" };
+  }
+  if (!isOperatorHex(event.pubkey)) {
+    return { ok: false, reason: "that key isn't on this site's operator list" };
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  if (!verifyEvent(event as any)) {
+    return { ok: false, reason: "signature check failed" };
+  }
+
+  /* the footer ties the comment back to the signature: who (short npub),
+     when (BFT — the old calendar is burned), and the sig's leading bytes,
+     checkable against this log's full record. */
+  const npub = nip19.npubEncode(event.pubkey);
+  const shortNpub = `${npub.slice(0, 7)}…${npub.slice(-4)}`;
+  const footer = `\n\n—— ✍ signed via SCARLET by ${shortNpub} · ${bftDateTime(estimateHeight())} a₿ · sig ${event.sig.slice(0, 16)}…`;
+
+  const gh = await ghContext();
+  let posted = false;
+  let note = "recorded — connect GitHub to post it there";
+  if (gh.hasToken) {
+    try {
+      const res = await fetch(`${GH}/repos/${gh.repo}/issues/${pr}/comments`, {
+        method: "POST",
+        headers: { ...gh.headers, "Content-Type": "application/json" },
+        body: JSON.stringify({ body: body + footer }),
+      });
+      if (res.ok) {
+        posted = true;
+        note = "posted to the PR on GitHub ✓";
+      } else {
+        const data = await res.json().catch(() => ({}));
+        note = `recorded — GitHub refused the comment: ${data.message ?? res.status}`;
+      }
+    } catch {
+      note = "recorded — couldn't reach GitHub; the note is safe in the log";
+    }
+  }
+
+  const entry: MergeAuth = {
+    kind: "note",
+    pr,
+    headSha: "",
+    by: event.pubkey,
+    sig: event.sig,
+    at: new Date().toISOString(),
+    merged: false,
+    mergeNote: note,
+    note: body,
+  };
+  const log = await readLog();
+  log.push(entry);
+  await writeLog(log);
+  return { ok: true, pr, posted, note };
 }
