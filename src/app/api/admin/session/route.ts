@@ -48,7 +48,7 @@ export async function POST(request: Request) {
     { ok: true, operator: result.pubkey },
     {
       headers: {
-        "Set-Cookie": `${OPERATOR_COOKIE}=${token}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=43200`,
+        "Set-Cookie": `${OPERATOR_COOKIE}=${token}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=2592000`,
       },
     }
   );

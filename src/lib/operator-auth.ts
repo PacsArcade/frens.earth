@@ -14,7 +14,11 @@ import { verifyEvent, nip19 } from "nostr-tools";
  */
 
 export const OPERATOR_COOKIE = "fe-operator";
-const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
+/* A month, same as the fren session — it's an arcade, not a bank (Pac,
+   2026-07-11). The 12h TTL was inherited from the org console port; the
+   high-stakes actions (merge authorization, batch commits) are gated by
+   per-action signatures now, so the session cookie isn't the security layer. */
+const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const CHALLENGE_WINDOW_MS = 5 * 60 * 1000;
 
 function secret(): string {
@@ -56,6 +60,12 @@ export function isOperatorNpub(npub: string): boolean {
   } catch {
     return false;
   }
+}
+
+/** Hex-pubkey flavor of the allowlist check — for verifying per-action
+    signatures (merge authorizations, future batch sign-offs). */
+export function isOperatorHex(pubkeyHex: string): boolean {
+  return operatorHexKeys().includes(pubkeyHex);
 }
 
 /** Login event contract: kind 22242, content `PACS-CONSOLE-<unix-ms>` fresh
