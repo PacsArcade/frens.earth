@@ -44,30 +44,48 @@ export default function LoginPanel() {
       return;
     }
     setBusy(true);
+    /* Two failure worlds, two honest messages: a signer rejection is the
+       FREN's call; a server fault is OURS. Blaming the signer for a 500
+       (the SEAT_SECRET lesson) sent people debugging the wrong thing. */
+    let event;
     try {
-      const event = await window.nostr.signEvent({
+      event = await window.nostr.signEvent({
         kind: 22242,
         created_at: Math.floor(Date.now() / 1000),
         tags: [],
         content: `PACS-LOGIN-${Date.now()}`,
       });
+    } catch {
+      setError("signing was declined — nothing sent");
+      setBusy(false);
+      return;
+    }
+    try {
       const res = await fetch("/api/frens/session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ event }),
       });
-      const data = await res.json();
-      if (!data.ok) {
-        setError(data.reason);
+      let data: { ok?: boolean; reason?: string; handle?: string; space?: string; npub?: string | null } | null = null;
+      try {
+        data = await res.json();
+      } catch {
+        /* non-JSON = the server fell over, not the fren */
+      }
+      if (!res.ok || !data?.ok) {
+        setError(
+          data?.reason ??
+            `the arcade server hiccuped (HTTP ${res.status}) — your signature was fine; tell the operator`
+        );
         return;
       }
       /* flip the whole header without a hard nav — one store, no stale chip */
-      applyFrenSession({ handle: data.handle, space: data.space, npub: data.npub ?? null });
+      applyFrenSession({ handle: data.handle!, space: data.space!, npub: data.npub ?? null });
       /* space-qualified so the right door opens on ANY host — the
          pacster@pacsarcade GAME OVER lesson */
       router.push(`/u/${data.handle}@${data.space}`);
     } catch {
-      setError("signing was declined — nothing sent");
+      setError("couldn't reach the arcade — check your connection and try again");
     } finally {
       setBusy(false);
     }

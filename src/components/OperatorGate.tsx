@@ -19,26 +19,42 @@ export default function OperatorGate({ configured }: { configured: boolean }) {
       return;
     }
     setBusy(true);
+    /* signer rejection = the operator's call; a server fault = ours. Never
+       blame the key for a 500 (the SEAT_SECRET lesson). */
+    let event;
     try {
-      const event = await window.nostr.signEvent({
+      event = await window.nostr.signEvent({
         kind: 22242,
         created_at: Math.floor(Date.now() / 1000),
         tags: [],
         content: `PACS-CONSOLE-${Date.now()}`,
       });
+    } catch {
+      setError("signing was declined — nothing sent");
+      setBusy(false);
+      return;
+    }
+    try {
       const res = await fetch("/api/admin/session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ event }),
       });
-      const data = await res.json();
-      if (!data.ok) {
-        setError(data.reason ?? "that didn't verify");
+      let data: { ok?: boolean; reason?: string } | null = null;
+      try {
+        data = await res.json();
+      } catch {
+        /* non-JSON = the server fell over, not the key */
+      }
+      if (!res.ok || !data?.ok) {
+        setError(
+          data?.reason ?? `the server hiccuped (HTTP ${res.status}) — your key is fine; check the deployment env`
+        );
         return;
       }
       window.location.reload();
     } catch {
-      setError("signing was declined — nothing sent");
+      setError("couldn't reach the server — check your connection and try again");
     } finally {
       setBusy(false);
     }
