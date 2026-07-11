@@ -47,6 +47,13 @@ export const CONSOLE_ROOMS: ConsoleRoom[] = [
     accent: "border-cyan/50 text-cyan",
   },
   {
+    key: "chat",
+    href: "/a/chat",
+    label: "CHAT",
+    blurb: "the floor — point at your orbee chat, open the door",
+    accent: "border-neon/50 text-neon",
+  },
+  {
     key: "brand",
     href: "/a/brand",
     label: "DRESSING ROOM",
