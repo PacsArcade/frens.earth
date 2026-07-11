@@ -53,6 +53,12 @@
   100% { box-shadow: 0 0 0 0 rgba(247, 147, 26, 0); }
 }
 .block-break { animation: block-break 1.3s ease-out 3; }
+
+/* The header's telemetry ticker (hardcoded in arcade-ui SiteHeader) is
+   retired (Pac, 0018.04.15 a₿): the BITCOIN TIME CLOCK docks in that corner
+   instead, wearing the live mempool-fill ring. One clock, one truth. */
+header > div.border-t-2 { display: none; }
+
 @media (prefers-reduced-motion: reduce) {
   .block-break { animation: none; border-color: #f7931a; }
 }
