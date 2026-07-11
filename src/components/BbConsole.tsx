@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { nip19 } from "nostr-tools";
 import { PixelAvatar } from "@pacsarcade/arcade-ui";
-import useFrenSession from "@/hooks/useFrenSession";
+import useFrenSession, { applyFrenSession } from "@/hooks/useFrenSession";
 import type { StoredBuddy } from "@/lib/bb/types";
 import { currentBlock } from "@/lib/bb/bft";
 import { loadBuddies, upsertBuddy } from "@/lib/bb/store";
@@ -41,17 +41,46 @@ export default function BbConsole() {
     setHatching(list.length === 0);
   }, [npub]);
 
+  /* Connect = site-wide when possible (Pac, 2026-07-11): read the key, and if
+     it holds a tag on THIS board, complete the real login in the same gesture
+     (one more signer approve) — the pa-fren session flips the whole site, not
+     just the baby. A tagless key still plays: bb-local connect, claim upsell. */
   const connect = useCallback(async () => {
     setConnectErr("");
     if (typeof window === "undefined" || !window.nostr?.getPublicKey) {
       setConnectErr("No nostr signer found — install a NIP-07 extension (e.g. Alby, nos2x) and reload.");
       return;
     }
+    let pk: string;
     try {
-      const pk = await window.nostr.getPublicKey();
-      setClientNpub(nip19.npubEncode(pk));
+      pk = await window.nostr.getPublicKey();
     } catch {
       setConnectErr("Couldn't read your key — approve the signer prompt and try again.");
+      return;
+    }
+    const connectedNpub = nip19.npubEncode(pk);
+    setClientNpub(connectedNpub);
+
+    try {
+      const who = await fetch(`/api/frens/whois?npub=${connectedNpub}`).then((r) => r.json());
+      if (!who.ok || !who.holds?.length || !window.nostr.signEvent) return; // tagless — play local
+      const event = await window.nostr.signEvent({
+        kind: 22242,
+        created_at: Math.floor(Date.now() / 1000),
+        tags: [],
+        content: `PACS-LOGIN-${Date.now()}`,
+      });
+      const res = await fetch("/api/frens/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ event }),
+      });
+      const data = await res.json().catch(() => null);
+      if (res.ok && data?.ok) {
+        applyFrenSession({ handle: data.handle, space: data.space, npub: data.npub ?? null });
+      }
+    } catch {
+      /* login declined or hiccuped — the key still plays bb-local */
     }
   }, []);
 
@@ -105,23 +134,44 @@ export default function BbConsole() {
   const active = buddies.find((b) => b.id === activeId) ?? buddies[0];
   const showHatchery = hatching || !active;
 
+  /* Identity, tag-first: the npub is plumbing and only shows when the key
+     holds NO tag on this board (Pac, 2026-07-11). */
+  const identityLine = fren ? `${fren.handle.toUpperCase()}@${fren.space.toUpperCase()}` : "KEY CONNECTED";
+
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col items-center gap-6">
-      {/* who's holding the collar */}
-      <section className="flex w-full max-w-md flex-wrap items-center gap-4 rounded-2xl border border-neon/40 bg-panel px-5 py-3">
-        <PixelAvatar variant="player" seed={fren?.handle ?? npub} size={40} />
+      {/* who's holding the collar — mobile: a slim inline strip */}
+      <section className="flex w-full max-w-md flex-wrap items-center gap-3 rounded-2xl border border-neon/40 bg-panel px-4 py-2 lg:hidden">
+        <PixelAvatar variant="player" seed={fren?.handle ?? npub} size={32} />
         <div className="min-w-0 flex-1">
-          <p className="font-pixel text-[11px] text-neon glow-neon">
-            {fren ? `✓ ${fren.handle.toUpperCase()}@${fren.space.toUpperCase()}` : "✓ KEY CONNECTED"}
-          </p>
-          <p className="mt-0.5 font-mono text-[10px] text-cyan">{shortNpub(npub)}</p>
+          <p className="truncate font-pixel text-[10px] text-neon glow-neon">✓ {identityLine}</p>
+          {!fren && <p className="mt-0.5 font-mono text-[10px] text-cyan">{shortNpub(npub)}</p>}
         </div>
         {!fren && (
           <a href="/" className="font-mono text-[10px] uppercase tracking-wider text-pink hover:underline">
-            Claim your @frens tag ▸
+            Claim a tag ▸
           </a>
         )}
       </section>
+
+      {/* desktop: the mini rail — minimal on purpose; the buddy is the star */}
+      <aside className="fixed right-4 top-32 z-40 hidden w-40 flex-col items-center gap-2 rounded-xl border border-edge/70 bg-panel/85 p-3 text-center backdrop-blur-sm lg:flex">
+        <PixelAvatar variant="player" seed={fren?.handle ?? npub} size={36} />
+        <p className="w-full truncate font-pixel text-[9px] text-neon">{identityLine}</p>
+        {!fren && <p className="w-full truncate font-mono text-[9px] text-cyan">{shortNpub(npub)}</p>}
+        {fren ? (
+          <a
+            href={`/u/${fren.handle}@${fren.space}`}
+            className="font-pixel text-[8px] uppercase text-cyan hover:glow-cyan"
+          >
+            MY PROFILE ▸
+          </a>
+        ) : (
+          <a href="/" className="font-pixel text-[8px] uppercase text-pink hover:underline">
+            CLAIM A TAG ▸
+          </a>
+        )}
+      </aside>
 
       {/* roster switcher */}
       {buddies.length > 1 && (

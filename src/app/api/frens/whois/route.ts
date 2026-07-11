@@ -1,12 +1,12 @@
-import { getEntry } from "@/lib/registry";
+import { getEntry, findHandleByNpub } from "@/lib/registry";
 import { KNOWN_SPACES } from "@/lib/identity-config";
 import { validateHandle } from "@/lib/registry";
 
 /* Which tags does an npub hold? Public data (the availability API already
    returns npubs for taken names) — powers the one-key-two-tags warning in
-   the claim flow. Checked per-space by direct entry lookups when a handle
-   hint is given; otherwise scans are avoided (npub-only lookups use the
-   session path instead). */
+   the claim flow and /bb's tag-first identity. With a handle hint: direct
+   per-space entry lookups. Npub-only: findHandleByNpub — cheap since the
+   aggregate read-index (A3) landed, and its hits are cached. */
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const npub = url.searchParams.get("npub") ?? "";
@@ -23,6 +23,9 @@ export async function GET(request: Request) {
         if (entry && entry.npub === npub) holds.push({ handle: valid.handle, space });
       }
     }
+  } else {
+    const owner = await findHandleByNpub(npub);
+    if (owner) holds.push(owner);
   }
   return Response.json({ ok: true, holds });
 }
