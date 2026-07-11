@@ -1,6 +1,6 @@
 # The Rescue Buddy — why /bb exists
 
-*The admiral's words, 2026-07-11 (year 0018), written through tears:
+*The admiral's words, 0018.04.15 a₿, written through tears:
 "Pac's Arcade needs everyone to be ok. We care so fucking deeply. A cute
 little buddy to your fren as a way to check on them. Get them outta the
 house. Outta that situation. It's a rescue buddy. A way out. It's hope."*
