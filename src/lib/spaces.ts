@@ -1,3 +1,5 @@
+import { effectiveSpacesNode } from "./nodeconfig";
+
 /**
  * Spaces node client — the frens.earth backend's link to THIS deployment's own
  * `spaced` node (each space runs its own; see docs/spaces-anchoring.md). All
@@ -5,20 +7,17 @@
  * node with its wallet; this app only speaks to the node's JSON-RPC and never
  * holds a key.
  *
- * `spaced` serves JSON-RPC 2.0 (default http://127.0.0.1:7225) and is
- * localhost-only with no built-in auth. A remote/serverless deployment must
- * therefore reach it through an authenticating proxy: point SPACES_NODE_URL at
- * that proxy and set SPACES_NODE_TOKEN to send a Bearer header. Nothing here is
- * host-specific — the operator configures their own node in the admin area.
+ * The endpoint is operator-editable from /a/spaces (stored config via
+ * nodeconfig.ts); SPACES_NODE_URL/SPACES_NODE_TOKEN env stay as the bootstrap
+ * fallback. `spaced` is localhost-only with no built-in auth — a remote
+ * deployment reaches it through an authenticating proxy (token → Bearer).
  */
 
-const NODE_URL = process.env.SPACES_NODE_URL?.trim() ?? "";
-const NODE_TOKEN = process.env.SPACES_NODE_TOKEN?.trim() ?? "";
 const RPC_TIMEOUT_MS = 8000;
 
-/** True when a node endpoint is configured for this deployment. */
-export function spacesConfigured(): boolean {
-  return NODE_URL.length > 0;
+/** True when a node endpoint is configured (stored config or env). */
+export async function spacesConfigured(): Promise<boolean> {
+  return (await effectiveSpacesNode()).url.length > 0;
 }
 
 export class SpacesNodeError extends Error {}
@@ -26,14 +25,15 @@ export class SpacesNodeError extends Error {}
 /** One JSON-RPC 2.0 call to the node. Throws SpacesNodeError on any failure so
     callers can distinguish "node down" from a real result. */
 export async function spacesRpc<T = unknown>(method: string, params: unknown[] = []): Promise<T> {
-  if (!NODE_URL) throw new SpacesNodeError("SPACES_NODE_URL not configured");
+  const { url, token } = await effectiveSpacesNode();
+  if (!url) throw new SpacesNodeError("no node configured — set it on /a/spaces");
   let res: Response;
   try {
-    res = await fetch(NODE_URL, {
+    res = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        ...(NODE_TOKEN ? { Authorization: `Bearer ${NODE_TOKEN}` } : {}),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
       signal: AbortSignal.timeout(RPC_TIMEOUT_MS),

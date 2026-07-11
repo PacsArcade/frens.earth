@@ -12,9 +12,10 @@ export async function GET(request: Request) {
   if (!operatorFromCookieHeader(request.headers.get("cookie"))) {
     return Response.json({ ok: false, reason: "operator sign-in required" }, { status: 401 });
   }
-  if (!mudConfigured()) {
+  if (!(await mudConfigured())) {
     return Response.json({ ok: true, configured: false });
   }
+  const hasToken = await mudHasToken();
 
   let reachable = false;
   let authed = false;
@@ -28,7 +29,7 @@ export async function GET(request: Request) {
     reason = err instanceof MudNodeError ? err.message : "node error";
   }
 
-  if (reachable && mudHasToken()) {
+  if (reachable && hasToken) {
     try {
       await getMudStats();
       authed = true;
@@ -40,7 +41,7 @@ export async function GET(request: Request) {
   return Response.json({
     ok: true,
     configured: true,
-    hasToken: mudHasToken(),
+    hasToken,
     reachable,
     authed,
     world,

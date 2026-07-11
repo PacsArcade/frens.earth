@@ -8,26 +8,27 @@
  * host-specific, and the app never runs the game itself.
  */
 
-const NODE_URL = process.env.MUD_NODE_URL?.trim() ?? "";
-const ADMIN_TOKEN = process.env.MUD_ADMIN_TOKEN?.trim() ?? "";
+import { effectiveMudNode } from "./nodeconfig";
+
 const TIMEOUT_MS = 6000;
 
-export function mudConfigured(): boolean {
-  return NODE_URL.length > 0;
+export async function mudConfigured(): Promise<boolean> {
+  return (await effectiveMudNode()).url.length > 0;
 }
-export function mudHasToken(): boolean {
-  return ADMIN_TOKEN.length > 0;
+export async function mudHasToken(): Promise<boolean> {
+  return (await effectiveMudNode()).token.length > 0;
 }
 
 export class MudNodeError extends Error {}
 
 async function mudGet<T = unknown>(path: string, withToken: boolean): Promise<T> {
-  if (!NODE_URL) throw new MudNodeError("MUD_NODE_URL not configured");
-  const url = NODE_URL.replace(/\/$/, "") + path;
+  const { url: base, token } = await effectiveMudNode();
+  if (!base) throw new MudNodeError("no MUD node configured — set it on /a/mud");
+  const url = base.replace(/\/$/, "") + path;
   let res: Response;
   try {
     res = await fetch(url, {
-      headers: withToken && ADMIN_TOKEN ? { "X-POKE-Admin-Token": ADMIN_TOKEN } : {},
+      headers: withToken && token ? { "X-POKE-Admin-Token": token } : {},
       signal: AbortSignal.timeout(TIMEOUT_MS),
       cache: "no-store",
     });

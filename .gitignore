@@ -50,3 +50,6 @@ next-env.d.ts
 
 # dev-only merge-authorization audit log (like the other data stores)
 /data/merges.json
+
+# operator node-link config (holds tokens!) — never tracked; prod uses Blob
+/data/nodes.json

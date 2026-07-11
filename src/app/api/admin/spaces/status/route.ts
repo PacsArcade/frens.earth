@@ -14,7 +14,7 @@ export async function GET(request: Request) {
   if (!operatorFromCookieHeader(request.headers.get("cookie"))) {
     return Response.json({ ok: false, reason: "operator sign-in required" }, { status: 401 });
   }
-  if (!spacesConfigured()) {
+  if (!(await spacesConfigured())) {
     return Response.json({ ok: true, configured: false });
   }
   const space = new URL(request.url).searchParams.get("space") ?? SPACE_NAME;

@@ -1,18 +1,21 @@
 "use client";
 
 import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { bftDate, estimateHeight } from "@/lib/bb/bft";
 
 /**
- * The Spaces node console — the "admiral" connects this deployment's OWN
- * `spaced` node, watches the chain, sees the queue, and runs the batch anchor
- * ceremony. Read/status is live over the node's JSON-RPC; the on-chain commit
- * is a deliberate manual, wallet-signed step on the local console (keys never
- * touch a server) — this panel guides it and records the result. Cloneable:
- * every operator points at their own node. Follows the MUD admin's
- * connection-rail conventions + the operator-console house style.
+ * The Spaces node console, v2 (the admiral's cleanup, 2026-07-11):
+ *   NODE     — URL boxes: enter, save, TEST your own server connection.
+ *   ANCHOR   — the queue (with the 🗑 for bad registrations) + record the
+ *              batch commit. One tab: the queue IS the ceremony's input.
+ *   CEREMONY — what a batch SENDS: cert template + the welcome letter,
+ *              configurable per POKE node. (Sparks parked: the welcome
+ *              letter rides the newsletter and posts to @frens on nostr.)
+ * All dates are Bitcoin Federated Time — the old calendar is burned; rows
+ * without a recorded block get a best-effort ~estimate from their timestamp.
  */
 
-type Tab = "connection" | "queue" | "anchor";
+type Tab = "node" | "anchor" | "ceremony";
 
 interface NodeStatus {
   configured: boolean;
@@ -23,16 +26,29 @@ interface NodeStatus {
   spaceOwner?: unknown;
   reason?: string;
 }
-
 interface QueuedEntry {
   handle: string;
   npub: string;
   requestedAt: string;
   blockHeight: number | null;
 }
+interface NodesConfig {
+  spacesUrl: string;
+  spacesTokenSet: boolean;
+  ceremony: { certTemplate: string; welcomeMessage: string };
+  envFallback: { spacesUrl: string | null };
+}
 
-function shortNpub(npub: string): string {
-  return npub.length > 16 ? `${npub.slice(0, 10)}…${npub.slice(-4)}` : npub;
+function shortNpub(n: string): string {
+  return n.length > 15 ? `${n.slice(0, 10)}…${n.slice(-4)}` : n;
+}
+
+/** BFT stamp for a queue row: the real block when recorded, a ~estimate from
+    the claim timestamp when not (old rows predate block stamping). */
+function bftStamp(e: QueuedEntry): string {
+  if (e.blockHeight != null)
+    return `▣ ${e.blockHeight.toLocaleString()} · ${bftDate(e.blockHeight)}`;
+  return `~ ${bftDate(estimateHeight(new Date(e.requestedAt).getTime()))}`;
 }
 
 function Pill({ ok, children }: { ok: boolean; children: ReactNode }) {
@@ -57,11 +73,12 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
 }
 
 export default function SpacesPanel({ space }: { space: string }) {
-  const [tab, setTab] = useState<Tab>("connection");
+  const [tab, setTab] = useState<Tab>("node");
   const [status, setStatus] = useState<NodeStatus | null>(null);
   const [statusBusy, setStatusBusy] = useState(false);
   const [queue, setQueue] = useState<QueuedEntry[] | null>(null);
   const [queueBusy, setQueueBusy] = useState(false);
+  const [config, setConfig] = useState<NodesConfig | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const loadStatus = useCallback(async () => {
@@ -95,15 +112,26 @@ export default function SpacesPanel({ space }: { space: string }) {
     }
   }, [space]);
 
+  const loadConfig = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/nodes");
+      const data = await res.json();
+      if (data.ok) setConfig(data.config);
+    } catch {
+      /* panel still works read-only */
+    }
+  }, []);
+
   useEffect(() => {
     loadStatus();
     loadQueue();
-  }, [loadStatus, loadQueue]);
+    loadConfig();
+  }, [loadStatus, loadQueue, loadConfig]);
 
   const tabs: { id: Tab; label: string }[] = [
-    { id: "connection", label: "CONNECTION" },
-    { id: "queue", label: queue ? `QUEUE · ${queue.length}` : "QUEUE" },
-    { id: "anchor", label: "ANCHOR" },
+    { id: "node", label: "NODE" },
+    { id: "anchor", label: queue ? `ANCHOR · ${queue.length}` : "ANCHOR" },
+    { id: "ceremony", label: "CEREMONY" },
   ];
 
   return (
@@ -134,52 +162,146 @@ export default function SpacesPanel({ space }: { space: string }) {
 
       {error && <p className="mb-4 font-pixel text-[10px] uppercase text-ghost">{error}</p>}
 
-      {tab === "connection" && (
-        <ConnectionTab space={space} status={status} busy={statusBusy} onTest={loadStatus} />
+      {tab === "node" && (
+        <NodeTab
+          space={space}
+          status={status}
+          busy={statusBusy}
+          config={config}
+          onSaved={(c) => {
+            setConfig(c);
+            loadStatus();
+          }}
+          onTest={loadStatus}
+        />
       )}
-      {tab === "queue" && <QueueTab queue={queue} busy={queueBusy} space={space} onReload={loadQueue} />}
       {tab === "anchor" && (
-        <AnchorTab space={space} queueCount={queue?.length ?? null} onCommitted={loadQueue} />
+        <AnchorTab space={space} queue={queue} busy={queueBusy} onReload={loadQueue} />
       )}
+      {tab === "ceremony" &&
+        (config ? (
+          <CeremonyTab config={config} onSaved={setConfig} />
+        ) : (
+          <p className="font-body text-sm text-white/50">Reading the ceremony config…</p>
+        ))}
     </div>
   );
 }
 
-function ConnectionTab({
+// ── NODE — enter, save, test your server connection ─────────────────────────
+
+function NodeTab({
   space,
   status,
   busy,
+  config,
+  onSaved,
   onTest,
 }: {
   space: string;
   status: NodeStatus | null;
   busy: boolean;
+  config: NodesConfig | null;
+  onSaved: (c: NodesConfig) => void;
   onTest: () => void;
 }) {
+  const [url, setUrl] = useState("");
+  const [token, setToken] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (config) setUrl(config.spacesUrl || config.envFallback.spacesUrl || "");
+  }, [config]);
+
+  async function save() {
+    setErr(null);
+    setSaving(true);
+    try {
+      const body: Record<string, string> = { spacesUrl: url };
+      if (token) body.spacesToken = token; // write-only — never round-trips
+      const res = await fetch("/api/admin/nodes", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!data.ok) {
+        setErr(data.reason ?? "couldn't save");
+        return;
+      }
+      setToken("");
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+      onSaved(data.config);
+    } catch {
+      setErr("save hiccuped — try again");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   const configured = !!status?.configured;
   const reachable = configured && !!status?.reachable;
-  const owner = status?.spaceOwner;
   const tip = status?.tip;
 
   return (
     <div className="max-w-2xl space-y-6">
-      <div className="border-2 border-edge bg-panel">
-        <div className="flex items-center justify-between border-b-2 border-edge px-4 py-2">
-          <p className="font-pixel text-[10px] uppercase tracking-widest text-white/40">NODE LINK</p>
+      {/* your server — the boxes the admiral asked for */}
+      <div className="border-2 border-edge bg-panel p-4">
+        <p className="mb-3 font-pixel text-[10px] uppercase tracking-widest text-white/40">
+          YOUR SERVER — POINT · SAVE · TEST
+        </p>
+        <label className="block">
+          <span className="font-pixel text-[9px] uppercase text-white/40">
+            NODE URL — YOUR spaced JSON-RPC (OR ITS PROXY)
+          </span>
+          <input
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder="http://127.0.0.1:7225"
+            className="mt-1 w-full border-2 border-edge bg-void px-3 py-2 font-mono text-xs text-cyan placeholder:text-white/25 focus:border-cyan focus:outline-none"
+          />
+        </label>
+        <label className="mt-3 block">
+          <span className="font-pixel text-[9px] uppercase text-white/40">
+            TOKEN {config?.spacesTokenSet ? "— SET ✓ (ENTER TO REPLACE)" : "— OPTIONAL (PROXY BEARER)"}
+          </span>
+          <input
+            value={token}
+            onChange={(e) => setToken(e.target.value)}
+            type="password"
+            placeholder={config?.spacesTokenSet ? "••••••••" : "leave empty for a local node"}
+            className="mt-1 w-full border-2 border-edge bg-void px-3 py-2 font-mono text-xs text-white/80 placeholder:text-white/25 focus:border-cyan focus:outline-none"
+          />
+        </label>
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <button onClick={save} disabled={saving} className="button disabled:opacity-50">
+            {saving ? "SAVING…" : saved ? "✓ SAVED" : "▶ SAVE & TEST"}
+          </button>
           <button
             onClick={onTest}
             disabled={busy}
-            className="border-2 border-cyan px-3 py-1 font-pixel text-[9px] uppercase text-cyan hover:glow-cyan disabled:opacity-50"
+            className="min-h-11 border-2 border-cyan px-4 font-pixel text-[9px] uppercase text-cyan hover:glow-cyan disabled:opacity-50"
           >
             {busy ? "TESTING…" : "TEST CONNECTION"}
           </button>
+        </div>
+        {err && <p className="mt-2 font-pixel text-[9px] uppercase text-ghost">{err}</p>}
+      </div>
+
+      {/* the link, validated */}
+      <div className="border-2 border-edge bg-panel">
+        <div className="border-b-2 border-edge px-4 py-2">
+          <p className="font-pixel text-[10px] uppercase tracking-widest text-white/40">NODE LINK</p>
         </div>
         <div className="space-y-3 p-4 font-mono text-xs">
           <Row label="STATUS">
             {!configured ? (
               <Pill ok={false}>NOT CONFIGURED</Pill>
             ) : reachable ? (
-              <Pill ok={true}>REACHABLE</Pill>
+              <Pill ok={true}>VALIDATED</Pill>
             ) : (
               <Pill ok={false}>UNREACHABLE</Pill>
             )}
@@ -187,13 +309,21 @@ function ConnectionTab({
           <Row label="CHAIN">{status?.chain ?? "—"}</Row>
           <Row label="BLOCK">
             {tip?.height != null ? (
-              <span className="text-coin glow-coin">{tip.height.toLocaleString()}</span>
+              <span className="text-coin glow-coin">
+                ▣ {tip.height.toLocaleString()} · {bftDate(tip.height)}
+              </span>
             ) : (
               "—"
             )}
           </Row>
           <Row label={`OWNS @${space}`}>
-            {owner ? <Pill ok={true}>YES</Pill> : reachable ? <Pill ok={false}>NOT FOUND</Pill> : "—"}
+            {status?.spaceOwner ? (
+              <Pill ok={true}>YES</Pill>
+            ) : reachable ? (
+              <Pill ok={false}>NOT FOUND</Pill>
+            ) : (
+              "—"
+            )}
           </Row>
           {status?.reason && (
             <Row label="NOTE">
@@ -202,96 +332,50 @@ function ConnectionTab({
           )}
         </div>
       </div>
-
-      {!configured && (
-        <div className="border-2 border-coin/60 bg-coin/5 p-4 font-body text-sm text-white/80">
-          <p className="mb-2 font-pixel text-[10px] uppercase text-coin">CONNECT YOUR NODE</p>
-          <p className="mb-3">
-            Anchoring runs against <span className="text-cyan">your own</span> spaced node. Run{" "}
-            <span className="font-mono text-cyan">spaced</span> on your console, then set{" "}
-            <span className="font-mono text-cyan">SPACES_NODE_URL</span> (and{" "}
-            <span className="font-mono text-cyan">SPACES_NODE_TOKEN</span> if it sits behind a
-            proxy) in this deployment&apos;s env and reload. Until then, tags stay{" "}
-            <span className="text-neon">queued</span> — still fully usable on nostr.
-          </p>
-          <p className="font-mono text-[11px] text-white/50">SPACES_NODE_URL=http://127.0.0.1:7225</p>
-        </div>
-      )}
     </div>
   );
 }
 
-function QueueTab({
-  queue,
-  busy,
-  space,
-  onReload,
-}: {
-  queue: QueuedEntry[] | null;
-  busy: boolean;
-  space: string;
-  onReload: () => void;
-}) {
-  return (
-    <div className="max-w-3xl">
-      <div className="mb-3 flex items-center justify-between">
-        <p className="font-pixel text-xs">
-          <span className="text-neon glow-neon">{queue?.length ?? 0} QUEUED</span>{" "}
-          <span className="text-white/40">— waiting for the next batch anchor</span>
-        </p>
-        <button
-          onClick={onReload}
-          disabled={busy}
-          className="border-2 border-edge px-3 py-1 font-pixel text-[9px] uppercase text-white/60 hover:text-white/90 disabled:opacity-50"
-        >
-          {busy ? "…" : "RELOAD"}
-        </button>
-      </div>
-      {!queue || queue.length === 0 ? (
-        <p className="font-body text-sm text-white/50">
-          {busy ? "Reading the queue…" : "No tags queued right now."}
-        </p>
-      ) : (
-        <div className="border-2 border-edge">
-          {queue.map((e) => (
-            <div
-              key={e.handle}
-              className="flex flex-wrap items-center justify-between gap-2 border-b border-edge px-4 py-2 font-mono text-xs last:border-b-0"
-            >
-              <span className="text-cyan">
-                {e.handle}@{space}
-              </span>
-              <span className="text-white/40">{shortNpub(e.npub)}</span>
-              <span className="text-white/40">
-                {e.blockHeight != null
-                  ? `BLOCK ${e.blockHeight.toLocaleString()}`
-                  : new Date(e.requestedAt).toLocaleDateString()}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
+// ── ANCHOR — the queue (with the 🗑) + record the batch commit ───────────────
 
 function AnchorTab({
   space,
-  queueCount,
-  onCommitted,
+  queue,
+  busy,
+  onReload,
 }: {
   space: string;
-  queueCount: number | null;
-  onCommitted: () => void;
+  queue: QueuedEntry[] | null;
+  busy: boolean;
+  onReload: () => void;
 }) {
+  const [confirming, setConfirming] = useState<string | null>(null);
   const [batchId, setBatchId] = useState("");
   const [proofsText, setProofsText] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [committing, setCommitting] = useState(false);
   const [result, setResult] = useState<{
     committed: string[];
     skipped: { handle: string; reason: string }[];
   } | null>(null);
   const [err, setErr] = useState<string | null>(null);
+
+  async function release(handle: string) {
+    if (confirming !== handle) {
+      setConfirming(handle); // two taps — no accidental trashing
+      setTimeout(() => setConfirming((c) => (c === handle ? null : c)), 3000);
+      return;
+    }
+    setConfirming(null);
+    const res = await fetch("/api/admin/batch/release", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ handle, space }),
+    })
+      .then((r) => r.json())
+      .catch(() => ({ ok: false, reason: "release hiccuped" }));
+    if (!res.ok) setErr(res.reason);
+    onReload();
+  }
 
   async function commit() {
     setErr(null);
@@ -308,7 +392,7 @@ function AnchorTab({
       setErr("batch id (the on-chain root / txid) is required");
       return;
     }
-    setBusy(true);
+    setCommitting(true);
     try {
       const res = await fetch("/api/admin/batch/commit", {
         method: "POST",
@@ -321,70 +405,203 @@ function AnchorTab({
         return;
       }
       setResult({ committed: data.committed, skipped: data.skipped });
-      onCommitted();
+      onReload();
     } catch {
       setErr("commit hiccuped — try again");
     } finally {
-      setBusy(false);
+      setCommitting(false);
     }
   }
 
   return (
-    <div className="max-w-2xl space-y-6">
+    <div className="max-w-3xl space-y-8">
+      <div>
+        <div className="mb-3 flex items-center justify-between">
+          <p className="font-pixel text-xs">
+            <span className="text-neon glow-neon">{queue?.length ?? 0} QUEUED</span>{" "}
+            <span className="text-white/40">— the next batch&apos;s passenger list</span>
+          </p>
+          <button
+            onClick={onReload}
+            disabled={busy}
+            className="border-2 border-edge px-3 py-1 font-pixel text-[9px] uppercase text-white/60 hover:text-white/90 disabled:opacity-50"
+          >
+            {busy ? "…" : "RELOAD"}
+          </button>
+        </div>
+        {!queue || queue.length === 0 ? (
+          <p className="font-body text-sm text-white/50">
+            {busy ? "Reading the queue…" : "No tags queued right now."}
+          </p>
+        ) : (
+          <div className="border-2 border-edge">
+            {queue.map((e) => (
+              <div
+                key={e.handle}
+                className="flex flex-wrap items-center justify-between gap-2 border-b border-edge px-4 py-2 font-mono text-xs last:border-b-0"
+              >
+                <span className="text-cyan">
+                  {e.handle}@{space}
+                </span>
+                <span className="text-white/40">{shortNpub(e.npub)}</span>
+                <span className="text-white/40">{bftStamp(e)}</span>
+                <button
+                  onClick={() => release(e.handle)}
+                  title="release this name back to the pool (queued only)"
+                  className={`min-h-9 border-2 px-2 font-pixel text-[9px] uppercase ${
+                    confirming === e.handle
+                      ? "border-ghost text-ghost"
+                      : "border-edge text-white/40 hover:border-ghost hover:text-ghost"
+                  }`}
+                >
+                  {confirming === e.handle ? "SURE? 🗑" : "🗑"}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       <div className="border-l-4 border-pink bg-pink/5 p-4">
         <p className="font-body text-sm text-white/80">
-          <span className="font-pixel text-[10px] text-pink">CEREMONY · </span>
-          The batch commit is a manual, wallet-signed step on this local console — keys never
-          touch a server. Run <span className="font-mono text-cyan">subs</span> against the{" "}
-          {queueCount ?? "queued"} {queueCount === 1 ? "tag" : "tags"} to build the Merkle root,
-          sign + broadcast with the @{space} wallet, then record the result below to flip them{" "}
-          <span className="text-neon">etched</span>.
+          <span className="font-pixel text-[10px] text-pink">CEREMONY STEP · </span>
+          Run <span className="font-mono text-cyan">subs</span> against the queue above, sign +
+          broadcast with the @{space} wallet on your console (keys never touch a server), then
+          record the result to flip them <span className="text-neon">etched</span>.
         </p>
       </div>
 
-      <label className="block">
-        <span className="font-pixel text-[9px] uppercase text-white/40">
-          BATCH ID — ON-CHAIN ROOT / TXID
+      <div className="space-y-4">
+        <label className="block">
+          <span className="font-pixel text-[9px] uppercase text-white/40">
+            BATCH ID — ON-CHAIN ROOT / TXID
+          </span>
+          <input
+            value={batchId}
+            onChange={(e) => setBatchId(e.target.value)}
+            className="mt-1 w-full border-2 border-edge bg-void px-3 py-2 font-mono text-xs text-cyan focus:border-cyan focus:outline-none"
+          />
+        </label>
+        <label className="block">
+          <span className="font-pixel text-[9px] uppercase text-white/40">
+            PROOFS — JSON ARRAY OF {"{ handle, proof }"}
+          </span>
+          <textarea
+            value={proofsText}
+            onChange={(e) => setProofsText(e.target.value)}
+            rows={5}
+            placeholder='[{ "handle": "alice", "proof": "…" }]'
+            className="mt-1 w-full border-2 border-edge bg-void px-3 py-2 font-mono text-xs text-white/80 placeholder:text-white/25 focus:border-cyan focus:outline-none"
+          />
+        </label>
+        <button
+          onClick={commit}
+          disabled={committing}
+          className="button block w-full text-center disabled:opacity-50"
+        >
+          {committing ? "RECORDING…" : "▶ RECORD BATCH COMMIT"}
+        </button>
+        {err && <p className="font-pixel text-[10px] uppercase text-ghost">{err}</p>}
+        {result && (
+          <div className="border-2 border-neon/50 bg-neon/5 p-4 font-mono text-xs">
+            <p className="text-neon glow-neon">✓ {result.committed.length} ETCHED</p>
+            {result.committed.length > 0 && (
+              <p className="mt-1 text-white/60">{result.committed.join(", ")}</p>
+            )}
+            {result.skipped.length > 0 && (
+              <p className="mt-2 text-coin">
+                SKIPPED: {result.skipped.map((s) => `${s.handle} (${s.reason})`).join(", ")}
+              </p>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── CEREMONY — what a batch sends, per POKE node ─────────────────────────────
+
+function CeremonyTab({
+  config,
+  onSaved,
+}: {
+  config: NodesConfig;
+  onSaved: (c: NodesConfig) => void;
+}) {
+  const [certTemplate, setCertTemplate] = useState(config.ceremony.certTemplate);
+  const [welcomeMessage, setWelcomeMessage] = useState(config.ceremony.welcomeMessage);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function save() {
+    setErr(null);
+    setSaving(true);
+    try {
+      const res = await fetch("/api/admin/nodes", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ceremony: { certTemplate, welcomeMessage } }),
+      });
+      const data = await res.json();
+      if (!data.ok) {
+        setErr(data.reason ?? "couldn't save");
+        return;
+      }
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+      onSaved(data.config);
+    } catch {
+      setErr("save hiccuped — try again");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="max-w-2xl space-y-5">
+      <p className="font-body text-sm text-white/70">
+        What a batch ceremony <span className="text-cyan">sends</span> — configurable per POKE
+        node. The certificate ships as box art (the block decides the case), and the welcome
+        letter greets every fren etched in the batch.{" "}
+        <span className="text-white/40">
+          Parked sparks: the letter rides the newsletter, and posts to the @frens nostr profile
+          with hashtags.
         </span>
-        <input
-          value={batchId}
-          onChange={(e) => setBatchId(e.target.value)}
+      </p>
+      <label className="block">
+        <span className="font-pixel text-[9px] uppercase text-white/40">CERTIFICATE TEMPLATE</span>
+        <select
+          value={certTemplate}
+          onChange={(e) => setCertTemplate(e.target.value)}
           className="mt-1 w-full border-2 border-edge bg-void px-3 py-2 font-mono text-xs text-cyan focus:border-cyan focus:outline-none"
-        />
+        >
+          <option value="bft-auto">BFT AUTO — the block picks the case (house default)</option>
+          <option value="keepsake">KEEPSAKE — naming-ceremony inscription card</option>
+          <option value="plain">PLAIN — rune + proof, no dressing</option>
+        </select>
       </label>
       <label className="block">
         <span className="font-pixel text-[9px] uppercase text-white/40">
-          PROOFS — JSON ARRAY OF {"{ handle, proof }"}
+          THE WELCOME LETTER — SENT WITH EVERY ETCH
         </span>
         <textarea
-          value={proofsText}
-          onChange={(e) => setProofsText(e.target.value)}
+          value={welcomeMessage}
+          onChange={(e) => setWelcomeMessage(e.target.value)}
           rows={6}
-          placeholder='[{ "handle": "alice", "proof": "…" }]'
-          className="mt-1 w-full border-2 border-edge bg-void px-3 py-2 font-mono text-xs text-white/80 placeholder:text-white/25 focus:border-cyan focus:outline-none"
+          placeholder="Welcome home, fren — your name is on the block now…"
+          className="mt-1 w-full border-2 border-edge bg-void px-3 py-2 font-body text-sm text-white/80 placeholder:text-white/25 focus:border-cyan focus:outline-none"
         />
       </label>
       <button
-        onClick={commit}
-        disabled={busy}
+        onClick={save}
+        disabled={saving}
         className="button block w-full text-center disabled:opacity-50"
       >
-        {busy ? "RECORDING…" : "▶ RECORD BATCH COMMIT"}
+        {saving ? "SAVING…" : saved ? "✓ SAVED — RIDES THE NEXT CEREMONY" : "SAVE CEREMONY"}
       </button>
       {err && <p className="font-pixel text-[10px] uppercase text-ghost">{err}</p>}
-      {result && (
-        <div className="border-2 border-neon/50 bg-neon/5 p-4 font-mono text-xs">
-          <p className="text-neon glow-neon">✓ {result.committed.length} ETCHED</p>
-          {result.committed.length > 0 && (
-            <p className="mt-1 text-white/60">{result.committed.join(", ")}</p>
-          )}
-          {result.skipped.length > 0 && (
-            <p className="mt-2 text-coin">
-              SKIPPED: {result.skipped.map((s) => `${s.handle} (${s.reason})`).join(", ")}
-            </p>
-          )}
-        </div>
-      )}
     </div>
   );
 }

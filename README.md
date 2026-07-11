@@ -54,9 +54,17 @@ npm run dev        # local file registry, cleared on every start
 Production needs two secrets: `BLOB_READ_WRITE_TOKEN` (a Vercel Blob store
 connected to the project — the registry) and `SEAT_SECRET` (any long random
 string; it signs the sign-in cookie — without it, returning login, tag
-release, and `/admin` all 500). Set `OPERATOR_NPUBS` too if you want the
-operator console. No database, no user accounts — see
-[`.env.example`](.env.example) for the full list.
+release, and the admin side all 500). Set `OPERATOR_NPUBS` too if you want
+the operator console, and `GITHUB_TOKEN` (fine-grained PAT: contents +
+pull-requests write) if the SCAR merge queue should execute merges. No
+database, no user accounts — see [`.env.example`](.env.example) for the
+full list.
+
+Two deploy lessons, learned the hard way: **env vars only apply to builds
+made after they exist** (set one → redeploy), and this project **deploys by
+CLI push** (`npx vercel deploy --prod`), not on git merge. Operators
+configure their node links (spaced, MUD) from the `/a` console — stored
+config wins, env is the bootstrap fallback.
 
 ## Fork this for your own space
 
