@@ -11,20 +11,21 @@ export async function GET(request: Request) {
     return Response.json({ ok: false, reason: "operator sign-in required" }, { status: 401 });
   }
   const auths = await listAuthorizations();
+  const canExecute = await mergeExecutionEnabled();
   try {
     const prs = await listOpenPrs();
-    return Response.json({ ok: true, canExecute: mergeExecutionEnabled(), prs, auths });
+    return Response.json({ ok: true, canExecute, prs, auths });
   } catch (err) {
     /* Private repo without a token (404), rate limit, or GitHub down — the
-       lane still opens with the setup card + the audit log intact. */
+       lane still opens with the connect box + the audit log intact. */
     return Response.json({
       ok: true,
-      canExecute: mergeExecutionEnabled(),
+      canExecute,
       prs: [],
       auths,
-      setup: mergeExecutionEnabled()
+      setup: canExecute
         ? `couldn't reach GitHub (${err instanceof Error ? err.message : "error"}) — try again`
-        : "the repo is private — set GITHUB_TOKEN (fine-grained: contents + pull-requests write) in the deployment env to list and merge from here",
+        : "connect-github",
     });
   }
 }

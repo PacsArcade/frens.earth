@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { currentBlock, BLOCKS_PER_DAY, bft } from "@/lib/bb/bft";
 
 /**
@@ -15,10 +15,23 @@ import { currentBlock, BLOCKS_PER_DAY, bft } from "@/lib/bb/bft";
  */
 export default function BftClock() {
   const [height, setHeight] = useState<number | null>(null);
+  const [breaking, setBreaking] = useState(false);
+  const prev = useRef<number | null>(null);
 
   useEffect(() => {
     let alive = true;
-    const tick = () => currentBlock().then((h) => { if (alive) setHeight(h); });
+    const tick = () =>
+      currentBlock().then((h) => {
+        if (!alive) return;
+        /* the block breaks — pulse bitcoin orange around the clock (Pac,
+           2026-07-11). First reading never pulses; only a NEW block does. */
+        if (prev.current != null && h > prev.current) {
+          setBreaking(true);
+          setTimeout(() => alive && setBreaking(false), 4000);
+        }
+        prev.current = h;
+        setHeight(h);
+      });
     tick();
     const id = setInterval(tick, 60_000);
     return () => { alive = false; clearInterval(id); };
@@ -37,12 +50,14 @@ export default function BftClock() {
 
   return (
     <div
-      className="fixed bottom-3 right-3 z-40 select-none rounded-md border border-edge/80 bg-panel/80 px-3 py-2.5 shadow-lg backdrop-blur-sm"
-      title="Bitcoin Federated Time — the calendar that syncs to the block, not the sun"
+      className={`fixed bottom-3 right-3 z-40 select-none rounded-md border border-edge/80 bg-panel/80 px-3 py-2.5 shadow-lg backdrop-blur-sm ${
+        breaking ? "block-break" : ""
+      }`}
+      title="Bitcoin Time Clock — the calendar that syncs to the block, not the sun"
     >
       {/* Header */}
       <div className="mb-1.5 text-center text-[7px] uppercase tracking-[0.25em] text-cyan/70 font-mono">
-        ⧗ BITCOIN TIME
+        ⧗ BITCOIN TIME CLOCK
       </div>
 
       {/* Date — YR · MO · DY, each labelled */}
