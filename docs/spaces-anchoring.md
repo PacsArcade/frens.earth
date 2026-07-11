@@ -27,25 +27,33 @@ itself.** The node connects to Bitcoin Core and holds the space owner's
   in — the node is a **configurable, swappable** dependency.
 - **Keys/wallet never touch this web app** — same rule as the fren secret key.
 
-## Architecture — a decoupled handoff
+## Architecture — admin GUI drives the node over RPC
 
-The web app owns the **queue + proof storage + verification surface**. The node
-owns the **wallet + the on-chain commit**. They meet at two operator-gated
-HTTP endpoints, so the node can live anywhere and can be re-pointed at will:
+All operator-facing and all web GUI: an **"admiral"** signs into the admin area
+(`/admin`, `fe-operator` session) and runs everything from a browser. The app
+backend talks to this deployment's own **`spaced` node over JSON-RPC**; the node
+holds the **wallet** and performs every on-chain action. The app never holds a
+key.
 
 ```
-  Spaces node / operator (holds wallet)              frens.earth web app
-  ───────────────────────────────────               ───────────────────
-   1. GET  /api/admin/batch/export  ───────────────▶  the queued subspace set
-   2. commit batch on-chain with space-cli
-      (owner wallet) → Merkle root + proofs
-   3. POST /api/admin/batch/commit  ───────────────▶  flip queued→committed,
-        { batchId, items:[{handle, proof}] }           store batchId + proof
+  admiral ─▶ /admin GUI ─▶ frens.earth backend ─JSON-RPC─▶ spaced node
+                                                            (wallet, Bitcoin Core)
+   connect node · view queue · commit a batch · register a name
 ```
 
-The app never calls the node and never holds a key; the node calls two stable
-app endpoints. Re-homing the node (pacsarcade → frens.earth's own box) changes
-nothing in the app.
+- **Connect** — configure + test the node link: `getserverinfo` (chain tip →
+  "look at the block") and `getspaceowner` (confirm the wallet owns @<space>).
+  Backbone route today: `GET /api/admin/spaces/status`.
+- **Anchor a batch** — the GUI reads the queued set, calls the node's subspace
+  batch-commit (wallet-signed on the node), then flips `queued→committed` with
+  the returned root + proofs via `commitBatch()`.
+- **Register one name** — the same commit path for a single subspace, on demand.
+
+**Reachability:** `spaced` RPC is localhost-only and unauthenticated, so a
+serverless frens.earth must reach it through an authenticating proxy
+(`SPACES_NODE_URL` + `SPACES_NODE_TOKEN`), or run co-located with its own node.
+Each deployment points at its **own** node — the pacsarcade node powering
+frens.earth today is temporary and nothing here hardcodes it.
 
 ## Endpoint contracts (built in this PR)
 
@@ -78,30 +86,41 @@ understand the proof format.
 
 ## Open — needs confirming against the running node
 
-The exact node side depends on your `spaced`/subspaces build. To finish A1:
+Interface is decided: **all web GUI over `spaced` JSON-RPC** (localhost `:7225`
+by default). Remaining:
 
-1. **Batch-commit interface** — is it an RPC method on `spaced`, or a
-   `space-cli` command run on the node host? (Shapes step 2 + who calls
-   `/commit` — the node directly, or an operator script.)
-2. **Subspace record** — does a committed subspace store the **nostr pubkey**
-   (so the on-chain record can back NIP-05), or only the name? Determines
-   whether `/export` should also hand over each `npub` for the commit (it
-   currently does).
-3. **Proof format** — what does a per-name inclusion proof look like, and is
-   there a matching **verify** call? (Drives the future public verification
-   surface + how `batchId` maps to the on-chain root/txid.)
-4. **Network** — testnet4 or mainnet for the first real batch?
+1. **Reachability / auth** — how does the app reach the node? Its RPC is
+   localhost-only + unauthenticated. Expose it via an authenticating proxy
+   (`SPACES_NODE_URL` + `SPACES_NODE_TOKEN`), or co-locate the app with the
+   node? (frens.earth is on Vercel today; its own node later may change this.)
+2. **Batch-commit RPC** — the exact `spaced` method + params that commits a
+   subspace batch with the wallet: a dev-branch (`subspaces`) call not in the
+   stable server API. Need the method name/shape from the running node.
+3. **Subspace record** — does a committed subspace store the **nostr pubkey**
+   (so the on-chain record can back NIP-05), or only the name?
+4. **Proof format** — what a per-name inclusion proof looks like, and the
+   matching verify call (`getrootanchors` / `buildchainproof` / `getcommitment`?).
+5. **Network** — testnet4 or mainnet for the first real batch?
 
 ## Still to build (follow-ups)
 
+Toward the primary goal — frens.earth as a ready-to-go **template** whose
+operator can self-set-up:
+
+- **Admin setup + ceremony GUI** in `/admin` — connect/test the node (the
+  `GET /api/admin/spaces/status` backbone exists), view the queue, commit a
+  batch, and register one name on demand. This "admin link to set yourself up"
+  is the core frens.earth need.
+- **Node batch-commit call** — the `spaces.ts` client method that drives the
+  node's subspace commit (pending the dev-branch RPC spec above), then
+  `commitBatch()` flips status.
 - **Verification surface** — serve each committed name's inclusion proof + root
   so anyone can independently verify "etched on Bitcoin". (`FrenProfile`
   already renders the committed/pending badge from `status`.)
-- **Admin ceremony UI** — an operator screen in `/admin` to run export → commit
-  (today the endpoints are driven by the node/an operator script).
-- **`SPACES_NODE_URL` config** — only if we later let the app *call* the node
-  (the current design has the node call the app, so this may stay unneeded).
 - **A1 × A3 cache coordination** — once the aggregated read-index (PR #6)
-  lands, route `commitBatch()`'s status flips through its `reindex()` hook so
-  NIP-05 / login reflect committed status without waiting for a cache rebuild
+  lands, route `commitBatch()`'s status flips through its `reindex()` hook
   (marked `TODO(A1xA3)` in `registry.ts`).
+
+**Pac's Arcade addons — future, not built here:** an auction / registration
+site to register a client's name live in a meeting, plus a "look at the block"
+teaching UI. These layer on the same foundation on pacsarcade later.
