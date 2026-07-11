@@ -27,6 +27,12 @@ bind everything here — especially rule 1: **no Disney, ever**
    night-garden/terminal house treatment. Where it lands (DW cartridge?
    cert keepsakes? the wonder floor?) is part of the exploration.
 
+7. **Console lore display (with Proph-₿)** — GLYPH designs how lore,
+   prophecies, and ceremony words RENDER in the console and MUD verse
+   (GLYPH's home turf); then **Proph-₿** (`C:\dev\proph-b.skill` — the
+   prophet voice) reviews the displayed result for weight and rhythm.
+   Writer → typesetter → writer's proof. (Admiral, 2026-07-11.)
+
 ## Standing notes
 
 - **Carroll drill logs → SCAR**: when the carroll.skill accuracy drills run,
@@ -35,10 +41,3 @@ bind everything here — especially rule 1: **no Disney, ever**
 - **Class spark (Pac's Arcade MUD)**: *GIT101 — "The Merge Ceremony"* — a
   beginner class on repos, PRs, merges, and deploys, taught the arcade way.
   The admiral's own onboarding is the curriculum's first draft.
-
-7. **NEW — Console lore display (with Proph-₿)**: GLYPH designs how lore,
-   prophecies, and ceremony words RENDER in the console and the MUD verse
-   (GLYPH's home turf — ASCII framing, MUD output programming); then
-   **Proph-₿** (`C:\dev\proph-b.skill` — the prophet voice, the lore that
-   sets everything in motion) reviews the displayed result for weight and
-   rhythm. Writer → typesetter → writer's proof. (Admiral, 2026-07-11.)
