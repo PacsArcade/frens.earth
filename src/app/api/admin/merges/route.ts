@@ -6,6 +6,7 @@ import {
   authorizeMerge,
   closeAuthorization,
   mergeExecutionEnabled,
+  postNote,
   tokenExpiration,
 } from "@/lib/merges";
 
@@ -51,7 +52,7 @@ export async function POST(request: Request) {
   if (!operatorFromCookieHeader(request.headers.get("cookie"))) {
     return Response.json({ ok: false, reason: "operator sign-in required" }, { status: 401 });
   }
-  let body: { event?: unknown; close?: unknown };
+  let body: { event?: unknown; close?: unknown; note?: unknown };
   try {
     body = await request.json();
   } catch {
@@ -60,6 +61,13 @@ export async function POST(request: Request) {
   /* the close-out — cookie-gated (low stakes: it only ends the watch) */
   if (typeof body.close === "number") {
     return Response.json({ ok: await closeAuthorization(body.close) });
+  }
+  /* a signed review note — verified inside (same ladder as the merge
+     authorization), recorded, and posted to GitHub when a token is on */
+  if (body.note) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const noted = await postNote(body.note as any);
+    return Response.json(noted, { status: noted.ok ? 200 : 403 });
   }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const result = await authorizeMerge(body.event as any);

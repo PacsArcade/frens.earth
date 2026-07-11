@@ -14,13 +14,13 @@ export interface ShipLogEntry {
 
 export const SHIP_LOG: ShipLogEntry[] = [
   {
-    height: 957618,
-    title: "THE ARTIST DOOR OPENS",
+    height: 957620,
+    title: "THE DOOR GETS A GATE",
     bullets: [
-      "Artist Registry shipped (/artist) — the brand kit's sibling to the tag claim: request your name on the Spaces protocol, read the live auction board, watch names per-npub",
-      "Gated behind the artist-training entitlement — operator-editable npub roster (ARTIST_NPUBS bootstrap), with the honest LEVEL LOCKED screen for everyone else",
-      "Every auction surface degrades honestly: no node → says so, node down → says why, never a fake board",
-      "Request lifecycle laid down: REQUESTED → AUCTION → WON/LOST → ANCHORED; the crew bids from the node wallet — keys never touch the app",
+      "/chat is the fren gate in front of the floor — signed-in frens bounce 307 to the configured chat node, anonymous visitors meet /login; the node URL is never exposed raw",
+      "chat.frens.earth now points at THIS ship (DNS → the frens-earth Vercel project): the host's root rewrites to /chat so the gate runs before any door opens — the arcade redirects its chat host straight out, ours checks who's knocking",
+      "No node linked? The gate says so honestly instead of chasing its own tail (the default still names the door domain itself)",
+      "Console's OPEN THE CHAT ▸ goes through the gate too; parked for GLYPH: THE ARCADE STYLE BAND (orbee pixel critters + Spiral terminal magenta) and artist cards round 2 on the aceo 3D card tech",
     ],
   },
   {
@@ -30,6 +30,16 @@ export const SHIP_LOG: ShipLogEntry[] = [
       "CHAT room joins the console manifest — the deck and bridge rail pick it up from lib/console.ts, nothing re-coded",
       "/a/chat: point·save·test your orbee door (chatUrl in the nodeconfig store, dual-driver), honest REACHABLE/UNREACHABLE states, OPEN THE CHAT ▸ in a new tab",
       "Mirrors the arcade's lesson: orbee is the nostr NIP-29 floor and its domain is a DOOR, not an iframe — unset deployments fall back to the house floor at chat.frens.earth",
+    ],
+  },
+  {
+    height: 957618,
+    title: "THE ARTIST DOOR OPENS",
+    bullets: [
+      "Artist Registry shipped (/artist) — the brand kit's sibling to the tag claim: request your name on the Spaces protocol, read the live auction board, watch names per-npub",
+      "Gated behind the artist-training entitlement — operator-editable npub roster (ARTIST_NPUBS bootstrap), with the honest LEVEL LOCKED screen for everyone else",
+      "Every auction surface degrades honestly: no node → says so, node down → says why, never a fake board",
+      "Request lifecycle laid down: REQUESTED → AUCTION → WON/LOST → ANCHORED; the crew bids from the node wallet — keys never touch the app",
     ],
   },
   {
