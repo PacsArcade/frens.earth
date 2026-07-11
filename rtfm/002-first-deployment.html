@@ -47,8 +47,13 @@
   .mission { margin-top:22px; padding:14px 18px; border-left:3px solid var(--heart); background:color-mix(in srgb,var(--heart) 9%,transparent); font-size:.95rem; border-radius:0 6px 6px 0; }
   .mission b { color:var(--heart); }
 
-  section { margin-top:52px; scroll-margin-top:20px; }
+  section { margin-top:52px; scroll-margin-top:20px; position:relative; }
+  /* the proper git name, twice: a chip in the head row for every reader,
+     and a vertical rail on wide screens — visual reinforcement, all styles */
+  .gitv { position:absolute; top:2px; left:-46px; writing-mode:vertical-rl; transform:rotate(180deg); font-family:var(--mono); font-size:10px; letter-spacing:.3em; text-transform:uppercase; color:var(--muted); opacity:.75; }
+  @media (max-width:1040px) { .gitv { display:none; } }
   .head { display:flex; align-items:baseline; gap:14px; border-bottom:1px solid var(--edge); padding-bottom:12px; margin-bottom:20px; }
+  .head .git { margin-left:auto; font-family:var(--mono); font-size:11px; color:var(--teal); border:1px solid var(--edge); border-radius:5px; padding:2px 8px; white-space:nowrap; }
   .head .num { font-family:var(--mono); font-size:13px; color:var(--void); background:var(--sprout); padding:3px 9px; border-radius:5px; font-weight:700; }
   h2 { font-family:var(--mono); font-size:clamp(1.35rem,3.4vw,1.85rem); margin:0; letter-spacing:-.01em; text-wrap:balance; }
   h3 { font-family:var(--mono); font-size:1.02rem; margin:28px 0 10px; color:var(--teal); }
@@ -93,6 +98,7 @@
   .flow { display:grid; align-items:stretch; gap:8px; margin:16px 0; }
   .flow.n5 { grid-template-columns:1fr 16px 1fr 16px 1fr 16px 1fr 16px 1fr; }
   .flow.n7 { grid-template-columns:1fr 16px 1fr 16px 1fr 16px 1fr 16px 1fr 16px 1fr 16px 1fr; }
+  .flow.n8 { grid-template-columns:1fr 16px 1fr 16px 1fr 16px 1fr 16px 1fr 16px 1fr 16px 1fr 16px 1fr; }
   .flow a.box { display:flex; flex-direction:column; gap:7px; border:2px solid var(--edge); border-radius:8px; background:var(--panel); padding:10px 12px 12px; font-family:var(--mono); font-size:12.5px; line-height:1.4; color:var(--sprout); text-decoration:none; }
   .flow a.box:hover { border-color:var(--sprout); }
   .flow a.box small { display:block; color:var(--muted); font-size:9.5px; text-transform:uppercase; letter-spacing:.1em; }
@@ -120,7 +126,8 @@
 <div class="wrap">
 
   <section id="s0">
-    <div class="head"><span class="num">CEREMONY</span><h2>How it really works here — click a box</h2></div>
+    <span class="gitv">git flow</span>
+    <div class="head"><span class="num">CEREMONY</span><h2>How it really works here — click a box</h2><span class="git">git flow</span></div>
     <p>The real workflow on <span class="sys">frens.earth</span> — you never write the code yourself:</p>
     <div class="flow n5">
       <a class="box" href="#s0"><small>you</small>idea</a><span class="arr">▶</span>
@@ -137,14 +144,15 @@
     </ul>
     <p>Sailing a different ship? Wherever this manual says <span class="sys">frens.earth</span>, read your own site's name — every name above comes from your configuration (phase <a href="#s3">03</a>). This manual ships inside the template: part of the <b>brand kit in a box</b> when creator stores like <span class="sys">onecocreation</span> stand up.</p>
     <p>And the classic git flow underneath, each step a box you can click:</p>
-    <div class="flow n7">
+    <div class="flow n8">
       <a class="box" href="#s1"><small>01</small>get the ship</a><span class="arr">▶</span>
       <a class="box" href="#s2"><small>02</small>first flight</a><span class="arr">▶</span>
       <a class="box" href="#s3"><small>03</small>make it yours</a><span class="arr">▶</span>
       <a class="box" href="#s4"><small>04</small>go live</a><span class="arr">▶</span>
       <a class="box" href="#s5"><small>05</small>the rhythm</a><span class="arr">▶</span>
       <a class="box" href="#s6"><small>06</small>hook up approvals</a><span class="arr">▶</span>
-      <a class="box" href="#s7"><small>07</small>your rules</a>
+      <a class="box" href="#s7"><small>07</small>your rules</a><span class="arr">▶</span>
+      <a class="box" href="#s8"><small>08</small>when it breaks</a>
     </div>
     <ul class="plain">
       <li><b>branch</b> — a safe side copy</li>
@@ -156,7 +164,8 @@
   </section>
 
   <section id="s1">
-    <div class="head"><span class="num">01</span><h2>Get the ship (clone)</h2></div>
+    <span class="gitv">git clone</span>
+    <div class="head"><span class="num">01</span><h2>Get the ship (clone)</h2><span class="git">git clone</span></div>
     <div class="term">
       <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;one folder, whole repo</div>
 <pre><span class="p">$</span> gh auth login              <span class="c"># once — say yes when it offers to sign in git</span>
@@ -175,7 +184,8 @@
   </section>
 
   <section id="s2">
-    <div class="head"><span class="num">02</span><h2>First flight (run it)</h2></div>
+    <span class="gitv">npm run dev</span>
+    <div class="head"><span class="num">02</span><h2>First flight (run it)</h2><span class="git">npm run dev</span></div>
     <div class="term">
       <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;the whole install</div>
 <pre><span class="p">$</span> npm install
@@ -192,7 +202,8 @@
   </section>
 
   <section id="s3">
-    <div class="head"><span class="num">03</span><h2>Make it yours (two lines)</h2></div>
+    <span class="gitv">.env config</span>
+    <div class="head"><span class="num">03</span><h2>Make it yours (two lines)</h2><span class="git">.env config</span></div>
     <div class="term">
       <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;.env.local — your space, your domain</div>
 <pre>NEXT_PUBLIC_SPACE_NAME=<span class="s">yourspace</span>
@@ -207,7 +218,8 @@ NEXT_PUBLIC_NIP05_DOMAIN=<span class="s">yourspace.example</span>
   </section>
 
   <section id="s4">
-    <div class="head"><span class="num">04</span><h2>Go live (deploy)</h2></div>
+    <span class="gitv">vercel deploy</span>
+    <div class="head"><span class="num">04</span><h2>Go live (deploy)</h2><span class="git">vercel deploy</span></div>
     <div class="term">
       <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;vercel — once to set up, one line forever after</div>
 <pre><span class="p">$</span> npx vercel login
@@ -231,11 +243,18 @@ NEXT_PUBLIC_NIP05_DOMAIN=<span class="s">yourspace.example</span>
   </section>
 
   <section id="s5">
-    <div class="head"><span class="num">05</span><h2>The rhythm (every change after)</h2></div>
+    <span class="gitv">gh pr merge</span>
+    <div class="head"><span class="num">05</span><h2>The rhythm (every change after)</h2><span class="git">gh pr merge</span></div>
     <div class="term">
-      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;your two commands, forever — run inside frens.hip</div>
-<pre><span class="p">$</span> gh pr merge <span class="s">N</span> --merge      <span class="c"># N = the proposal number, e.g. 17</span>
-<span class="p">$</span> npx vercel deploy --prod   <span class="c"># publish the truth</span>
+      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;the merge kit — proper names on every step; run inside frens.hip</div>
+<pre><span class="p">$</span> gh pr list                 <span class="c"># LIST — every open proposal, numbered</span>
+<span class="p">$</span> gh pr view <span class="s">N</span>               <span class="c"># VIEW — read proposal N's story</span>
+<span class="p">$</span> gh pr checkout <span class="s">N</span>           <span class="c"># CHECKOUT — try it on your own desk (optional)</span>
+<span class="p">$</span> npm run dev                <span class="c">#   …look at localhost:3000, then come home:</span>
+<span class="p">$</span> git checkout main          <span class="c"># CHECKOUT main — back to the master copy</span>
+<span class="p">$</span> gh pr merge <span class="s">N</span> --merge      <span class="c"># MERGE — your signature; N = the number, e.g. 17</span>
+<span class="p">$</span> git pull                   <span class="c"># PULL — bring the merged truth down to your desk</span>
+<span class="p">$</span> npx vercel deploy --prod   <span class="c"># DEPLOY — publish the truth</span>
 </pre>
     </div>
     <ul class="plain">
@@ -245,11 +264,13 @@ NEXT_PUBLIC_NIP05_DOMAIN=<span class="s">yourspace.example</span>
       <li>sailing with an agent? your merge is the order — the agent runs the deploy</li>
       <li>if two proposals touch the same lines, GitHub blocks the second until you look</li>
     </ul>
+    <div class="call tip"><span class="lab">You never push</span><p>Proposals are pushed <b>to</b> you — your whole side of git is <b>LIST → VIEW → CHECKOUT (optional) → MERGE → PULL → DEPLOY</b>. No <code>git push</code> lives in your rhythm (the one exception is damage control, phase <a href="#s8">08</a>).</p></div>
     <div class="call check"><span class="lab">The finish line</span><p>A live site whose every change passed through your hands. The merge is the ceremony; the deploy is the broadcast.</p></div>
   </section>
 
   <section id="s6">
-    <div class="head"><span class="num">06</span><h2>Hook up approvals at SCARLET (once)</h2></div>
+    <span class="gitv">github token</span>
+    <div class="head"><span class="num">06</span><h2>Hook up approvals at SCARLET (once)</h2><span class="git">github token</span></div>
     <p>So the <span class="sys">MERGE QUEUE</span> at <a href="https://frens.earth/a/scar" target="_blank" rel="noopener">frens.earth/a/scar</a> can list and merge proposals, it needs one key from GitHub. Two steps, five minutes, once a quarter.</p>
     <h3>Step A — make the key (on GitHub)</h3>
     <ul class="plain">
@@ -278,7 +299,8 @@ NEXT_PUBLIC_NIP05_DOMAIN=<span class="s">yourspace.example</span>
   </section>
 
   <section id="s7">
-    <div class="head"><span class="num">07</span><h2>Change control — your ship, your rules</h2></div>
+    <span class="gitv">change control</span>
+    <div class="head"><span class="num">07</span><h2>Change control — your ship, your rules</h2><span class="git">change control</span></div>
     <p>Everything above is a change-control system wearing ceremony clothes. Name the parts and you can tune them:</p>
     <ul class="plain">
       <li><b>the proposal</b> — every change arrives as a PR; nothing edits the master copy directly</li>
@@ -294,6 +316,47 @@ NEXT_PUBLIC_NIP05_DOMAIN=<span class="s">yourspace.example</span>
       <li>each <b>frens.hip</b> writes its own rules: solo captains merge alone; crews add officers</li>
     </ul>
     <div class="call tip"><span class="lab">HIP — Help ImProve</span><p>Your clone is your <b>frens.hip</b>: the copy of the ship you help improve. Its change rules are yours to set — this manual is only the default configuration.</p></div>
+  </section>
+
+  <section id="s8">
+    <span class="gitv">git revert</span>
+    <div class="head"><span class="num">08</span><h2>When it breaks (damage control)</h2><span class="git">git revert</span></div>
+    <p>Something merged, something deployed, the site is wrong. Nothing is lost — git keeps <b>every version of every file, forever</b>. Two moves: put the site back first, then fix the history calmly.</p>
+    <h3>First — put the site back (one minute)</h3>
+    <div class="term">
+      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;rollback — the previous deploy returns instantly</div>
+<pre><span class="p">$</span> npx vercel rollback        <span class="c"># ROLLBACK — the last good deploy is live again</span>
+</pre>
+    </div>
+    <ul class="plain">
+      <li>this touches only the live site — git is untouched; now you have all the time in the world</li>
+    </ul>
+    <h3>Then — find the bad change and read it</h3>
+    <div class="term">
+      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;the investigation kit</div>
+<pre><span class="p">$</span> git pull                   <span class="c"># PULL — stand on the latest truth</span>
+<span class="p">$</span> git log --oneline -5       <span class="c"># LOG — the last five changes, newest first</span>
+<span class="p">$</span> git show <span class="s">sha</span>               <span class="c"># SHOW — every line that change touched</span>
+<span class="p">$</span> git diff <span class="s">sha</span> HEAD          <span class="c"># DIFF — what's different between then and now</span>
+</pre>
+    </div>
+    <ul class="plain">
+      <li>prefer the browser? <a href="https://github.com/PacsArcade/frens.earth/commits/main" target="_blank" rel="noopener">github.com → the repo → Commits</a> — click any change to review every line, colored</li>
+      <li><code>sha</code> = the short code in front of each LOG line (e.g. <code>b2e97c7</code>)</li>
+    </ul>
+    <h3>Then — undo it, honestly</h3>
+    <div class="term">
+      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;revert — an undo that is itself on the record</div>
+<pre><span class="p">$</span> git revert <span class="s">sha</span> --no-edit   <span class="c"># REVERT — a new change that undoes that one</span>
+<span class="p">$</span> git push                   <span class="c"># PUSH — the emergency exception (see phase 05)</span>
+<span class="p">$</span> npx vercel deploy --prod   <span class="c"># DEPLOY — republish the fixed truth</span>
+</pre>
+    </div>
+    <ul class="plain">
+      <li>REVERT never deletes history — it writes a new entry that cancels the old one; the ledger stays honest</li>
+      <li>calmer route: tell your agent what broke — the fix arrives as a proposal, and you're back in the phase-05 rhythm</li>
+    </ul>
+    <div class="call check"><span class="lab">Checkpoint</span><p>The worst day on this ship is: one ROLLBACK to breathe, one REVERT to fix, one DEPLOY to republish. Nothing is ever lost.</p></div>
   </section>
 
   <footer>
