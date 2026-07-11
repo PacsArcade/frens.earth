@@ -16,15 +16,16 @@ import { currentBlock, BLOCKS_PER_DAY, bft } from "@/lib/bb/bft";
 export default function BftClock() {
   const [height, setHeight] = useState<number | null>(null);
   const [breaking, setBreaking] = useState(false);
+  const [fill, setFill] = useState(0); // real mempool fullness vs one block, 0..1
   const prev = useRef<number | null>(null);
 
   useEffect(() => {
     let alive = true;
-    const tick = () =>
+    const tick = () => {
       currentBlock().then((h) => {
         if (!alive) return;
         /* the block breaks — pulse bitcoin orange around the clock (Pac,
-           2026-07-11). First reading never pulses; only a NEW block does. */
+           0018.04.15 a₿). First reading never pulses; only a NEW block does. */
         if (prev.current != null && h > prev.current) {
           setBreaking(true);
           setTimeout(() => alive && setBreaking(false), 4000);
@@ -32,6 +33,20 @@ export default function BftClock() {
         prev.current = h;
         setHeight(h);
       });
+      /* the ring fills like the mempool fills (Pac): live vsize against one
+         block's worth (~1 MvB). Full ring = the next block is packed.
+         Tick tock, it all comes back to the block. */
+      fetch("https://mempool.space/api/mempool", { cache: "no-store" })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((m) => {
+          if (alive && m && typeof m.vsize === "number") {
+            setFill(Math.max(0.02, Math.min(1, m.vsize / 1_000_000)));
+          }
+        })
+        .catch(() => {
+          /* offline → the ring simply holds its last reading */
+        });
+    };
     tick();
     const id = setInterval(tick, 60_000);
     return () => { alive = false; clearInterval(id); };
@@ -49,12 +64,21 @@ export default function BftClock() {
   const pad2 = (n: number) => String(n).padStart(2, "0");
 
   return (
+    /* docked where the old block ticker lived — top corner, under the login
+       menu; persistent on every page. The btc-orange ring is the mempool
+       filling toward the next block; it pulses when the block breaks. */
     <div
-      className={`fixed bottom-3 right-3 z-40 select-none rounded-md border border-edge/80 bg-panel/80 px-3 py-2.5 shadow-lg backdrop-blur-sm ${
+      className={`fixed right-3 top-[70px] z-40 select-none rounded-lg sm:top-[78px] ${
         breaking ? "block-break" : ""
       }`}
-      title="Bitcoin Time Clock — the calendar that syncs to the block, not the sun"
+      style={{
+        padding: 2,
+        background: `conic-gradient(from -90deg, rgba(247,147,26,0.95) ${fill * 360}deg, rgba(247,147,26,0.12) 0deg)`,
+        boxShadow: `0 0 ${8 + 18 * fill}px rgba(247,147,26,${0.18 + 0.3 * fill})`,
+      }}
+      title={`Bitcoin Time Clock — the calendar that syncs to the block, not the sun. The orange ring is the live mempool filling toward the next block (${Math.round(fill * 100)}% of one block queued). Tick tock, it all comes back to the block.`}
     >
+      <div className="rounded-md border border-edge/80 bg-panel/95 px-3 py-2.5 backdrop-blur-sm">
       {/* Header */}
       <div className="mb-1.5 text-center text-[7px] uppercase tracking-[0.25em] text-cyan/70 font-mono">
         ⧗ BITCOIN TIME CLOCK
@@ -93,6 +117,7 @@ export default function BftClock() {
       {/* Sub-label: 6 blocks = 1 hour */}
       <div className="mt-1 text-center text-[7px] tabular-nums text-white/25 font-mono">
         beat {String(beat).padStart(3, "0")}/144 · ★{height.toLocaleString()}
+      </div>
       </div>
     </div>
   );
