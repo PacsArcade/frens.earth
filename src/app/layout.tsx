@@ -51,7 +51,7 @@ export default function RootLayout({
       <body>
         <script dangerouslySetInnerHTML={{ __html: EASY_MODE_BOOT_SCRIPT }} />
         {/* Digital Renaissance is frens.earth's MAIN theme (Pac, 2026-07-09).
-            The dressing room (/admin/brand) still previews candidates on top. */}
+            The dressing room (/a/brand) still previews candidates on top. */}
         <BrandProvider theme={frensEarthTheme}>
           {children}
           <BftClock />
