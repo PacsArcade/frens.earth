@@ -27,6 +27,19 @@ interface MergeAuth {
   merged: boolean;
   mergeNote?: string;
 }
+interface PrFile {
+  file: string;
+  status: string;
+  additions: number;
+  deletions: number;
+}
+
+/** GitHub's expiry header ("2026-10-09 14:30:00 UTC") → Date, or null. */
+function parseExpiry(s: string | null): Date | null {
+  if (!s) return null;
+  const d = new Date(s.replace(" UTC", "Z").replace(" ", "T"));
+  return isNaN(d.getTime()) ? null : d;
+}
 
 export default function MergeQueue() {
   const [prs, setPrs] = useState<OpenPr[] | null>(null);
@@ -36,6 +49,8 @@ export default function MergeQueue() {
   const [busyPr, setBusyPr] = useState<number | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [expiresAt, setExpiresAt] = useState<string | null>(null);
+  const [changes, setChanges] = useState<Record<number, PrFile[] | "loading">>({});
 
   const load = useCallback(async () => {
     setErr(null);
@@ -50,10 +65,67 @@ export default function MergeQueue() {
       setAuths(data.auths);
       setCanExecute(data.canExecute);
       setSetup(data.setup ?? null);
+      setExpiresAt(data.tokenExpiresAt ?? null);
     } catch {
       setErr("couldn't reach the app — try again");
     }
   }, []);
+
+  /** ▸ CHANGES — the proposal's touched files, fetched once per open. */
+  async function toggleChanges(pr: number) {
+    if (changes[pr]) {
+      setChanges((p) => {
+        const next = { ...p };
+        delete next[pr];
+        return next;
+      });
+      return;
+    }
+    setChanges((p) => ({ ...p, [pr]: "loading" }));
+    try {
+      const res = await fetch(`/api/admin/merges?files=${pr}`);
+      const data = await res.json();
+      setChanges((p) => ({ ...p, [pr]: data.ok ? data.files : [] }));
+    } catch {
+      setChanges((p) => ({ ...p, [pr]: [] }));
+    }
+  }
+
+  const expiry = parseExpiry(expiresAt);
+  const daysLeft = expiry ? Math.max(0, Math.ceil((expiry.getTime() - Date.now()) / 86400000)) : null;
+
+  /** The renewal event, as a file — works in every calendar app on earth. */
+  function downloadRenewalIcs() {
+    if (!expiry) return;
+    const remind = new Date(expiry.getTime() - 7 * 86400000);
+    const d8 = (d: Date) => d.toISOString().slice(0, 10).replace(/-/g, "");
+    const stamp = new Date().toISOString().replace(/[-:]/g, "").slice(0, 15) + "Z";
+    const ics = [
+      "BEGIN:VCALENDAR",
+      "VERSION:2.0",
+      "PRODID:-//frens.earth//SCARLET//EN",
+      "BEGIN:VEVENT",
+      `UID:scarlet-key-${d8(expiry)}@frens.earth`,
+      `DTSTAMP:${stamp}`,
+      `DTSTART;VALUE=DATE:${d8(remind)}`,
+      "SUMMARY:SCARLET — renew the GitHub key (7 days left)",
+      `DESCRIPTION:RTFM 002 · phase 06 — make a fresh fine-grained token and paste it at /a/scar. The old key expires ${expiry.toISOString().slice(0, 10)}.`,
+      "BEGIN:VALARM",
+      "TRIGGER:-PT9H",
+      "ACTION:DISPLAY",
+      "DESCRIPTION:renew the GitHub key",
+      "END:VALARM",
+      "END:VEVENT",
+      "END:VCALENDAR",
+      "",
+    ].join("\r\n");
+    const url = URL.createObjectURL(new Blob([ics], { type: "text/calendar" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "scarlet-key-renewal.ics";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
   useEffect(() => {
     load();
@@ -107,6 +179,19 @@ export default function MergeQueue() {
       <p className="mb-2 font-pixel text-[10px] uppercase tracking-widest text-white/40">
         SCAR ▸ MERGE QUEUE — YOUR SIGNATURE IS THE AUTHORIZATION
       </p>
+      {expiry && daysLeft !== null && (
+        <p className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[10px] uppercase">
+          <span className={daysLeft <= 14 ? "text-ghost" : "text-white/40"}>
+            key expires in ~{daysLeft} days · ▣ ~{(daysLeft * 144).toLocaleString()} blocks
+          </span>
+          <button
+            onClick={downloadRenewalIcs}
+            className="border border-edge px-2 py-0.5 text-cyan hover:border-cyan"
+          >
+            ⤓ calendar (.ics)
+          </button>
+        </p>
+      )}
       {err && <p className="mb-3 font-pixel text-[10px] uppercase text-ghost">{err}</p>}
       {note && <p className="mb-3 font-pixel text-[10px] uppercase text-neon">{note}</p>}
       {!prs ? (
@@ -135,6 +220,12 @@ export default function MergeQueue() {
                     <p className="mt-1 font-body text-sm text-white/90">{pr.title}</p>
                   </div>
                   <div className="flex flex-none items-center gap-2">
+                    <button
+                      onClick={() => toggleChanges(pr.number)}
+                      className="border-2 border-edge px-3 py-1.5 font-pixel text-[9px] uppercase text-cyan hover:border-cyan"
+                    >
+                      {changes[pr.number] ? "▾" : "▸"} CHANGES
+                    </button>
                     <a
                       href={pr.url}
                       target="_blank"
@@ -156,6 +247,39 @@ export default function MergeQueue() {
                     </button>
                   </div>
                 </div>
+                {changes[pr.number] === "loading" && (
+                  <p className="mt-2 font-mono text-[10px] text-white/40">reading the changes…</p>
+                )}
+                {Array.isArray(changes[pr.number]) && (
+                  /* the change list, VS-Code style — what the signature approves */
+                  <div className="mt-3 border-t border-edge pt-2">
+                    {(changes[pr.number] as PrFile[]).length === 0 ? (
+                      <p className="font-mono text-[10px] text-white/40">
+                        couldn&apos;t read the change list — review on GitHub ▸
+                      </p>
+                    ) : (
+                      (changes[pr.number] as PrFile[]).map((f) => {
+                        const base = f.file.split("/").pop() ?? f.file;
+                        const dir = f.file.slice(0, f.file.length - base.length);
+                        const letter =
+                          f.status === "added" ? "A" : f.status === "removed" ? "D" : f.status === "renamed" ? "R" : "M";
+                        const tone =
+                          letter === "A" ? "text-neon" : letter === "D" ? "text-ghost" : "text-cyan";
+                        return (
+                          <div key={f.file} className="flex items-center gap-2 py-0.5 font-mono text-[11px]">
+                            <span className={`w-3 flex-none text-center font-bold ${tone}`}>{letter}</span>
+                            <span className="min-w-0 flex-1 truncate">
+                              <span className="text-white/85">{base}</span>
+                              {dir && <span className="ml-2 text-white/35">{dir}</span>}
+                            </span>
+                            <span className="flex-none text-neon">+{f.additions}</span>
+                            <span className="flex-none text-ghost">−{f.deletions}</span>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                )}
                 {a && (
                   <p className="mt-2 font-mono text-[10px] text-neon">
                     ✓ authorized by {a.by.slice(0, 8)}… · {a.merged ? "merged" : a.mergeNote}

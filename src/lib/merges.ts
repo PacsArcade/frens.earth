@@ -48,6 +48,14 @@ export interface OpenPr {
   draft: boolean;
 }
 
+/** GitHub reports a fine-grained key's real expiry as a header on every
+    response — captured per request so the queue (and someday the ship's
+    calendar) can surface renewal before it bites. */
+let tokenExpiry: string | null = null;
+export function tokenExpiration(): string | null {
+  return tokenExpiry;
+}
+
 /** Open PRs from GitHub (a private repo needs the token to even list). */
 export async function listOpenPrs(): Promise<OpenPr[]> {
   const { repo, headers } = await ghContext();
@@ -55,6 +63,7 @@ export async function listOpenPrs(): Promise<OpenPr[]> {
     headers,
     cache: "no-store",
   });
+  tokenExpiry = res.headers.get("github-authentication-token-expiration");
   if (!res.ok) throw new Error(`GitHub said ${res.status}`);
   const prs = (await res.json()) as {
     number: number;
@@ -70,6 +79,36 @@ export async function listOpenPrs(): Promise<OpenPr[]> {
     headSha: p.head.sha,
     url: p.html_url,
     draft: p.draft,
+  }));
+}
+
+export interface PrFile {
+  file: string;
+  status: string; // added | modified | removed | renamed
+  additions: number;
+  deletions: number;
+}
+
+/** The change list for one proposal — every touched file with its adds and
+    removes, so the captain can review right in the queue (VS-Code style). */
+export async function listPrFiles(pr: number): Promise<PrFile[]> {
+  const { repo, headers } = await ghContext();
+  const res = await fetch(`${GH}/repos/${repo}/pulls/${pr}/files?per_page=100`, {
+    headers,
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`GitHub said ${res.status}`);
+  const files = (await res.json()) as {
+    filename: string;
+    status: string;
+    additions: number;
+    deletions: number;
+  }[];
+  return files.map((f) => ({
+    file: f.filename,
+    status: f.status,
+    additions: f.additions,
+    deletions: f.deletions,
   }));
 }
 
