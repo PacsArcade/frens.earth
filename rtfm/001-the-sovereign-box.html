@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>001 · The Sovereign Box — RTFM</title>
+<style>
+  :root {
+    /* frens.earth night-garden palette, terminal treatment */
+    --void: #0d1210; --panel: #151d18; --panel-2: #10171300; --edge: #2f4033;
+    --ink: #e8ede9; --muted: #8399; --muted: #839388;
+    --sprout: #5ef78a; --teal: #53e0d4; --gold: #f7c948; --ghost: #ff6b6b; --heart: #b795ff;
+    --sprout-dim: #2a5f3d; --edge-soft: #23302700;
+    --shadow: 0 1px 0 rgba(255,255,255,.03), 0 12px 30px -18px rgba(0,0,0,.8);
+    --mono: ui-monospace, "Cascadia Code", "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+    --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    --maxw: 900px;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --void: #f3f6f1; --panel: #ffffff; --edge: #d6ded3;
+      --ink: #17211b; --muted: #5a6b60;
+      --sprout: #12924a; --teal: #0e8b82; --gold: #a97c07; --ghost: #c23a3a; --heart: #6f4dc0;
+      --sprout-dim: #bfe6cd; --edge-soft: #e6ece3;
+      --shadow: 0 1px 2px rgba(20,40,30,.05), 0 14px 30px -22px rgba(20,40,30,.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --void: #0d1210; --panel: #151d18; --edge: #2f4033;
+    --ink: #e8ede9; --muted: #839388;
+    --sprout: #5ef78a; --teal: #53e0d4; --gold: #f7c948; --ghost: #ff6b6b; --heart: #b795ff;
+    --sprout-dim: #2a5f3d; --edge-soft: #233027;
+    --shadow: 0 1px 0 rgba(255,255,255,.03), 0 12px 30px -18px rgba(0,0,0,.8);
+  }
+  :root[data-theme="light"] {
+    --void: #f3f6f1; --panel: #ffffff; --edge: #d6ded3;
+    --ink: #17211b; --muted: #5a6b60;
+    --sprout: #12924a; --teal: #0e8b82; --gold: #a97c07; --ghost: #c23a3a; --heart: #6f4dc0;
+    --sprout-dim: #bfe6cd; --edge-soft: #e6ece3;
+    --shadow: 0 1px 2px rgba(20,40,30,.05), 0 14px 30px -22px rgba(20,40,30,.35);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--void); color: var(--ink);
+    font-family: var(--sans); font-size: 16px; line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 20px 96px; }
+  a { color: var(--teal); text-decoration: none; border-bottom: 1px solid transparent; }
+  a:hover { border-bottom-color: currentColor; }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+  code, kbd, .mono { font-family: var(--mono); }
+
+  /* ---- header ---- */
+  header.hero {
+    max-width: var(--maxw); margin: 0 auto; padding: 64px 20px 40px;
+  }
+  .eyebrow {
+    font-family: var(--mono); font-size: 12px; letter-spacing: .22em; text-transform: uppercase;
+    color: var(--sprout); display: flex; align-items: center; gap: 10px; margin-bottom: 20px;
+  }
+  .eyebrow::before { content: ""; width: 22px; height: 1px; background: var(--sprout); display: inline-block; }
+  h1.title {
+    font-family: var(--mono); font-weight: 700; font-size: clamp(2rem, 6vw, 3.4rem);
+    line-height: 1.02; letter-spacing: -.01em; margin: 0 0 6px; text-wrap: balance;
+  }
+  h1.title .glow { color: var(--sprout); text-shadow: 0 0 24px color-mix(in srgb, var(--sprout) 45%, transparent); }
+  .subtitle { color: var(--muted); font-size: 1.05rem; max-width: 62ch; margin: 14px 0 0; }
+  .mission {
+    margin-top: 22px; padding: 14px 18px; border-left: 3px solid var(--heart);
+    background: color-mix(in srgb, var(--heart) 9%, transparent);
+    font-size: .95rem; color: var(--ink); border-radius: 0 6px 6px 0; max-width: 64ch;
+  }
+  .mission b { color: var(--heart); }
+
+  /* ---- spec card ---- */
+  .specs {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px;
+    background: var(--edge); border: 1px solid var(--edge); border-radius: 10px; overflow: hidden;
+    margin: 30px 0 8px; box-shadow: var(--shadow);
+  }
+  .spec { background: var(--panel); padding: 14px 16px; }
+  .spec .k { font-family: var(--mono); font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+  .spec .v { font-family: var(--mono); font-size: 14px; margin-top: 4px; color: var(--ink); }
+  .spec .v small { color: var(--teal); font-size: 12px; }
+
+  /* ---- phase index ---- */
+  nav.toc { margin: 34px 0 10px; display: grid; gap: 8px; }
+  nav.toc a {
+    display: grid; grid-template-columns: 44px 1fr auto; align-items: baseline; gap: 12px;
+    padding: 11px 14px; border: 1px solid var(--edge); border-radius: 8px; background: var(--panel);
+    color: var(--ink); font-size: .95rem;
+  }
+  nav.toc a:hover { border-color: var(--sprout); border-bottom-color: var(--sprout); }
+  nav.toc .n { font-family: var(--mono); color: var(--sprout); font-size: 13px; }
+  nav.toc .t { font-weight: 600; }
+  nav.toc .d { color: var(--muted); font-size: .82rem; font-family: var(--mono); }
+
+  /* ---- phases ---- */
+  section.phase { margin-top: 56px; scroll-margin-top: 20px; }
+  .phase-head { display: flex; align-items: baseline; gap: 14px; border-bottom: 1px solid var(--edge); padding-bottom: 12px; margin-bottom: 22px; }
+  .phase-head .num {
+    font-family: var(--mono); font-size: 13px; letter-spacing: .1em; color: var(--void);
+    background: var(--sprout); padding: 3px 9px; border-radius: 5px; font-weight: 700; white-space: nowrap;
+  }
+  h2 { font-family: var(--mono); font-size: clamp(1.35rem, 3.4vw, 1.9rem); margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+  h3 { font-family: var(--mono); font-size: 1.02rem; margin: 30px 0 10px; color: var(--teal); letter-spacing: .01em; }
+  p { max-width: 68ch; }
+  .lead { color: var(--muted); max-width: 68ch; }
+
+  /* ---- terminal blocks ---- */
+  .term {
+    margin: 14px 0; border: 1px solid var(--edge); border-radius: 8px; overflow: hidden;
+    background: color-mix(in srgb, var(--panel) 82%, var(--void)); box-shadow: var(--shadow);
+  }
+  .term .bar {
+    display: flex; align-items: center; gap: 8px; padding: 7px 12px; border-bottom: 1px solid var(--edge);
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted);
+    background: var(--panel);
+  }
+  .term .bar .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--edge); }
+  .term .bar .dot.g { background: var(--sprout); }
+  .term pre {
+    margin: 0; padding: 14px 16px; overflow-x: auto; font-family: var(--mono); font-size: 13px; line-height: 1.7;
+    color: var(--ink);
+  }
+  .term pre .c { color: var(--muted); } /* comment */
+  .term pre .p { color: var(--sprout); } /* prompt */
+  .term pre .k { color: var(--teal); }   /* keyword-ish */
+  .term pre .s { color: var(--gold); }    /* string/value */
+
+  /* ---- callouts ---- */
+  .call { margin: 18px 0; padding: 14px 16px 14px 18px; border-radius: 8px; border: 1px solid var(--edge); border-left-width: 3px; background: var(--panel); }
+  .call .lab { font-family: var(--mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; font-weight: 700; margin-bottom: 6px; display: block; }
+  .call p, .call ul { margin: 0; }
+  .call.danger { border-left-color: var(--ghost); background: color-mix(in srgb, var(--ghost) 8%, var(--panel)); }
+  .call.danger .lab { color: var(--ghost); }
+  .call.check { border-left-color: var(--sprout); background: color-mix(in srgb, var(--sprout) 8%, var(--panel)); }
+  .call.check .lab { color: var(--sprout); }
+  .call.tip { border-left-color: var(--teal); }
+  .call.tip .lab { color: var(--teal); }
+  .call.pending { border-left-color: var(--gold); background: color-mix(in srgb, var(--gold) 8%, var(--panel)); }
+  .call.pending .lab { color: var(--gold); }
+
+  ul.steps { list-style: none; padding: 0; margin: 14px 0; display: grid; gap: 9px; max-width: 70ch; }
+  ul.steps li { position: relative; padding-left: 30px; }
+  ul.steps li::before {
+    content: "▸"; position: absolute; left: 6px; top: 0; color: var(--sprout); font-family: var(--mono);
+  }
+  ul.plain { padding-left: 20px; max-width: 68ch; }
+  ul.plain li { margin: 5px 0; }
+  strong { color: var(--ink); }
+  em.tag { font-style: normal; font-family: var(--mono); font-size: .85em; color: var(--gold); }
+
+  /* ---- table ---- */
+  .tablewrap { overflow-x: auto; margin: 16px 0; border: 1px solid var(--edge); border-radius: 8px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; min-width: 520px; }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--edge); }
+  th { font-family: var(--mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); background: var(--panel); }
+  td.mono, td .mono { font-family: var(--mono); font-size: 12.5px; }
+  tr:last-child td { border-bottom: none; }
+  .role { display: inline-block; font-family: var(--mono); font-size: 10.5px; letter-spacing: .05em; padding: 2px 7px; border-radius: 4px; }
+  .role.vault { color: var(--gold); border: 1px solid var(--gold); }
+  .role.wipe { color: var(--ghost); border: 1px solid var(--ghost); }
+  .role.keep { color: var(--sprout); border: 1px solid var(--sprout); }
+
+  hr.soft { border: none; border-top: 1px solid var(--edge); margin: 26px 0; }
+  footer { max-width: var(--maxw); margin: 60px auto 0; padding: 26px 20px 0; border-top: 1px solid var(--edge); color: var(--muted); font-family: var(--mono); font-size: 12px; }
+  footer b { color: var(--heart); }
+  .kbd { font-family: var(--mono); font-size: .82em; border: 1px solid var(--edge); border-bottom-width: 2px; border-radius: 4px; padding: 1px 6px; color: var(--ink); }
+
+  /* the magic — for frens who read to the end */
+  #rtfm-magic { position: fixed; inset: 0; display: grid; place-items: center; padding: 24px; background: rgba(5,8,6,.82); z-index: 9999; }
+  #rtfm-magic[hidden] { display: none; }
+  #rtfm-magic .card { max-width: 440px; width: 100%; border: 2px solid var(--sprout); border-radius: 12px; background: var(--panel); padding: 28px; text-align: center; box-shadow: 0 0 44px color-mix(in srgb, var(--sprout) 34%, transparent); }
+  #rtfm-magic .eye { font-family: var(--mono); font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: var(--sprout); }
+  #rtfm-magic h2 { font-family: var(--mono); font-size: 1.6rem; margin: .35em 0 .5em; }
+  #rtfm-magic .secret { font-family: var(--mono); margin-top: 16px; border: 1px dashed var(--edge); border-radius: 8px; padding: 10px 12px; }
+  #rtfm-magic .secret b { color: var(--heart); }
+  #rtfm-magic .foot { color: var(--muted); font-size: .85rem; margin-top: 14px; }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="eyebrow">RTFM · 001 · read the manual</div>
+  <h1 class="title">Wipe Windows.<br><span class="glow">Arch forever.</span></h1>
+  <p class="subtitle">A tailored, step-by-step build for <span class="mono">this exact machine</span> — back the data off Windows, install Arch Linux for good, keep it a full-power gaming rig, and stand up the sovereign stack on it.</p>
+  <div class="mission">
+    <b>Why we're doing this.</b> A sovereign earthship for our frens: knowledge kept, not erased — served on the web through Pac's Arcade, preserved on the block forever by the Bitcoin heartbeat (BFT). The box games hard <em>and</em> keeps the lights on for @frens.
+  </div>
+
+  <div class="specs" aria-label="This machine">
+    <div class="spec"><div class="k">CPU</div><div class="v">Ryzen 7 7800X3D <small>8c/16t · X3D</small></div></div>
+    <div class="spec"><div class="k">GPU</div><div class="v">RTX 4070 Ti SUPER <small>16GB</small></div></div>
+    <div class="spec"><div class="k">iGPU</div><div class="v">Radeon (RDNA2) <small>on-die</small></div></div>
+    <div class="spec"><div class="k">Memory</div><div class="v">64 GB DDR5 <small>6400 EXPO</small></div></div>
+    <div class="spec"><div class="k">Board</div><div class="v">ROG STRIX B650E-F <small>AM5 · WiFi</small></div></div>
+    <div class="spec"><div class="k">Firmware</div><div class="v">UEFI · GPT</div></div>
+    <div class="spec"><div class="k">Storage</div><div class="v">~10 TB <small>4 NVMe/SATA</small></div></div>
+    <div class="spec"><div class="k">From → To</div><div class="v">Win 11 → Arch</div></div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <nav class="toc" aria-label="Phases">
+    <a href="#p0"><span class="n">00</span><span class="t">Back up &amp; escape Windows</span><span class="d">verify before you wipe</span></a>
+    <a href="#p1"><span class="n">01</span><span class="t">BIOS &amp; the install USB</span><span class="d">EXPO · secure boot · boot media</span></a>
+    <a href="#p2"><span class="n">02</span><span class="t">Install Arch</span><span class="d">btrfs · snapshots · systemd-boot</span></a>
+    <a href="#p3"><span class="n">03</span><span class="t">NVIDIA + desktop</span><span class="d">the dual-GPU decision</span></a>
+    <a href="#p4"><span class="n">04</span><span class="t">Gaming — RDR2, Steam, RedM</span><span class="d">play + host a RedM world</span></a>
+    <a href="#p5"><span class="n">05</span><span class="t">The sovereign stack</span><span class="d">bitcoin · spaced · MUD · LLMs</span></a>
+    <a href="#p6"><span class="n">06</span><span class="t">Forever — snapshots &amp; upkeep</span><span class="d">roll back, never reinstall</span></a>
+  </nav>
+
+  <!-- PHASE 0 -->
+  <section class="phase" id="p0">
+    <div class="phase-head"><span class="num">PHASE 00</span><h2>Back up &amp; escape Windows</h2></div>
+    <p class="lead">The only irreversible part of this whole build is the wipe. Everything here exists so that when you erase Windows, nothing you care about goes with it.</p>
+
+    <h3>Your disks have a plan</h3>
+    <p>You have four internal drives. Three are effectively empty — which means you can carve out a real backup vault and a games library without buying anything.</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Drive</th><th>Size</th><th>Today</th><th>Becomes</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">WD_BLACK SN850X</td><td class="mono">4 TB NVMe</td><td>Windows C:</td><td><span class="role wipe">WIPE</span> Arch root + games (fastest drive)</td></tr>
+          <tr><td class="mono">ST4000DM004</td><td class="mono">4 TB SATA</td><td>empty</td><td><span class="role vault">VAULT</span> backup + cold storage (kept)</td></tr>
+          <tr><td class="mono">FIKWOT FN501</td><td class="mono">2 TB NVMe</td><td>empty</td><td><span class="role keep">DATA</span> Steam library / stack data</td></tr>
+          <tr><td class="mono">WD_BLACK SN770</td><td class="mono">250 GB NVMe</td><td>empty</td><td><span class="role keep">SCRATCH</span> fast scratch / /home caches</td></tr>
+          <tr><td class="mono">WD My Passport</td><td class="mono">2 TB USB</td><td>D: (345 GB free)</td><td><span class="role vault">OFFSITE</span> 2nd copy of the critical-few</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>What's actually irreplaceable</h3>
+    <p>Most of <span class="mono">C:\dev</span> is already in git/on GitHub — that's not what you're saving. Hunt for the things that exist <em>only</em> here:</p>
+    <ul class="plain">
+      <li><strong>Keys &amp; seeds</strong> — the <span class="mono">Akron</span> space-owner wallet recovery phrase (the phrase <em>is</em> the wallet — confirm it's written offline, never a plaintext file), any <span class="mono">.env.local</span> / <span class="mono">BLOB_READ_WRITE_TOKEN</span> / operator keys, SSH keys (<span class="mono">%USERPROFILE%\.ssh</span>), <span class="mono">gh</span> tokens.</li>
+      <li><strong>The wallet source set</strong> — <span class="mono">C:\dev\Reference\wallet\</span> (the 14 official Ashigaru zips) and <span class="mono">C:\dev\research</span>.</li>
+      <li><strong>Uncommitted work</strong> — anything under <span class="mono">C:\dev</span> not pushed (check <span class="mono">git status</span> across repos), plus <span class="mono">C:\dev\*.md</span> notes (pet-game-design, PASSDOWN…).</li>
+      <li><strong>Personal</strong> — photos, documents, browser profiles/bookmarks, anything in <span class="mono">Desktop / Documents / Downloads</span> you'd miss.</li>
+    </ul>
+
+    <div class="call check">
+      <span class="lab">Verify, then — and only then — wipe</span>
+      <p>Copy the irreplaceable set to the <strong>SATA vault</strong>, and put the critical-few (keys, seeds, wallet zips, docs) <strong>also</strong> on the external Passport. Then <strong>open several files from the backup</strong> and, for the important archives, check a hash. A backup you haven't restored-from is a rumor.</p>
+    </div>
+    <div class="term">
+      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;powershell — from Windows, before wiping</div>
+<pre><span class="c"># find every git repo with unpushed / dirty state under C:\dev</span>
+<span class="p">PS&gt;</span> Get-ChildItem C:\dev -Recurse -Directory -Filter .git -Depth 3 |
+      ForEach-Object { <span class="k">$r</span>=<span class="k">$_</span>.Parent.FullName; git -C <span class="k">$r</span> status -s |
+      Where-Object { <span class="k">$_</span> } | ForEach-Object { <span class="s">"$r  $_"</span> } }
+
+<span class="c"># mirror a folder to the SATA vault (robocopy = resumable, verifiable)</span>
+<span class="p">PS&gt;</span> robocopy <span class="s">"C:\dev\Reference"</span> <span class="s">"E:\vault\Reference"</span> /MIR /R:2 /W:5 /XA:SH /NP
+</pre>
+    </div>
+    <div class="call danger">
+      <span class="lab">Point of no return</span>
+      <p>Windows 11's key is digital-entitlement bound to this board, so a reinstall is always possible later — but you said Arch forever, so this is a clean break. Do not proceed past Phase&nbsp;01 until the vault is verified and the Passport copy exists. Unplug the vault + Passport during install so they can't be selected by accident.</p>
+    </div>
+  </section>
+
+  <!-- PHASE 1 -->
+  <section class="phase" id="p1">
+    <div class="phase-head"><span class="num">PHASE 01</span><h2>BIOS &amp; the install USB</h2></div>
+    <p class="lead">A few firmware settings now save hours later — memory speed, a clean UEFI boot, and getting the NVIDIA box to hand the installer a working screen.</p>
+
+    <h3>In the ASUS BIOS <span class="mono" style="color:var(--muted)">(Del at boot)</span></h3>
+    <ul class="steps">
+      <li><strong>EXPO I</strong> — turn it on. Your Corsair kit is rated DDR5-6400 but idling at 4800; EXPO takes it to its rated speed (on AM5, 6000 is the stable sweet spot if 6400 won't post).</li>
+      <li><strong>Resizable BAR</strong> — on (helps the 4070 Ti Super).</li>
+      <li><strong>Secure Boot</strong> — set to <em class="tag">Other OS</em> / disabled for the install. (You can re-enable it later with signed images via <span class="mono">sbctl</span> — optional, noted in Phase 06.)</li>
+      <li><strong>Boot</strong> — UEFI only, CSM off. Fast Boot off while installing.</li>
+      <li><strong>Primary display</strong> — leave PCIe/Auto; the dual-GPU decision happens in Phase 03.</li>
+    </ul>
+
+    <h3>Make the boot media</h3>
+    <p>Grab the latest ISO from <a href="https://archlinux.org/download/">archlinux.org/download</a> (verify the signature), then write it to a spare USB. From your current Windows box the easy path is <a href="https://rufus.ie">Rufus</a> in <em class="tag">DD image</em> mode; on any Linux, <span class="mono">dd</span>.</p>
+    <div class="term">
+      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;write the ISO (from a Linux box)</div>
+<pre><span class="p">$</span> <span class="c"># find the stick — be certain of the device node!</span>
+<span class="p">$</span> lsblk
+<span class="p">$</span> sudo dd <span class="k">if</span>=archlinux-x86_64.iso <span class="k">of</span>=<span class="s">/dev/sdX</span> bs=4M status=progress oflag=sync
+</pre>
+    </div>
+    <div class="call tip"><span class="lab">Boot it</span><p>Spam <span class="kbd">F8</span> at post for the ASUS boot menu, pick the USB (UEFI entry). You'll land at a root shell. If Wi-Fi is your only network, connect with <span class="mono">iwctl</span> (<span class="mono">station wlan0 connect &lt;SSID&gt;</span>) — the installer kernel already has the driver for the board's Wi-Fi.</p></div>
+  </section>
+
+  <!-- PHASE 2 -->
+  <section class="phase" id="p2">
+    <div class="phase-head"><span class="num">PHASE 02</span><h2>Install Arch — btrfs, snapshots, systemd-boot</h2></div>
+    <p class="lead">We install onto the SN850X only, on <strong>btrfs</strong> so the whole system can be snapshotted and rolled back — which is what makes "Arch forever" safe instead of scary.</p>
+
+    <div class="call tip"><span class="lab">archinstall vs by hand</span><p>The guided <span class="mono">archinstall</span> (ships on the ISO) is genuinely good now and can do btrfs + subvolumes + systemd-boot in one pass — perfect for a first build. The manual route below gives you the exact subvolume layout snapshots love. Either is fine; the manual key steps:</p></div>
+
+    <div class="term">
+      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;partition + btrfs subvolumes on the SN850X</div>
+<pre><span class="c"># identify the 4TB NVMe (was Windows). Say it's /dev/nvme0n1</span>
+<span class="p">#</span> lsblk -d -o NAME,SIZE,MODEL
+<span class="p">#</span> <span class="c">EFI (1G) + root (rest). GPT.</span>
+<span class="p">#</span> mkfs.fat -F32 /dev/nvme0n1p1
+<span class="p">#</span> mkfs.btrfs -f -L arch /dev/nvme0n1p2
+
+<span class="p">#</span> <span class="c"># subvolumes: @ = root, @home, and split-outs snapshots skip</span>
+<span class="p">#</span> mount /dev/nvme0n1p2 /mnt
+<span class="p">#</span> <span class="k">for</span> v <span class="k">in</span> @ @home @snapshots @var_log @pkg; <span class="k">do</span> btrfs su cr /mnt/<span class="s">$v</span>; <span class="k">done</span>
+<span class="p">#</span> umount /mnt
+<span class="p">#</span> mount -o noatime,compress=zstd:1,subvol=@ /dev/nvme0n1p2 /mnt
+<span class="p">#</span> mkdir -p /mnt/{home,.snapshots,var/log,var/cache/pacman/pkg,boot}
+<span class="p">#</span> <span class="c"># mount @home, @snapshots, @var_log, @pkg to those, EFI to /boot</span>
+</pre>
+    </div>
+    <div class="term">
+      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;base system</div>
+<pre><span class="p">#</span> pacstrap -K /mnt base linux linux-firmware linux-headers \
+      btrfs-progs amd-ucode <span class="k">\</span>
+      networkmanager sudo vim git base-devel zsh
+<span class="p">#</span> genfstab -U /mnt &gt;&gt; /mnt/etc/fstab
+<span class="p">#</span> arch-chroot /mnt
+<span class="c"># timezone, locale, hostname, root pw, a user in wheel, enable NetworkManager</span>
+<span class="p">#</span> systemctl enable NetworkManager
+<span class="p">#</span> useradd -mG wheel -s /usr/bin/zsh pac  &amp;&amp;  passwd pac
+</pre>
+    </div>
+    <div class="call tip"><span class="lab">Board note — Wi-Fi firmware</span><p>The B650E-F's Wi-Fi/BT is a <strong>MediaTek MT7922</strong> (driver <span class="mono">mt7921e</span>). Arch split <span class="mono">linux-firmware</span> into vendor subpackages in 2025, so <strong>explicitly install <span class="mono">linux-firmware-mediatek</span></strong> or Wi-Fi is dead on first boot. If Wi-Fi runs slow later: <span class="mono">options mt7921e disable_aspm=1</span> in <span class="mono">/etc/modprobe.d/</span>.</p></div>
+    <h3>Bootloader — GRUB + grub-btrfs (one-click rollback)</h3>
+    <p>systemd-boot is simpler, but on an NVIDIA daily-driver the safety net wins: <strong>grub-btrfs</strong> turns every btrfs snapshot into a bootable menu entry, so a bad driver update is "reboot → pick yesterday's snapshot", not a rescue-USB night. Install <span class="mono">grub</span> + <span class="mono">grub-btrfs</span> + <span class="mono">efibootmgr</span>, generate the config, and your snapshots appear in the boot menu.</p>
+    <div class="call check"><span class="lab">Checkpoint</span><p>Reboot, remove the USB, and land on a login shell on Arch with networking. That's the mountain climbed — everything after is additive and reversible via snapshots.</p></div>
+  </section>
+
+  <!-- PHASE 3 -->
+  <section class="phase" id="p3">
+    <div class="phase-head"><span class="num">PHASE 03</span><h2>NVIDIA + desktop — the dual-GPU decision</h2></div>
+    <p class="lead">The one genuinely fiddly bit on this box: you have an NVIDIA 4070 Ti Super <em>and</em> the 7800X3D's Radeon iGPU. Getting that right up front avoids a black screen.</p>
+
+    <div class="call tip">
+      <span class="lab">Recommended: leave the iGPU on, plug into the 4070 Ti Super</span>
+      <p>This is a desktop, not a laptop — no PRIME/Optimus, no offload config. Plug the monitor into the NVIDIA card and it's the one render GPU. <strong>Keep the Radeon iGPU enabled</strong>: it costs nothing, gives you a <em>recovery display output</em> if an NVIDIA update ever breaks the desktop, and keeps the door open for a GPU-passthrough VM later (see RedM, Phase&nbsp;04). Bonus: the "disable iGPU" BIOS toggle is reported flaky on some ASUS AM5 boards, so leaving it on is the lower-risk default.</p>
+    </div>
+
+    <div class="term">
+      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;driver — Ada uses the OPEN module (Arch default since driver 590)</div>
+<pre><span class="p">$</span> <span class="c"># nvidia-open is the default for Turing+ (your Ada card). Plain build</span>
+<span class="p">$</span> <span class="c"># for the stock `linux` kernel; -dkms only if you run custom kernels.</span>
+<span class="p">$</span> sudo pacman -S nvidia-open nvidia-utils lib32-nvidia-utils egl-wayland
+<span class="p">$</span> <span class="c"># add modules to /etc/mkinitcpio.conf, then rebuild:</span>
+      MODULES=(nvidia nvidia_modeset nvidia_uvm nvidia_drm)
+<span class="p">$</span> sudo mkinitcpio -P
+<span class="p">$</span> <span class="c"># nvidia_drm.modeset/fbdev are ON BY DEFAULT now (nvidia-utils 560.35+),</span>
+<span class="p">$</span> <span class="c"># so no kernel params needed — Wayland just works on the 590 branch.</span>
+</pre>
+    </div>
+
+    <h3>Desktop — KDE Plasma (Wayland)</h3>
+    <p>For an NVIDIA gaming box, <strong>KDE Plasma</strong> is the pragmatic pick: best-in-class on Wayland now, HDR + VRR + per-display refresh, and a sane path back to X11 if a game needs it.</p>
+    <div class="term">
+      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;plasma + audio</div>
+<pre><span class="p">$</span> sudo pacman -S plasma-meta sddm konsole dolphin \
+      pipewire pipewire-pulse pipewire-alsa wireplumber
+<span class="p">$</span> sudo systemctl enable sddm
+</pre>
+    </div>
+    <div class="call check"><span class="lab">Checkpoint</span><p>Reboot into Plasma. <span class="mono">nvidia-smi</span> shows the 4070 Ti Super; <span class="mono">glxinfo | grep renderer</span> and a Plasma "System Information" both name NVIDIA. Take your <em>first snapshot</em> here (Phase 06) — this is "known-good desktop".</p></div>
+  </section>
+
+  <!-- PHASE 4 -->
+  <section class="phase" id="p4">
+    <div class="phase-head"><span class="num">PHASE 04</span><h2>Gaming — RDR2, Steam &amp; a RedM world</h2></div>
+    <p class="lead">This rig is built for it: the 7800X3D is the best gaming CPU made, and 16GB of Ada handles RDR2 maxed. Two jobs here — <strong>play</strong>, and <strong>host</strong> the RedM world.</p>
+
+    <h3>The gaming base</h3>
+    <div class="term">
+      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;enable multilib (/etc/pacman.conf) then install</div>
+<pre><span class="p">$</span> <span class="c"># uncomment [multilib] in /etc/pacman.conf, then:</span>
+<span class="p">$</span> sudo pacman -Sy steam gamemode lib32-gamemode mangohud lib32-mangohud \
+      lutris protontricks vulkan-icd-loader lib32-vulkan-icd-loader
+<span class="p">$</span> <span class="c"># from the AUR: protonup-qt (installs Proton-GE), goverlay (mangohud GUI)</span>
+</pre>
+    </div>
+
+    <h3>Red Dead Redemption 2 — a solved case</h3>
+    <p>Single-player RDR2 runs great here (ProtonDB Gold, no anti-cheat). The recipe:</p>
+    <ul class="plain">
+      <li>Steam → RDR2 → <em class="tag">Properties → Compatibility → Force Proton Experimental</em> (most stable; GE-Proton 9-27+ also fine, but skip GE 10-31/10-32 — known regression — fall back to 10-30 if a new GE won't open the launcher).</li>
+      <li>The real gate is the bundled <strong>Rockstar Games Launcher</strong>: first run needs a live login inside the Proton prefix, then it caches and speeds up. Social Club error? add <span class="mono">WINEDLLOVERRIDES=vulkan-1=n,b %command%</span> to launch options.</li>
+      <li><strong>Renderer</strong>: since VKD3D-Proton 3.0 (Nov 2025) the in-game <strong>DX12</strong> path runs clean on Linux — and the in-game <strong>Vulkan</strong> renderer stays the no-drama fallback.</li>
+    </ul>
+
+    <h3>RedM — host the world (yes), play the client (not natively)</h3>
+    <p>The two halves of RedM split hard across Linux — and the client half is exactly the wall you hit on Fedora:</p>
+    <div class="call danger">
+      <span class="lab">Playing RedM natively: a hard no (confirmed May 2026)</span>
+      <p>The RedM/FiveM <strong>client</strong> won't run under Proton/Wine — Cfx.re's <strong>"Adhesive" anti-cheat has no Linux build</strong> and fails to initialize on every Proton version. That's an upstream lock, not a distro problem, so Arch won't fix it any more than Fedora did. Don't sink another month into Wine for the public client.</p>
+    </div>
+    <div class="call tip">
+      <span class="lab">Your own world changes the math — the sovereign play</span>
+      <p>Adhesive is only enforced on Cfx's <em>public</em> servers. On a server <strong>you own</strong>, you can turn it off — which is the one context where a custom, Linux-friendly interface is even on the table. That's the direction you're pointing at: don't fight Cfx's anti-cheat on their turf — bring RedM (then the next game, then the next) into worlds you host on the <strong>P.O.K.E. network, gated by SCAR</strong>. Own the stack, own the client, own the rules. (For public servers meanwhile: a Windows GPU-passthrough VM using the dGPU — which is why we kept the iGPU on — or a dual-boot sliver.)</p>
+    </div>
+    <div class="term">
+      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;host the world — FXServer + txAdmin (Linux-native)</div>
+<pre><span class="p">$</span> <span class="c"># latest Recommended build (proot Linux artifact)</span>
+<span class="p">$</span> wget https://runtime.fivem.net/artifacts/fivem/build_proot_linux/master/<span class="s">&lt;latest&gt;</span>/fx.tar.xz
+<span class="p">$</span> mkdir -p ~/RedMServer &amp;&amp; tar xf fx.tar.xz -C ~/RedMServer
+<span class="p">$</span> cd ~/RedMServer &amp;&amp; ./run.sh   <span class="c"># txAdmin setup URL + PIN on :40120</span>
+<span class="p">$</span> <span class="c"># game port 30120 tcp+udp · needs a Keymaster key from cfx.re</span>
+<span class="p">$</span> <span class="c"># wrap in a systemd unit (Restart=on-failure) so the world stays up</span>
+</pre>
+    </div>
+  </section>
+
+  <!-- PHASE 5 -->
+  <section class="phase" id="p5">
+    <div class="phase-head"><span class="num">PHASE 05</span><h2>The sovereign stack</h2></div>
+    <p class="lead">The reason the box exists. These run as <span class="mono">systemd</span> services so they come back on every boot — the companion daemons that frens.earth (the web layer) talks to.</p>
+
+    <h3>Bitcoin Core — the foundation &amp; the heartbeat</h3>
+    <p>Everything anchors here: the Spaces node rides on it, and BFT (the "Bitcoin heartbeat") reads it. Mainnet + <span class="mono">txindex</span> is ~<strong>750&nbsp;GB</strong> and growing — put the datadir on the <strong>FIKWOT 2TB</strong> (or the SATA vault), not the OS drive.</p>
+    <div class="term">
+      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;bitcoind as a service</div>
+<pre><span class="p">$</span> sudo pacman -S bitcoin-daemon   <span class="c"># or build/download core; verify sigs</span>
+<span class="p">$</span> <span class="c"># /etc/bitcoin/bitcoin.conf: txindex=1, datadir=/mnt/data/bitcoin,</span>
+<span class="p">$</span> <span class="c"># server=1, rpccookiefile — mirrors your bitcoin-node-deploy config</span>
+<span class="p">$</span> sudo systemctl enable --now bitcoind
+</pre>
+    </div>
+
+    <h3>Spaces — <span class="mono">spaced</span> + <span class="mono">space-cli</span></h3>
+    <p>Built from source (Rust). <span class="mono">spaced</span> scans Bitcoin for the protocol and serves the JSON-RPC on <span class="mono">:7225</span> that the frens.earth admin console connects to; <span class="mono">space-cli</span> holds the @frens / @pacsarcade wallet. Keys live <em>here</em>, on the box — never on Vercel.</p>
+    <div class="term">
+      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;build + run spaced</div>
+<pre><span class="p">$</span> sudo pacman -S rustup &amp;&amp; rustup toolchain install stable
+<span class="p">$</span> git clone https://github.com/spacesprotocol/spaces &amp;&amp; cd spaces
+<span class="p">$</span> cargo build --release   <span class="c"># → spaced, space-cli</span>
+<span class="p">$</span> <span class="c"># systemd unit: spaced --chain mainnet --bitcoin-rpc-cookie …</span>
+<span class="p">$</span> <span class="c"># then: space-cli wallet import  (the recovered Akron phrase, over SSH only)</span>
+</pre>
+    </div>
+
+    <h3>The MUD engine + LLMs</h3>
+    <p>The <span class="mono">knowledge-engine</span> MUD (Python) runs here too — the persistent world, the admin/ticketing API on <span class="mono">:4001</span>, telnet/WS surfaces, and the LLM hookups. Local models fit this GPU: <strong>Ollama</strong> on 16GB of VRAM comfortably runs quantized 7–14B models (and 32B at tight quants) for the arcade's own brain, with cloud APIs alongside.</p>
+    <div class="term">
+      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;python service + local LLM</div>
+<pre><span class="p">$</span> sudo pacman -S python uv ollama-cuda   <span class="c"># ollama-cuda is in official extra now</span>
+<span class="p">$</span> sudo systemctl enable --now ollama
+<span class="p">$</span> ollama pull qwen2.5:14b   <span class="c"># 14B @ Q4_K_M fits 16GB with headroom</span>
+<span class="p">$</span> <span class="c"># room for Q5_K_M, or ~27B at IQ3 if you push it; force full GPU offload</span>
+<span class="p">$</span> <span class="c"># knowledge-engine MUD → its own systemd unit; admin API on :4001</span>
+</pre>
+    </div>
+    <div class="call tip"><span class="lab">How it ties together</span><p>frens.earth (on Vercel or served from the box) is the <strong>web layer</strong>; <span class="mono">bitcoind</span> + <span class="mono">spaced</span> + the MUD engine are the <strong>companion daemons</strong> on this box. The admin console's "connect your node" panels point at <span class="mono">127.0.0.1:7225</span> (spaced) and <span class="mono">127.0.0.1:4001</span> (MUD) — local, behind your own walls.</p></div>
+  </section>
+
+  <!-- PHASE 6 -->
+  <section class="phase" id="p6">
+    <div class="phase-head"><span class="num">PHASE 06</span><h2>Forever — snapshots &amp; upkeep</h2></div>
+    <p class="lead">"Arch forever" works because you can always roll back. Set this up once and a bad update is a two-minute fix, never a reinstall.</p>
+    <ul class="steps">
+      <li><strong>snapper + btrfs-assistant</strong> — automatic snapshots of <span class="mono">@</span> and <span class="mono">@home</span>; a <span class="mono">pacman</span> hook (<span class="mono">snap-pac</span>) snapshots before every upgrade so you can boot the previous state.</li>
+      <li><strong>Boot into a snapshot</strong> — <span class="mono">grub-btrfs</span> or a systemd-boot snapshot entry gives you "roll back the whole OS" from the boot menu.</li>
+      <li><strong>The vault stays cold</strong> — periodic <span class="mono">btrfs send/receive</span> (or restic) from the box to the SATA vault; the critical-few keep mirroring to the Passport for offsite.</li>
+      <li><strong>Fans &amp; sensors</strong> — <span class="mono">lm_sensors</span> + <span class="mono">sensors-detect</span>; this board's Nuvoton chip (<span class="mono">nct6775</span>) is in-kernel, but ASUS Q-Fan can hide the PWM interface. If fans don't show, set the headers to Auto-Detect / disable Q-Fan in BIOS, then <span class="mono">fancontrol</span>. A "works with a little fiddling" item, not plug-and-play.</li>
+      <li><strong>Update rhythm</strong> — <span class="mono">pacman -Syu</span> deliberately, read the <a href="https://archlinux.org/news/">Arch news</a> first; snapshots make it low-stakes.</li>
+      <li><strong>Secure Boot (optional)</strong> — <span class="mono">sbctl</span> to sign your kernel + NVIDIA modules and turn it back on, if you want it.</li>
+    </ul>
+    <div class="call check"><span class="lab">The finish line</span><p>A box that games at the top of the stack <em>and</em> keeps @frens alive — with an undo button on the whole operating system. Knowledge kept, tied to the block, ours.</p></div>
+  </section>
+
+  <footer>
+    <b>frens.earth</b> · sovereign box build · tailored to Ryzen 7800X3D · RTX 4070 Ti SUPER · B650E-F<br>
+    Authoritative deep reference: the Arch Wiki (Installation, NVIDIA, Steam, btrfs, snapper). Gaming + driver specifics verified against current 2026 sources — RedM client confirmed native-Linux-blocked (Cfx "Adhesive"); hosting + RDR2 confirmed working.<br>
+    <span style="opacity:.32">the frens who read to the end find the magic. ↑ ↑ ↓ ↓ …</span>
+  </footer>
+</div>
+
+<!-- the magic: Konami code (↑↑↓↓←→←→ b a). RTFM rewards the readers. -->
+<div id="rtfm-magic" hidden>
+  <div class="card">
+    <p class="eye">RTFM ▸ you looked hard enough</p>
+    <h2>🌱 the magic</h2>
+    <p>You read the manual. Most won't. The frens who do get the good stuff.</p>
+    <p class="secret">secret word: <b id="rtfm-word">loam-block</b></p>
+    <p class="foot">Whisper it to the attendant — RTFM readers get their tag etched in the next batch. <span class="kbd">Esc</span> to close.</p>
+  </div>
+</div>
+<script>
+  (function () {
+    var seq = ["arrowup","arrowup","arrowdown","arrowdown","arrowleft","arrowright","arrowleft","arrowright","b","a"];
+    var i = 0;
+    var el = document.getElementById("rtfm-magic");
+    if (!el) return;
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") { el.hidden = true; return; }
+      var k = e.key.toLowerCase();
+      if (k === seq[i]) { i++; if (i === seq.length) { i = 0; el.hidden = false; } }
+      else { i = (k === seq[0] ? 1 : 0); }
+    });
+    el.addEventListener("click", function (e) { if (e.target === el) el.hidden = true; });
+  })();
+</script>
+</body>
+</html>

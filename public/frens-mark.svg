@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" role="img" aria-label="frens.earth">
+  <defs>
+    <radialGradient id="fe-planet" cx="36%" cy="30%" r="82%">
+      <stop offset="0%" stop-color="#1f3a2b"/>
+      <stop offset="100%" stop-color="#0c1912"/>
+    </radialGradient>
+  </defs>
+  <!-- future edge: a thin orbital arc behind the planet -->
+  <ellipse cx="24" cy="31" rx="20" ry="8" transform="rotate(-24 24 31)"
+           fill="none" stroke="#b795ff" stroke-width="1.4" opacity="0.65"/>
+  <!-- cozy earth: the planet -->
+  <circle cx="24" cy="31" r="14" fill="url(#fe-planet)" stroke="#53e0d4" stroke-width="2"/>
+  <!-- verification teal: landmasses -->
+  <path d="M13.5 29c2.6-2.4 6-2.2 8.4-.6 1.7 1.2.9 3.5-1.4 4.2-3.3 1-6.7-.2-7.6-1.6-.6-1 .1-1.6.6-2z"
+        fill="#53e0d4" opacity="0.5"/>
+  <path d="M26.5 37c1.8-1 4-.6 5 .8.7 1-.2 2.3-2 2.4-2.7.2-4.3-1.6-3-3.2z"
+        fill="#53e0d4" opacity="0.42"/>
+  <!-- growth: the sprout rising from the planet -->
+  <path d="M24 20V10" stroke="#5ef78a" stroke-width="2.4" stroke-linecap="round"/>
+  <path d="M24 15c-1-4.6-4.4-6.4-8-6.6 .4 4.2 3.2 6.8 8 6.6z" fill="#5ef78a"/>
+  <path d="M24 13c1-3.8 3.9-5.4 7-5.6-.4 3.5-2.8 5.8-7 5.6z" fill="#5ef78a"/>
+  <!-- heartlight: the spark on top -->
+  <circle cx="24" cy="8" r="2.1" fill="#b795ff"/>
+</svg>

@@ -13,6 +13,8 @@ export default function ArcadeHeader() {
   return (
     <SiteHeader
       wordmark="FRENS.EARTH"
+      // frens.earth's own mark — a sprouting planet, not the arcade's coin.
+      coinSrc="/frens-mark.svg"
       links={[
         // PLAY = frens.earth's own game — Bitcoin Buddy (/bb), the only game here for now.
         // LEARN/GROW stay under Pac's Arcade until frens.earth grows its own.

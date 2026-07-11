@@ -31,6 +31,8 @@ export interface HandleEntry {
   requestedAt: string; // ISO timestamp
   blockHeight?: number | null; // bitcoin tip when the claim entered the queue — bitcoin time, not calendar time (absent on pre-R2 entries; profile backfills via mempool.space)
   matrix?: boolean; // matrix door cut for this tag (@handle:pacsarcade.org)
+  proof?: string | null; // Spaces subspace inclusion proof — opaque string from the node, set at commit
+  committedAt?: string; // ISO timestamp of the queued->committed batch flip (absent while queued)
 }
 
 export function blobStoreEnabled(): boolean {
@@ -125,6 +127,13 @@ function blobPrefix(space: string): string {
   return `registry/${space}/`;
 }
 
+/** Aggregated read-cache blob. Underscore-prefixed so it can never collide
+    with a real handle (validateHandle forbids a leading '_'); listings and
+    counts skip it so it is never mistaken for a claim. */
+function indexPath(space: string): string {
+  return `registry/${space}/_index.json`;
+}
+
 async function blobExists(space: string, handle: string): Promise<boolean> {
   try {
     await head(blobPath(space, handle));
@@ -135,38 +144,155 @@ async function blobExists(space: string, handle: string): Promise<boolean> {
   }
 }
 
-/** Total claims in a space (metadata only — no content fetches). */
+/** Total claims in a space (metadata only — no content fetches). Skips the
+    aggregated index blob so it is never counted as a claim. */
 async function blobCount(space: string): Promise<number> {
+  const idx = indexPath(space);
   let count = 0;
   let cursor: string | undefined;
   do {
     const page = await list({ prefix: blobPrefix(space), cursor });
-    count += page.blobs.length;
+    count += page.blobs.filter((b) => b.pathname !== idx).length;
     cursor = page.hasMore ? page.cursor : undefined;
   } while (cursor);
   return count;
 }
 
+/** Every claim in a space, read straight from the authoritative per-handle
+    blobs (one content fetch each — the N+1 the index cache exists to avoid).
+    Skips the aggregated index blob so it is never parsed as a handle. */
 async function blobEntries(space: string): Promise<HandleEntry[]> {
+  const idx = indexPath(space);
   const entries: HandleEntry[] = [];
   let cursor: string | undefined;
   do {
     const page = await list({ prefix: blobPrefix(space), cursor });
     const contents = await Promise.all(
-      page.blobs.map(async (b) => {
-        try {
-          const res = await get(b.pathname, { access: "public" });
-          if (!res || res.statusCode !== 200) return null;
-          return JSON.parse(await new Response(res.stream).text()) as HandleEntry;
-        } catch {
-          return null; // skip malformed entries rather than break everyone
-        }
-      })
+      page.blobs
+        .filter((b) => b.pathname !== idx)
+        .map(async (b) => {
+          try {
+            const res = await get(b.pathname, { access: "public" });
+            if (!res || res.statusCode !== 200) return null;
+            return JSON.parse(await new Response(res.stream).text()) as HandleEntry;
+          } catch {
+            return null; // skip malformed entries rather than break everyone
+          }
+        })
     );
     for (const e of contents) if (e) entries.push(e);
     cursor = page.hasMore ? page.cursor : undefined;
   } while (cursor);
   return entries;
+}
+
+// ---------------------------------------------------------------------------
+// Aggregated index cache (Blob driver)
+//
+// The per-handle blobs above stay AUTHORITATIVE: they back the atomic
+// allowOverwrite:false uniqueness check, and isAvailable/claimHandle read them
+// directly (via blobExists) — never this index. The index is a REBUILDABLE
+// CACHE, one blob per space mapping handle -> HandleEntry, so the hot read
+// paths (nip05Names, findHandleByNpub) cost ~1 content fetch instead of one
+// get() per handle.
+//
+// Write-through: every mutation funnels through reindex() — the SINGLE index
+// hook. claimHandle adds, releaseHandle removes, updateEntry patches. A1's
+// future batch-commit writer must call reindex() too, so the index stays warm
+// after a batch flip instead of being invalidated wholesale.
+//
+// Consistency trade-off: the index is written with allowOverwrite:true, so two
+// simultaneous mutations that both read-modify-write it can drop one change
+// (last writer wins). This is tolerated because (a) availability and claim read
+// the authoritative per-handle blob, so a lost index update can NEVER permit a
+// double-claim, and (b) reads self-heal — a missing index, or a findHandleByNpub
+// lookup miss (which may be a dropped write), rebuilds the index from the
+// authoritative blobs and re-checks. A dropped entry is therefore eventually
+// restored; correctness never depends on the cache being current.
+// ---------------------------------------------------------------------------
+
+/** Build the index map straight from the authoritative per-handle blobs. */
+async function blobBuildIndexMap(space: string): Promise<Record<string, HandleEntry>> {
+  const map: Record<string, HandleEntry> = {};
+  for (const e of await blobEntries(space)) map[e.handle] = e;
+  return map;
+}
+
+/** Fetch the aggregated index blob, or null if absent/unreadable. */
+async function blobReadIndex(space: string): Promise<Record<string, HandleEntry> | null> {
+  try {
+    const res = await get(indexPath(space), { access: "public" });
+    if (!res || res.statusCode !== 200) return null;
+    return JSON.parse(await new Response(res.stream).text()) as Record<string, HandleEntry>;
+  } catch {
+    return null; // missing or malformed — caller rebuilds from authoritative blobs
+  }
+}
+
+/** Persist the index cache. allowOverwrite:true — it is a cache, not the
+    uniqueness-bearing record, so overwriting is expected (see the note above). */
+async function blobWriteIndex(space: string, index: Record<string, HandleEntry>): Promise<void> {
+  await put(indexPath(space), JSON.stringify(index), {
+    access: "public",
+    addRandomSuffix: false,
+    allowOverwrite: true,
+    contentType: "application/json",
+  });
+}
+
+/** Rebuild the index from the authoritative blobs and persist it best-effort.
+    Persist failure is swallowed: the freshly built map is still returned, so a
+    read never breaks just because the cache could not be refreshed. */
+async function blobRebuildIndex(space: string): Promise<Record<string, HandleEntry>> {
+  const rebuilt = await blobBuildIndexMap(space);
+  try {
+    await blobWriteIndex(space, rebuilt);
+  } catch {
+    // cache stayed stale; the next read that needs it will heal it again
+  }
+  return rebuilt;
+}
+
+/** The ONE index-mutation hook. Read-modify-write, rebuilding a missing cache
+    first so a cold index heals on the next mutation. Best-effort by design:
+    the authoritative per-handle blob is already written by the time we get
+    here, so a failed index update must never fail the mutation — it just
+    leaves a stale entry for a read to self-heal.
+    A1's batch-commit writer should route its status flips through here too. */
+async function reindex(
+  space: string,
+  mutate: (index: Record<string, HandleEntry>) => void
+): Promise<void> {
+  try {
+    const index = (await blobReadIndex(space)) ?? (await blobBuildIndexMap(space));
+    mutate(index);
+    await blobWriteIndex(space, index);
+  } catch {
+    // index is a cache — leave it stale rather than fail the mutation
+  }
+}
+
+/** Hot-path entry list: the aggregated index in one content fetch, rebuilding
+    (and persisting) a missing cache. Warm-cache happy path is ~1 fetch. */
+async function blobIndexEntries(space: string): Promise<HandleEntry[]> {
+  const cached = await blobReadIndex(space);
+  if (cached) return Object.values(cached);
+  return Object.values(await blobRebuildIndex(space)); // cold cache — self-heal
+}
+
+/** Reverse lookup within one space via the index cache. A cache HIT is ~1
+    content fetch. A miss might be a dropped index write, so we rebuild from the
+    authoritative blobs and re-check before trusting the miss — the self-heal
+    for the concurrent-write race. (This is no costlier than the pre-index code,
+    which scanned every blob on a miss anyway; the win is that hits now cost 1.) */
+async function blobFindByNpub(space: string, npub: string): Promise<HandleEntry | null> {
+  const index = await blobReadIndex(space);
+  if (index) {
+    const hit = Object.values(index).find((e) => e.npub === npub);
+    if (hit) return hit;
+  }
+  const rebuilt = await blobRebuildIndex(space);
+  return Object.values(rebuilt).find((e) => e.npub === npub) ?? null;
 }
 
 // ---------------------------------------------------------------------------
@@ -235,6 +361,10 @@ export async function claimHandle(
       }
       return { ok: false, reason: "the claim queue hiccuped — try again in a moment" };
     }
+    // Authoritative blob is committed above; warm the read-cache write-through.
+    await reindex(s, (index) => {
+      index[valid.handle] = entry;
+    });
     return { ok: true, entry, queuePosition: await blobCount(s) };
   }
 
@@ -269,6 +399,10 @@ export async function updateEntry(
         addRandomSuffix: false,
         allowOverwrite: true,
         contentType: "application/json",
+      });
+      // Authoritative record rewritten above; patch the read-cache too.
+      await reindex(s, (index) => {
+        index[handle] = next;
       });
       return true;
     } catch {
@@ -305,6 +439,10 @@ export async function releaseHandle(
     } catch {
       return { ok: false, reason: "the registry hiccuped — try again in a moment" };
     }
+    // Authoritative blob removed above; drop it from the read-cache too.
+    await reindex(s, (index) => {
+      delete index[handle];
+    });
   } else {
     const reg = await fileRead(s);
     reg.entries = reg.entries.filter((e) => e.handle !== handle);
@@ -347,8 +485,9 @@ export async function findHandleByNpub(
   }
 
   for (const space of spaces) {
-    const entries = blobStoreEnabled() ? await blobEntries(space) : (await fileRead(space)).entries;
-    const match = entries.find((e) => e.npub === npub);
+    const match = blobStoreEnabled()
+      ? await blobFindByNpub(space, npub) // index cache, self-healing on a miss
+      : (await fileRead(space)).entries.find((e) => e.npub === npub) ?? null;
     if (match) {
       const value = { handle: match.handle, space };
       npubCache.set(npub, { at: Date.now(), value });
@@ -363,7 +502,7 @@ export async function findHandleByNpub(
 export async function nip05Names(space?: string): Promise<Record<string, string>> {
   const { nip19 } = await import("nostr-tools");
   const s = normalizeSpace(space);
-  const entries = blobStoreEnabled() ? await blobEntries(s) : (await fileRead(s)).entries;
+  const entries = blobStoreEnabled() ? await blobIndexEntries(s) : (await fileRead(s)).entries;
   const names: Record<string, string> = {};
   for (const e of entries) {
     try {
@@ -374,4 +513,123 @@ export async function nip05Names(space?: string): Promise<Record<string, string>
     }
   }
   return names;
+}
+
+// ---------------------------------------------------------------------------
+// Batch anchoring (Spaces subspaces) — audit item A1
+//
+// A claimed tag is `queued` and verifies over NIP-05 immediately. Permanence
+// comes from the Spaces protocol: the space owner's `spaced` node commits a
+// batch of subspace names as a single on-chain Merkle root, and each name gets
+// an inclusion proof. That commit uses the owner's WALLET, which lives on the
+// node — never in this web app. So the app's only role is to (1) hand the node
+// the queued set and (2) record the outcome. The two-step operator handoff:
+//   GET  /api/admin/batch/export  -> the queued set (ceremony input)
+//   POST /api/admin/batch/commit  -> { batchId, items:[{handle, proof}] }
+// The node endpoint is configurable per deployment (each space runs its own
+// node), so nothing here is host-specific. See docs/spaces-anchoring.md.
+// ---------------------------------------------------------------------------
+
+/** All still-queued claims in a space — the authoritative input to a batch
+    ceremony (reads the per-handle blobs directly, never a cache). */
+export async function queuedEntries(space?: string): Promise<HandleEntry[]> {
+  const s = normalizeSpace(space);
+  const entries = blobStoreEnabled() ? await blobEntries(s) : (await fileRead(s)).entries;
+  return entries.filter((e) => e.status === "queued");
+}
+
+/** Rewrite one existing claim record in place — the pathname (and so the
+    uniqueness guarantee) never changes, only the record's fields. */
+async function writeEntryRecord(space: string, entry: HandleEntry): Promise<boolean> {
+  if (blobStoreEnabled()) {
+    try {
+      await put(blobPath(space, entry.handle), JSON.stringify(entry, null, 2), {
+        access: "public",
+        addRandomSuffix: false,
+        allowOverwrite: true, // an existing record, not a new claim
+        contentType: "application/json",
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  const reg = await fileRead(space);
+  const i = reg.entries.findIndex((e) => e.handle === entry.handle);
+  if (i < 0) return false;
+  reg.entries[i] = entry;
+  try {
+    await fileWrite(space, reg);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export interface BatchCommitItem {
+  handle: string;
+  /** Opaque per-name inclusion proof produced by the Spaces node. */
+  proof: string;
+}
+
+export interface BatchCommitResult {
+  ok: true;
+  batchId: string;
+  committed: string[];
+  skipped: { handle: string; reason: string }[];
+}
+
+/**
+ * The batch-anchoring writer — the one sanctioned queued->committed flip. Run
+ * AFTER the Spaces node has committed the batch's Merkle root on-chain: it
+ * stamps each name with the on-chain `batchId` + its inclusion proof and marks
+ * it `committed` (permanent). This only records an outcome the node already
+ * produced — no keys or wallet here. Already-committed names are skipped, so a
+ * re-run (e.g. a retried callback) is safe.
+ */
+export async function commitBatch(
+  space: string | undefined,
+  batchId: string,
+  items: BatchCommitItem[]
+): Promise<BatchCommitResult> {
+  const s = normalizeSpace(space);
+  const committed: string[] = [];
+  const skipped: { handle: string; reason: string }[] = [];
+  const committedAt = new Date().toISOString();
+
+  for (const item of items) {
+    const handle = typeof item?.handle === "string" ? item.handle.trim().toLowerCase() : "";
+    if (!handle) {
+      skipped.push({ handle: String(item?.handle ?? ""), reason: "missing handle" });
+      continue;
+    }
+    const existing = await getEntry(handle, s);
+    if (!existing) {
+      skipped.push({ handle, reason: "not in registry" });
+      continue;
+    }
+    if (existing.status === "committed") {
+      skipped.push({ handle, reason: "already committed" });
+      continue;
+    }
+    const next: HandleEntry = {
+      ...existing,
+      status: "committed",
+      batchId,
+      proof: typeof item.proof === "string" ? item.proof : null,
+      committedAt,
+    };
+    if (!(await writeEntryRecord(s, next))) {
+      skipped.push({ handle, reason: "write failed" });
+      continue;
+    }
+    // The npub reverse-lookup cache can hold a stale (queued) copy of this entry.
+    npubCache.delete(existing.npub);
+    // Route the flip through the aggregated read-index (A3) so nip05Names /
+    // findHandleByNpub reflect the committed status without a cache rebuild.
+    if (blobStoreEnabled()) await reindex(s, (index) => (index[handle] = next));
+    committed.push(handle);
+  }
+
+  return { ok: true, batchId, committed, skipped };
 }

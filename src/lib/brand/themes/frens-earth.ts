@@ -1,23 +1,25 @@
 import type { BrandTheme } from "../contract";
 
 /**
- * frens.earth — "Digital Renaissance" PLACEHOLDER brand.
+ * frens.earth — "Digital Renaissance" brand.
  *
  * frens.earth has its own identity: cozy earth with a future edge. Deep loam
  * surfaces, sprout-neon for what's alive, verification teal for what's true,
  * harvest gold only where money moves, and the purple heart 💜 as the flair.
- * Tick tock — everything gets tied to the block.
+ * The mark is a sprouting planet (public/frens-mark.svg + app/icon.svg) — a
+ * living earth, deliberately not the arcade's coin. Tick tock — everything
+ * gets tied to the block.
  *
- * PLACEHOLDER means: the brand team owns the real deliverables (logos,
- * banners, fonts, colors, accents). When those land, their values replace
- * these slots — same contract, zero markup changes. Until then this sets a
- * neutral, fun tone that is clearly not the arcade's midnight neon.
- * Semantic slots stay honest per the house rules: coin = money ONLY,
- * neon = live/success, cyan = info, ghost = danger, pink = flair.
+ * Palette, mark, voice and IA are frens.earth's own here; typefaces still
+ * ride the shared pixel DNA (Retronoid + Press Start) until the brand team
+ * delivers dedicated faces — those drop into the `fonts` slots with zero
+ * markup changes. Semantic slots stay honest per the house rules:
+ * coin = money ONLY, neon = live/success, cyan = info, ghost = danger,
+ * pink = flair.
  */
 export const frensEarthTheme: BrandTheme = {
   id: "frens-earth",
-  label: "frens.earth — Digital Renaissance (placeholder)",
+  label: "frens.earth — Digital Renaissance",
   tokens: {
     // surfaces — the night garden
     void: "#0d1210",

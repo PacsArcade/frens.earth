@@ -34,8 +34,17 @@ export const SPACE_HOSTS: Record<string, SpaceConfig> = {
   "www.degenwonderland.com": { space: "degen", nip05Domain: "degenwonderland.com" },
 };
 
-/** Every space that may have a claim registry. */
-export const KNOWN_SPACES = ["frens", "pacsarcade", "degen"] as const;
+/**
+ * Every space that may have a claim registry on this deployment: the spaces
+ * mapped in SPACE_HOSTS, plus the configured SPACE_NAME. Deriving this (rather
+ * than hardcoding a list) is what lets a FORK work — a fork sets
+ * NEXT_PUBLIC_SPACE_NAME to its own space, and if that space isn't in this set
+ * `findHandleByNpub` never scans it, so returning sign-in silently fails.
+ * SPACE_NAME goes first so the host's own space is checked first.
+ */
+export const KNOWN_SPACES: readonly string[] = Array.from(
+  new Set<string>([SPACE_NAME, ...Object.values(SPACE_HOSTS).map((c) => c.space)])
+);
 
 export function spaceForHost(host?: string | null): SpaceConfig {
   const h = (host ?? "").toLowerCase().split(":")[0];
