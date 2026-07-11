@@ -28,7 +28,7 @@ tray-clock** layout — time on top, date below, exactly like the OS taskbar
 | a running clock | `bftTime(h)` over `bftDatePlain(h)` | `14:30` / `0018.04.15` |
 | when a thing happened (rows, logs, tickets) | `bftDateTime(h)` | `0018.04.15 14:30` |
 | a date alone | `bftDatePlain(h)` | `0018.04.15` |
-| a ceremonial/formal date | `bftDate(h)` | `a₿ 0018.04.15` |
+| a ceremonial/formal date | `bftDate(h)` | `0018.04.15 a₿` — the marker rides AFTER the date (amended 2026-07-11); pre-genesis wears `b₿` the same way |
 | the block itself matters | prefix `▣ {h.toLocaleString()} · ` | `▣ 957,580 · 0018.04.15 14:30` |
 | an estimated stamp (no recorded block) | prefix `~ ` | `~ 0018.04.15 14:30` |
 
