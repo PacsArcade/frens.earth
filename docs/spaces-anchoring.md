@@ -30,13 +30,13 @@ itself.** The node connects to Bitcoin Core and holds the space owner's
 ## Architecture — admin GUI drives the node over RPC
 
 All operator-facing and all web GUI: an **"admiral"** signs into the admin area
-(`/admin`, `fe-operator` session) and runs everything from a browser. The app
+(`/a`, `fe-operator` session) and runs everything from a browser. The app
 backend talks to this deployment's own **`spaced` node over JSON-RPC**; the node
 holds the **wallet** and performs every on-chain action. The app never holds a
 key.
 
 ```
-  admiral ─▶ /admin GUI ─▶ frens.earth backend ─JSON-RPC─▶ spaced node
+  admiral ─▶ /a GUI ─▶ frens.earth backend ─JSON-RPC─▶ spaced node
                                                             (wallet, Bitcoin Core)
    connect node · view queue · commit a batch · register a name
 ```
@@ -107,7 +107,7 @@ by default). Remaining:
 Toward the primary goal — frens.earth as a ready-to-go **template** whose
 operator can self-set-up:
 
-- **Admin setup + ceremony GUI** in `/admin` — connect/test the node (the
+- **Admin setup + ceremony GUI** in `/a` — connect/test the node (the
   `GET /api/admin/spaces/status` backbone exists), view the queue, commit a
   batch, and register one name on demand. This "admin link to set yourself up"
   is the core frens.earth need.

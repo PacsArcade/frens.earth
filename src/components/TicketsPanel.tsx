@@ -120,7 +120,7 @@ export default function TicketsPanel({ mode }: { mode: "support" | "crew" }) {
   return (
     <div className="mx-auto max-w-3xl px-6 py-10">
       <p className="mb-2 font-pixel text-[10px] uppercase tracking-widest text-white/40">
-        {isCrew ? "OPERATOR CONSOLE ▸ FRENS.EARTH" : "FRENS.EARTH ▸ SUPPORT"}
+        {isCrew ? "SCAR ▸ FRENS.EARTH" : "FRENS.EARTH ▸ SUPPORT"}
       </p>
       <h1 className="mb-3 font-arcade text-4xl text-cyan glow-cyan">
         {isCrew ? "DUTY ROSTER" : "RAISE A TICKET"}

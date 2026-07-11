@@ -1,25 +1,25 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import OperatorGate from "@/components/OperatorGate";
-import TicketsPanel from "@/components/TicketsPanel";
+import MudPanel from "@/components/MudPanel";
 import { operatorFromCookieHeader, operatorsConfigured } from "@/lib/operator-auth";
 
 /**
- * The crew's side of the roster: the admiral + crew work every ticket. Same
- * key-is-the-operator gate as the rest of /admin.
+ * Admin connections — connect this deployment's own P.O.K.E. MUD node. Same
+ * key-is-the-operator gate as the rest of /a.
  */
 export const metadata: Metadata = {
-  title: "Duty roster — frens.earth admin",
+  title: "MUD node — frens.earth admin",
   robots: { index: false, follow: false },
 };
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminTicketsPage() {
+export default async function AdminMudPage() {
   const cookie = (await headers()).get("cookie");
   const operator = operatorFromCookieHeader(cookie);
   if (!operator) {
     return <OperatorGate configured={operatorsConfigured()} />;
   }
-  return <TicketsPanel mode="crew" />;
+  return <MudPanel />;
 }

@@ -5,7 +5,7 @@ import TicketsPanel from "@/components/TicketsPanel";
 
 /**
  * The customer-facing side of the roster: a fren raises a ticket (or a spark)
- * and watches their own. The crew works them at /admin/tickets.
+ * and watches their own. The crew works them at /a/scar.
  */
 export const metadata: Metadata = {
   title: "Support — frens.earth",
