@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- ═══════════════════════════════════════════════════════════════════════
+     RTFM 003 · TREASURY RESCUE
+     The BTCPay Server damage-control playbook + lightning sync runguide.
+     Written from a live drill (0018.04.15 a₿): the admiral locked himself
+     out of the panel on purpose, and separately found the treasury reading
+     0 with confirmed sats on the chain. Both are fixed below, forever.
+     Commands verified against docs.btcpayserver.org at writing time.
+     House style = the frens.earth night-garden, terminal treatment. Both
+     light + dark themes are handled by the tokens; don't hardcode colors.
+     ═══════════════════════════════════════════════════════════════════════ -->
+<title>003 · Treasury Rescue — RTFM</title>
+<style>
+  :root {
+    --void:#0d1210; --panel:#151d18; --edge:#2f4033;
+    --ink:#e8ede9; --muted:#839388;
+    --sprout:#5ef78a; --teal:#53e0d4; --gold:#f7c948; --ghost:#ff6b6b; --heart:#b795ff;
+    --mono: ui-monospace,"Cascadia Code","JetBrains Mono","SFMono-Regular",Menlo,Consolas,monospace;
+    --sans: ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --maxw:900px;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --void:#f3f6f1; --panel:#fff; --edge:#d6ded3; --ink:#17211b; --muted:#5a6b60;
+      --sprout:#12924a; --teal:#0e8b82; --gold:#a97c07; --ghost:#c23a3a; --heart:#6f4dc0;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--void); color:var(--ink); font-family:var(--sans); font-size:16px; line-height:1.65; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:var(--maxw); margin:0 auto; padding:0 20px 96px; }
+  a { color:var(--teal); text-decoration:none; border-bottom:1px solid transparent; }
+  a:hover { border-bottom-color:currentColor; }
+  a:focus-visible { outline:2px solid var(--teal); outline-offset:2px; }
+  code,.mono { font-family:var(--mono); }
+
+  header.hero { max-width:var(--maxw); margin:0 auto; padding:64px 20px 36px; }
+  .eyebrow { font-family:var(--mono); font-size:12px; letter-spacing:.22em; text-transform:uppercase; color:var(--sprout); display:flex; align-items:center; gap:10px; margin-bottom:20px; }
+  .eyebrow::before { content:""; width:22px; height:1px; background:var(--sprout); }
+  h1.title { font-family:var(--mono); font-weight:700; font-size:clamp(2rem,6vw,3.2rem); line-height:1.04; letter-spacing:-.01em; margin:0; text-wrap:balance; }
+  h1.title .glow { color:var(--sprout); text-shadow:0 0 24px color-mix(in srgb,var(--sprout) 45%,transparent); }
+  .subtitle { color:var(--muted); font-size:1.05rem; max-width:62ch; margin:14px 0 0; }
+  .mission { margin-top:22px; padding:14px 18px; border-left:3px solid var(--heart); background:color-mix(in srgb,var(--heart) 9%,transparent); font-size:.95rem; border-radius:0 6px 6px 0; }
+  .mission b { color:var(--heart); }
+
+  section { margin-top:52px; scroll-margin-top:20px; position:relative; }
+  /* the proper command name, twice: a chip in the head row for every reader,
+     and a vertical rail on wide screens — visual reinforcement, all styles */
+  .gitv { position:absolute; top:2px; left:-46px; writing-mode:vertical-rl; transform:rotate(180deg); font-family:var(--mono); font-size:10px; letter-spacing:.3em; text-transform:uppercase; color:var(--muted); opacity:.75; }
+  @media (max-width:1040px) { .gitv { display:none; } }
+  .head { display:flex; align-items:baseline; gap:14px; border-bottom:1px solid var(--edge); padding-bottom:12px; margin-bottom:20px; }
+  .head .git { margin-left:auto; font-family:var(--mono); font-size:11px; color:var(--teal); border:1px solid var(--edge); border-radius:5px; padding:2px 8px; white-space:nowrap; }
+  .head .num { font-family:var(--mono); font-size:13px; color:var(--void); background:var(--sprout); padding:3px 9px; border-radius:5px; font-weight:700; }
+  h2 { font-family:var(--mono); font-size:clamp(1.35rem,3.4vw,1.85rem); margin:0; letter-spacing:-.01em; text-wrap:balance; }
+  h3 { font-family:var(--mono); font-size:1.02rem; margin:28px 0 10px; color:var(--teal); }
+  p, ul { max-width:68ch; }
+  ul.plain { padding-left:20px; }
+  ul.plain li { margin:5px 0; }
+  strong { color:var(--ink); }
+
+  .term { margin:14px 0; border:1px solid var(--edge); border-radius:8px; overflow:hidden; background:color-mix(in srgb,var(--panel) 82%,var(--void)); }
+  .term .bar { display:flex; align-items:center; gap:8px; padding:7px 12px; border-bottom:1px solid var(--edge); font-family:var(--mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); background:var(--panel); }
+  .term .bar .dot { width:9px; height:9px; border-radius:50%; background:var(--edge); }
+  .term .bar .dot.g { background:var(--sprout); }
+  .term pre { margin:0; padding:14px 16px; overflow-x:auto; font-family:var(--mono); font-size:13px; line-height:1.7; }
+  .term pre .c { color:var(--muted); } .term pre .p { color:var(--sprout); } .term pre .s { color:var(--gold); }
+
+  .call { margin:18px 0; padding:14px 16px 14px 18px; border-radius:8px; border:1px solid var(--edge); border-left-width:3px; background:var(--panel); }
+  .call .lab { font-family:var(--mono); font-size:11px; letter-spacing:.14em; text-transform:uppercase; font-weight:700; margin-bottom:6px; display:block; }
+  .call p { margin:0; max-width:none; } /* text inside a box uses the box's room */
+  .call.danger { border-left-color:var(--ghost); background:color-mix(in srgb,var(--ghost) 8%,var(--panel)); } .call.danger .lab { color:var(--ghost); }
+  .call.check  { border-left-color:var(--sprout); background:color-mix(in srgb,var(--sprout) 8%,var(--panel)); } .call.check .lab { color:var(--sprout); }
+  .call.tip    { border-left-color:var(--teal); } .call.tip .lab { color:var(--teal); }
+  .call.drill  { border-left-color:var(--heart); background:color-mix(in srgb,var(--heart) 8%,var(--panel)); } .call.drill .lab { color:var(--heart); }
+  .call ul.plain { margin:8px 0 0; }
+
+  footer { max-width:var(--maxw); margin:56px auto 0; padding:24px 20px 0; border-top:1px solid var(--edge); color:var(--muted); font-family:var(--mono); font-size:12px; }
+  footer b { color:var(--heart); }
+  .kbd { font-family:var(--mono); font-size:.82em; border:1px solid var(--edge); border-bottom-width:2px; border-radius:4px; padding:1px 6px; color:var(--ink); }
+
+  /* the magic — keep this. RTFM rewards the readers. */
+  #rtfm-magic { position:fixed; inset:0; display:grid; place-items:center; padding:24px; background:rgba(5,8,6,.82); z-index:9999; }
+  #rtfm-magic[hidden] { display:none; }
+  #rtfm-magic .card { max-width:440px; width:100%; border:2px solid var(--sprout); border-radius:12px; background:var(--panel); padding:28px; text-align:center; box-shadow:0 0 44px color-mix(in srgb,var(--sprout) 34%,transparent); }
+  #rtfm-magic .eye { font-family:var(--mono); font-size:11px; letter-spacing:.2em; text-transform:uppercase; color:var(--sprout); }
+  #rtfm-magic h2 { font-family:var(--mono); font-size:1.6rem; margin:.35em 0 .5em; }
+  #rtfm-magic .secret { font-family:var(--mono); margin-top:16px; border:1px dashed var(--edge); border-radius:8px; padding:10px 12px; }
+  #rtfm-magic .secret b { color:var(--heart); }
+  #rtfm-magic .foot { color:var(--muted); font-size:.85rem; margin-top:14px; }
+
+  /* ── THE FLOW-BOX STANDARD (house template — see GLYPH refs) ──────────
+     · boxes live on a GRID and are always EQUAL width — never content-sized
+     · the chip (number/actor) sits top-left; the label stacks below it
+     · arrows get their own fixed 16px columns; narrow screens go vertical
+     · n3/n5/n7 = how many boxes the row carries                           */
+  .flow { display:grid; align-items:stretch; gap:8px; margin:16px 0; }
+  .flow.n3 { grid-template-columns:1fr 16px 1fr 16px 1fr; }
+  .flow.n5 { grid-template-columns:1fr 16px 1fr 16px 1fr 16px 1fr 16px 1fr; }
+  .flow.n7 { grid-template-columns:1fr 16px 1fr 16px 1fr 16px 1fr 16px 1fr 16px 1fr 16px 1fr; }
+  .flow.n8 { grid-template-columns:1fr 16px 1fr 16px 1fr 16px 1fr 16px 1fr 16px 1fr 16px 1fr 16px 1fr; }
+  .flow a.box { display:flex; flex-direction:column; gap:7px; border:2px solid var(--edge); border-radius:8px; background:var(--panel); padding:10px 12px 12px; font-family:var(--mono); font-size:12.5px; line-height:1.4; color:var(--sprout); text-decoration:none; }
+  .flow a.box:hover { border-color:var(--sprout); }
+  .flow a.box small { display:block; color:var(--muted); font-size:9.5px; text-transform:uppercase; letter-spacing:.1em; }
+  .flow .arr { align-self:center; justify-self:center; color:var(--muted); font-family:var(--mono); font-size:11px; }
+  @media (max-width:760px) {
+    .flow.n3, .flow.n5, .flow.n7 { grid-template-columns:1fr; }
+    .flow .arr { transform:rotate(90deg); }
+  }
+  .sys { font-family:var(--mono); font-size:.9em; color:var(--teal); }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="eyebrow">RTFM · 003 · locked out + sats "not moving"</div>
+  <h1 class="title">Treasury<br><span class="glow">rescue.</span></h1>
+  <p class="subtitle">The BTCPay Server damage-control playbook — for the captain whose admin panel won't open and whose balance reads 0. Short bullets, real commands, checkpoints, no panic.</p>
+  <div class="mission"><b>The one idea.</b> The chain never loses your sats. A balance of 0 with confirmed deposits is the <b>node's ignorance</b>, not your money — the node just hasn't read that far yet. Locked doors have keys (you hold SSH); unread chains have logs. Everything below is getting the node to read again.</div>
+</header>
+
+<div class="wrap">
+
+  <section id="s0">
+    <span class="gitv">the drill</span>
+    <div class="head"><span class="num">MAP</span><h2>The rescue map — pick your emergency</h2><span class="git">damage control</span></div>
+    <p>Written from a live drill, 0018.04.15 a₿: the admiral locked himself out of the treasury panel <b>on purpose</b>, and separately found 5,000 sats deposited, another 25,000 inbound, and the wallet reading <b>0</b>. Both are drills every captain runs eventually. Both are below.</p>
+    <div class="flow n3">
+      <a class="box" href="#sA"><small>phase a</small>locked out — reopen the panel</a><span class="arr">▶</span>
+      <a class="box" href="#sB"><small>phase b</small>sats "not moving" — the diagnosis ladder</a><span class="arr">▶</span>
+      <a class="box" href="#sC"><small>phase c</small>the sync runguide — keep it from recurring</a>
+    </div>
+    <ul class="plain">
+      <li><b>the treasury</b> — BTCPay Server (the pacs arcade brand-kit treasury), docker deployment on the VPS</li>
+      <li><b>your one superpower</b> — SSH to the box; whoever holds the box can always get back in</li>
+      <li><b>the manual behind this manual</b> — <a href="https://docs.btcpayserver.org/" target="_blank" rel="noopener">docs.btcpayserver.org</a> (commands here verified against it, 0018.04.15 a₿)</li>
+      <li>sailing a different ship? wherever this says <span class="sys">the VPS</span>, read your own box — the commands are the deployment's, not ours</li>
+    </ul>
+  </section>
+
+  <section id="sA">
+    <span class="gitv">ssh rescue</span>
+    <div class="head"><span class="num">A</span><h2>Locked out (the DR drill)</h2><span class="git">btcpay-admin.sh</span></div>
+    <p>The panel rejects you. No email reset arrives (no SMTP — common). You are not locked out of anything: <b>the panel guards the web door, SSH guards the whole house.</b></p>
+    <h3>Step 1 — board the box</h3>
+    <div class="term">
+      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;ssh — the master key you already hold</div>
+<pre><span class="p">$</span> ssh <span class="s">you@your-vps</span>            <span class="c"># the VPS, not the website</span>
+<span class="p">$</span> sudo su -
+<span class="p">$</span> cd $BTCPAY_BASE_DIRECTORY/btcpayserver-docker/
+<span class="p">$</span> ls *.sh                     <span class="c"># the deployment's toolbox</span>
+</pre>
+    </div>
+    <ul class="plain">
+      <li>you should see: the helper scripts — <code>btcpay-admin.sh</code>, <code>btcpay-restart.sh</code>, <code>bitcoin-cli.sh</code> and friends</li>
+      <li>no scripts? you're in the wrong folder or a non-docker install — stop and check before improvising</li>
+    </ul>
+    <h3>Step 2 — reopen registration, make a rescue account</h3>
+    <div class="term">
+      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;the official reset — no database surgery</div>
+<pre><span class="p">$</span> ./btcpay-admin.sh reset-server-policy   <span class="c"># reopens the Register button</span>
+<span class="p">$</span> ./btcpay-restart.sh                     <span class="c"># if Register doesn't appear</span>
+</pre>
+    </div>
+    <ul class="plain">
+      <li>open the site in a browser → <b>Register</b> → create a fresh account (e.g. <code>rescue@yourdomain</code>)</li>
+      <li>you should see: a normal signed-in BTCPay session — but a powerless one, so far</li>
+    </ul>
+    <h3>Step 3 — promote it to server admin</h3>
+    <div class="term">
+      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;the promotion — run on the box</div>
+<pre><span class="p">$</span> ./btcpay-admin.sh set-user-admin <span class="s">rescue@yourdomain</span>
+</pre>
+    </div>
+    <ul class="plain">
+      <li>refresh the browser — you should see: <b>Server Settings</b> in the menu; you're an admin again</li>
+      <li>the new admin is <b>not</b> auto-added to any store — add yourself to the store from the server's user/store management</li>
+      <li>then <b>lock the door behind you</b>: Server Settings → Policies → disable public registration again</li>
+    </ul>
+    <div class="call tip"><span class="lab">The gentler routes (when they exist)</span><p>If SMTP is configured (Server Settings → Email), <b>Forgot password</b> just… works — the reset arrives by mail and none of the above is needed. On older versions there's also the community <b>Admin Pass Reset plugin</b> (R0ckstar Dev). The SSH route above is the one that works with nothing configured.</p></div>
+    <div class="call danger"><span class="lab">The real key is the box</span><p>Anyone with SSH root on the VPS can do everything this phase did. Guard the SSH key like the treasury key — it IS a treasury key. And the mirror lesson: lose SSH and the panel lock becomes real, so keep your VPS provider's console access recoverable too.</p></div>
+    <h3>The prevention kit — fit it now, while you're in</h3>
+    <ul class="plain">
+      <li><b>second admin</b> — keep the rescue account, credentials stored separately from the first (different password manager entry, different human if you have a crew)</li>
+      <li><b>configure SMTP</b> — Server Settings → Email; ten minutes now buys the forgot-password route forever</li>
+      <li><b>2FA with recovery codes</b> — if you enable two-factor or a U2F/FIDO2 hardware key on the admin account, save the recovery codes off the box, on paper; a lost key without codes means running this phase again</li>
+      <li><b>write the drill date down</b> — this playbook was proven 0018.04.15 a₿; re-prove it when the deployment changes</li>
+    </ul>
+    <div class="call check"><span class="lab">Checkpoint</span><p>You're signed in as a server admin, registration is re-locked, a second admin exists, and you know why none of this ever scared you: the panel was never the perimeter — the box was, and you hold it.</p></div>
+  </section>
+
+  <section id="sB">
+    <span class="gitv">diagnosis</span>
+    <div class="head"><span class="num">B</span><h2>"My sats aren't moving" (the ladder)</h2><span class="git">getblockchaininfo</span></div>
+    <p>Deposits confirmed days ago; the wallet says 0. Breathe: <b>the sats exist on the chain — the chain is the ledger, your node is just a reader.</b> A reader that stopped mid-book reports the balance as of the page it's on. Climb the ladder top-down; stop at the first rung that fails.</p>
+    <div class="flow n5">
+      <a class="box" href="#sB1"><small>rung 1</small>on-chain confirmed?</a><span class="arr">▶</span>
+      <a class="box" href="#sB2"><small>rung 2</small>bitcoind synced?</a><span class="arr">▶</span>
+      <a class="box" href="#sB3"><small>rung 3</small>lightning synced?</a><span class="arr">▶</span>
+      <a class="box" href="#sB4"><small>rung 4</small>wallet rescan</a><span class="arr">▶</span>
+      <a class="box" href="#sB5"><small>rung 5</small>restart order</a>
+    </div>
+    <h3 id="sB1">Rung 1 — did the sats actually land? (ask the world, not your node)</h3>
+    <ul class="plain">
+      <li>open <a href="https://mempool.space" target="_blank" rel="noopener">mempool.space</a> → paste the deposit address or txid</li>
+      <li>you should see: the transaction with <b>confirmations counting up</b> — that's the world agreeing your sats exist</li>
+      <li>unconfirmed with a tiny fee? that's a <b>mempool</b> problem, not a node problem — wait, or fee-bump (RBF/CPFP) from the sending wallet</li>
+      <li>confirmed? good — the money is real; everything below is teaching <b>your</b> node to see it</li>
+    </ul>
+    <h3 id="sB2">Rung 2 — is bitcoind caught up?</h3>
+    <div class="term">
+      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;run on the box, in btcpayserver-docker/</div>
+<pre><span class="p">$</span> ./bitcoin-cli.sh getblockchaininfo   <span class="c"># the node's own confession</span>
+<span class="p">$</span> ./bitcoin-cli.sh getblockcount       <span class="c"># one number, compare vs mempool.space</span>
+</pre>
+    </div>
+    <ul class="plain">
+      <li>read three fields: <code>"blocks"</code> vs <code>"headers"</code>, and <code>"initialblockdownload"</code></li>
+      <li><b>blocks &lt; headers</b> → the node knows the chain is longer than what it has verified — <b>it is behind; this is your whole problem</b></li>
+      <li><code>"initialblockdownload": true</code> → it's still in first-sync mode; <code>"verificationprogress"</code> below <code>0.999…</code> says how far</li>
+      <li><code>getblockcount</code> equal to the tip on <a href="https://mempool.space" target="_blank" rel="noopener">mempool.space</a> → this rung passes; climb on</li>
+      <li>behind? jump to <a href="#sC">phase C</a> to watch and unstick it — then come back</li>
+    </ul>
+    <h3 id="sB3">Rung 3 — is the lightning node caught up and connected?</h3>
+    <div class="term">
+      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;pick YOUR implementation — the deployment runs one of these</div>
+<pre><span class="c"># Core Lightning (CLN):</span>
+<span class="p">$</span> ./bitcoin-lightning-cli.sh getinfo   <span class="c"># blockheight should match rung 2</span>
+<span class="c"># LND:</span>
+<span class="p">$</span> ./bitcoin-lncli.sh getinfo           <span class="c"># look for "synced_to_chain": true</span>
+</pre>
+    </div>
+    <ul class="plain">
+      <li>you should see: a block height that <b>matches bitcoind's</b> — lightning reads the chain through your bitcoind, so it can never be ahead of rung 2</li>
+      <li>rung 2 behind → this rung is behind too, automatically; fix sync first, lightning follows</li>
+      <li>errors instead of JSON → read the lightning container's logs (<a href="#sC">phase C</a>) before touching anything</li>
+    </ul>
+    <h3 id="sB4">Rung 4 — teach the BTCPay wallet what it missed</h3>
+    <ul class="plain">
+      <li>in the panel: <b>Wallet → Settings → Rescan</b> — scans the node's UTXO set (<code>scantxoutset</code>) for coins on your derivation scheme</li>
+      <li>server owners only (needs the full node) — that's you, captain</li>
+      <li>use it when the node IS synced but the wallet still misses deposits — classic causes: an imported xpub with history, or the 20-address gap limit</li>
+      <li>you should see: after the rescan, the balance and past transactions appear</li>
+    </ul>
+    <div class="call danger"><span class="lab">Rescan law</span><p>A rescan can only find what the node has already verified. Rescanning an unsynced node finds nothing and proves nothing — <b>sync first (rung 2), rescan last.</b> Running the ladder bottom-up is how captains waste a day.</p></div>
+    <h3 id="sB5">Rung 5 — the restart order (when a component is wedged, not behind)</h3>
+    <div class="term">
+      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;gentlest first — run in btcpayserver-docker/</div>
+<pre><span class="p">$</span> ./btcpay-restart.sh          <span class="c"># the standard restart — fixes a surprising amount</span>
+<span class="p">$</span> ./btcpay-down.sh             <span class="c"># full stop…</span>
+<span class="p">$</span> ./btcpay-up.sh               <span class="c"># …clean start (the deeper reset)</span>
+</pre>
+    </div>
+    <ul class="plain">
+      <li>restarting does <b>not</b> lose sync progress — the chain data stays on disk; the node resumes where it stopped</li>
+      <li>restart, then re-run rung 2 — <code>blocks</code> should be climbing again</li>
+    </ul>
+    <div class="call check"><span class="lab">The admiral's case, solved</span><p>5k sats: confirmed on mempool.space days before (rung 1 ✓). <code>getblockchaininfo</code>: blocks far behind headers (rung 2 ✗) — the node was days behind on the VPS. Nothing was lost, nothing was moving, because <b>the reader was mid-book</b>. Unstick sync (phase C), watch <code>blocks</code> catch <code>headers</code>, and the balance walks in on its own — no rescan even needed when the wallet was native.</p></div>
+  </section>
+
+  <section id="sC">
+    <span class="gitv">runbook</span>
+    <div class="head"><span class="num">C</span><h2>The sync runguide (standing orders)</h2><span class="git">docker logs</span></div>
+    <p>Phase B finds the stuck part; this phase watches it, unsticks it, and keeps it from sticking again. This is the runbook — it stays useful after the emergency.</p>
+    <h3>Know your containers (once)</h3>
+    <div class="term">
+      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;names vary by deployment generation — read YOURS off the list</div>
+<pre><span class="p">$</span> docker ps                    <span class="c"># every running container, real names</span>
+</pre>
+    </div>
+    <ul class="plain">
+      <li>you should see names like <code>btcpayserver_bitcoind</code>, <code>btcpayserver_lnd_bitcoin</code> or <code>btcpayserver_clightning_bitcoin</code>, <code>generated_btcpayserver_1</code></li>
+      <li>older/newer generators prefix differently (<code>generated_…_1</code> vs <code>btcpayserver_…</code>) — trust <code>docker ps</code>, not the manual</li>
+    </ul>
+    <h3>Watch the sync — the logs tell the truth</h3>
+    <div class="term">
+      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;the watch kit — substitute your names from docker ps</div>
+<pre><span class="p">$</span> docker logs --tail 10 btcpayserver_bitcoind        <span class="c"># UpdateTip lines = blocks landing</span>
+<span class="p">$</span> docker logs --tail 40 btcpayserver_lnd_bitcoin     <span class="c"># or …_clightning_bitcoin</span>
+<span class="p">$</span> docker logs --tail 100 generated_btcpayserver_1    <span class="c"># BTCPay itself</span>
+<span class="p">$</span> ./bitcoin-cli.sh getblockchaininfo                 <span class="c"># blocks vs headers, on repeat</span>
+</pre>
+    </div>
+    <ul class="plain">
+      <li>healthy sync looks <b>boring</b>: new <code>UpdateTip</code>/progress lines every few seconds, <code>blocks</code> climbing toward <code>headers</code></li>
+      <li>silent logs + a frozen block count = wedged; keep reading</li>
+    </ul>
+    <h3>Disk space — the classic silent killer</h3>
+    <div class="term">
+      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;check this FIRST when sync stalls with quiet logs</div>
+<pre><span class="p">$</span> df -h                        <span class="c"># a full disk stalls sync without one honest error</span>
+<span class="p">$</span> ./btcpay-clean.sh            <span class="c"># purge unused docker images — quick space back</span>
+<span class="c"># still tight? prune the chain (keeps ~1 year of blocks, ~100 GB):</span>
+<span class="p">$</span> export BTCPAYGEN_ADDITIONAL_FRAGMENTS="opt-save-storage"
+<span class="p">$</span> . ./btcpay-setup.sh -i
+</pre>
+    </div>
+    <ul class="plain">
+      <li>you should see: usage on the data volume <b>below ~90%</b>; a VPS at 100% is the single most common "mysteriously stuck" cause</li>
+      <li>smaller prune variants exist: <code>opt-save-storage-s</code> (~50 GB) · <code>-xs</code> (~25 GB) · <code>-xxs</code> (~5 GB)</li>
+      <li>lifetime-VPS captains: your disk never grows — pruning is not an optimization, it's the plan</li>
+    </ul>
+    <h3>Starved resources — the other stall</h3>
+    <div class="term">
+      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;is the box working hard, or being held back?</div>
+<pre><span class="p">$</span> docker stats                 <span class="c"># CPU pegged → box too small; near-idle → host throttling</span>
+<span class="p">$</span> free -h                      <span class="c"># swap in use during sync → needs more RAM (or add swap)</span>
+</pre>
+    </div>
+    <h3>The restart sequence — smallest hammer first</h3>
+    <div class="term">
+      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;escalate in order; re-check getblockchaininfo between steps</div>
+<pre><span class="p">$</span> docker restart btcpayserver_clightning_bitcoin   <span class="c"># ① lightning only (or …_lnd_bitcoin)</span>
+<span class="p">$</span> ./btcpay-restart.sh                              <span class="c"># ② the whole stack, standard</span>
+<span class="p">$</span> ./btcpay-down.sh
+<span class="p">$</span> ./btcpay-up.sh                                   <span class="c"># ③ full stop / clean start</span>
+</pre>
+    </div>
+    <h3>Expected times — so you don't panic at normal</h3>
+    <ul class="plain">
+      <li><b>fresh full sync</b>: 1–5 days on a modest VPS — fast at first, slow at the end; that's the design, not a fault</li>
+      <li><b>a node days behind</b> (the admiral's case): minutes to a few hours to catch up — watch <code>blocks</code> climb</li>
+      <li><b>lightning after bitcoind catches up</b>: minutes — it reads from a local node</li>
+      <li>the chain is hundreds of GB unpruned — another reason pruning is the lifetime-VPS plan</li>
+    </ul>
+    <div class="call danger"><span class="lab">Reindex — only when the logs say so</span><p>If <code>docker logs</code> on bitcoind literally says <b>"Please restart with -reindex or -reindex-chainstate to recover"</b>, the data is corrupted. The docker remedy: <code>./btcpay-down.sh</code>, then <code>rm -rf /var/lib/docker/volumes/generated_bitcoin_datadir/_data/blocks</code> and <code>…/chainstate</code>, then <code>./btcpay-up.sh</code> — the node re-downloads and re-verifies (this is the 1–5 day clock again). Never do this to a node that's merely slow.</p></div>
+    <div class="call drill"><span class="lab">The monthly drill — ten minutes, run it</span>
+      <ul class="plain">
+        <li>① <code>df -h</code> — data volume under 90%?</li>
+        <li>② <code>./bitcoin-cli.sh getblockchaininfo</code> — <code>blocks == headers</code>, <code>initialblockdownload: false</code>?</li>
+        <li>③ lightning <code>getinfo</code> — height matches bitcoind?</li>
+        <li>④ sign into the panel with the <b>second</b> admin — proves phase A's kit is still loaded</li>
+        <li>⑤ log the block height reached in the SCAR ops todo (<code>docs/ops-todos.md</code>) — the record is the drill</li>
+      </ul>
+    </div>
+    <div class="call check"><span class="lab">Checkpoint</span><p>You can say, with commands to prove it: where the node is, where the chain is, what's between them, and which hammer comes next. That's the whole runbook. A captain who runs the monthly drill never meets phase B by surprise again.</p></div>
+  </section>
+
+  <footer>
+    <b>frens.earth</b> · RTFM 003 · written from a live drill — the admiral locked himself out on purpose<br>
+    <span style="opacity:.32">the frens who read to the end find the magic. ↑ ↑ ↓ ↓ …</span>
+  </footer>
+</div>
+
+<div id="rtfm-magic" hidden>
+  <div class="card">
+    <p class="eye">RTFM ▸ you looked hard enough</p>
+    <h2>🌱 the magic</h2>
+    <p>You read the runbook before the emergency. Most captains meet it during one.</p>
+    <p class="secret">secret word: <b>node-medic</b></p>
+    <p class="foot">Whisper it to the attendant — node-medics get first honors when the treasury pays out. Esc to close.</p>
+  </div>
+</div>
+<script>
+  (function () {
+    var seq = ["arrowup","arrowup","arrowdown","arrowdown","arrowleft","arrowright","arrowleft","arrowright","b","a"];
+    var i = 0, el = document.getElementById("rtfm-magic");
+    if (!el) return;
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") { el.hidden = true; return; }
+      var k = e.key.toLowerCase();
+      if (k === seq[i]) { i++; if (i === seq.length) { i = 0; el.hidden = false; } }
+      else { i = (k === seq[0] ? 1 : 0); }
+    });
+    el.addEventListener("click", function (e) { if (e.target === el) el.hidden = true; });
+  })();
+</script>
+</body>
+</html>
