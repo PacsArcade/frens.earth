@@ -6,6 +6,7 @@ import CertCase from "@/components/CertCase";
 import AdminNav from "@/components/AdminNav";
 import { operatorFromCookieHeader, operatorsConfigured } from "@/lib/operator-auth";
 import { specimenShelf } from "@/lib/certs";
+import { CONSOLE_ROOMS, CONSOLE_SITE } from "@/lib/console";
 
 /**
  * The admin deck — one door to every operator room. Linked from the fren
@@ -20,13 +21,6 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-const ROOMS = [
-  { href: "/a/scar", label: "SCAR", blurb: "the duty roster — tickets from the frens", accent: "border-coin/50 text-coin" },
-  { href: "/a/spaces", label: "SPACES NODE", blurb: "connect spaced · queue · anchor ceremony", accent: "border-neon/50 text-neon" },
-  { href: "/a/mud", label: "MUD NODE", blurb: "point at your P.O.K.E. node — test — verified", accent: "border-cyan/50 text-cyan" },
-  { href: "/a/brand", label: "DRESSING ROOM", blurb: "brand tester — preview candidate looks", accent: "border-pink/50 text-pink" },
-];
-
 export default async function AdminDeckPage() {
   const cookie = (await headers()).get("cookie");
   const operator = operatorFromCookieHeader(cookie);
@@ -39,7 +33,7 @@ export default async function AdminDeckPage() {
       <AdminNav current="deck" />
       <div className="mx-auto max-w-5xl px-6 py-10">
         <p className="mb-2 font-pixel text-[10px] uppercase tracking-widest text-white/40">
-          OPERATOR CONSOLE ▸ FRENS.EARTH
+          OPERATOR CONSOLE ▸ {CONSOLE_SITE.domain.toUpperCase()}
         </p>
         <h1 className="mb-3 font-arcade text-4xl text-cyan glow-cyan">ADMIN DECK</h1>
         <p className="mb-8 font-mono text-[11px] text-white/50">
@@ -47,7 +41,7 @@ export default async function AdminDeckPage() {
         </p>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          {ROOMS.map((r) => (
+          {CONSOLE_ROOMS.map((r) => (
             <Link key={r.href} href={r.href} className={`border-2 bg-panel p-5 ${r.accent}`}>
               <p className="mb-1 font-pixel text-xs uppercase">{r.label} ▸</p>
               <p className="font-body text-sm text-white/70">{r.blurb}</p>

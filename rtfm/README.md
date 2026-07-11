@@ -16,8 +16,9 @@ body of work.
 | # | Article | What it is |
 |---|---------|------------|
 | [001](001-the-sovereign-box.html) | **The Sovereign Box** | Wipe Windows, install Arch forever, keep it a gaming rig, host the stack. |
+| [002](002-first-deployment.html) | **Your First Deployment** | The git ceremony in arrows — clone → run → deploy, terse bullets for total beginners. |
 
-_(more to come — this is doc #1.)_
+_(more to come.)_
 
 ## Writing a new one
 

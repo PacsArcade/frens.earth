@@ -25,6 +25,10 @@ export interface NodeConfig {
   spacesToken: string;
   mudUrl: string;
   mudToken: string;
+  /** GitHub link for the SCAR merge queue — paste-in from the GUI, so the
+      admiral never has to touch deployment env (Pac, 2026-07-11). */
+  githubToken: string;
+  githubRepo: string;
   ceremony: CeremonyConfig;
 }
 
@@ -33,6 +37,8 @@ const EMPTY: NodeConfig = {
   spacesToken: "",
   mudUrl: "",
   mudToken: "",
+  githubToken: "",
+  githubRepo: "",
   ceremony: { certTemplate: "bft-auto", welcomeMessage: "" },
 };
 
@@ -99,5 +105,13 @@ export async function effectiveMudNode(): Promise<{ url: string; token: string }
   return {
     url: c.mudUrl || process.env.MUD_NODE_URL?.trim() || "",
     token: c.mudToken || process.env.MUD_ADMIN_TOKEN?.trim() || "",
+  };
+}
+
+export async function effectiveGithub(): Promise<{ repo: string; token: string }> {
+  const c = await readNodeConfig();
+  return {
+    repo: c.githubRepo || process.env.GITHUB_REPO?.trim() || "PacsArcade/frens.earth",
+    token: c.githubToken || process.env.GITHUB_TOKEN?.trim() || "",
   };
 }

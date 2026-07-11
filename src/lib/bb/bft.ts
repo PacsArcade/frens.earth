@@ -33,10 +33,11 @@ export function bft(height: number): BftDate {
 
 const pad = (n: number, w: number) => String(n).padStart(w, "0");
 
-/** ₿-marked After-Bitcoin date, 4-digit year: "a₿ 0016.05.23". */
+/** ₿-marked After-Bitcoin date, marker AFTER the date (Pac, 2026-07-11):
+    "0016.05.23 a₿". */
 export function bftDate(height: number): string {
   const b = bft(height);
-  return `a₿ ${pad(b.year, 4)}.${pad(b.month, 2)}.${pad(b.day, 2)}`;
+  return `${pad(b.year, 4)}.${pad(b.month, 2)}.${pad(b.day, 2)} a₿`;
 }
 
 /* The display standard (Pac, 2026-07-11): date = yyyy.mm.dd · time = hh:mm
@@ -61,10 +62,11 @@ export function bftDateTime(height: number): string {
   return `${bftDatePlain(height)} ${bftTime(height)}`;
 }
 
-/** Pre-genesis wall-clock (negative-time / ghost side): "b₿ yyyy.dd.mm[.ss]". */
+/** Pre-genesis wall-clock (negative-time / ghost side), marker after:
+    "yyyy.dd.mm[.ss] b₿". */
 export function beforeBitcoin(year: number, month: number, day: number, second?: number): string {
-  const base = `b₿ ${pad(year, 4)}.${pad(day, 2)}.${pad(month, 2)}`;
-  return second == null ? base : `${base}.${pad(second, 2)}`;
+  const base = `${pad(year, 4)}.${pad(day, 2)}.${pad(month, 2)}`;
+  return `${second == null ? base : `${base}.${pad(second, 2)}`} b₿`;
 }
 
 export const MOON_PHASES: ReadonlyArray<readonly [string, string]> = [

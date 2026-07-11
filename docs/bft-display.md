@@ -28,9 +28,19 @@ tray-clock** layout — time on top, date below, exactly like the OS taskbar
 | a running clock | `bftTime(h)` over `bftDatePlain(h)` | `14:30` / `0018.04.15` |
 | when a thing happened (rows, logs, tickets) | `bftDateTime(h)` | `0018.04.15 14:30` |
 | a date alone | `bftDatePlain(h)` | `0018.04.15` |
-| a ceremonial/formal date | `bftDate(h)` | `a₿ 0018.04.15` |
+| a ceremonial/formal date | `bftDate(h)` | `0018.04.15 a₿` — the marker rides AFTER the date (amended 2026-07-11); pre-genesis wears `b₿` the same way |
 | the block itself matters | prefix `▣ {h.toLocaleString()} · ` | `▣ 957,580 · 0018.04.15 14:30` |
 | an estimated stamp (no recorded block) | prefix `~ ` | `~ 0018.04.15 14:30` |
+
+## The year — bitcoin's age, no explaining required
+
+**Years start at 0** (already true in `bft.ts`: genesis block 0 opens year
+`0000`), so **the display year IS bitcoin's age**. We're in `0018` — bitcoin
+is 18. One BFT year = 52,416 blocks (13 months × 28 days × 144), about 364
+wall-days, so the ₿-birthday drifts slowly off the January calendar — which
+is fine, because the calendar is not the reference. The block is.
+
+The one-line explainer, if anyone asks: *"the year is how old bitcoin is."*
 
 Rules of thumb:
 - **The `a₿` marker is assumed on new items** (queues, requests, logs) — only

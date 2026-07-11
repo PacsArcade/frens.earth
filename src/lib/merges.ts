@@ -4,6 +4,7 @@ import { put, get } from "@vercel/blob";
 import { verifyEvent } from "nostr-tools";
 import { blobStoreEnabled } from "./registry";
 import { isOperatorHex } from "./operator-auth";
+import { effectiveGithub } from "./nodeconfig";
 
 /**
  * Merge authorizations — the admiral signs merges from the SCAR console.
@@ -21,21 +22,21 @@ import { isOperatorHex } from "./operator-auth";
  * either way. Someday the log itself gets tied to the block.
  */
 
-const REPO = process.env.GITHUB_REPO?.trim() || "PacsArcade/frens.earth";
 const GH = "https://api.github.com";
 
-function ghHeaders(): Record<string, string> {
-  const h: Record<string, string> = {
+/** GitHub link: stored config first (pasted in the SCAR panel), env fallback. */
+async function ghContext(): Promise<{ repo: string; headers: Record<string, string>; hasToken: boolean }> {
+  const { repo, token } = await effectiveGithub();
+  const headers: Record<string, string> = {
     Accept: "application/vnd.github+json",
     "User-Agent": "frens-earth-scar",
   };
-  const token = process.env.GITHUB_TOKEN?.trim();
-  if (token) h.Authorization = `Bearer ${token}`;
-  return h;
+  if (token) headers.Authorization = `Bearer ${token}`;
+  return { repo, headers, hasToken: !!token };
 }
 
-export function mergeExecutionEnabled(): boolean {
-  return !!process.env.GITHUB_TOKEN?.trim();
+export async function mergeExecutionEnabled(): Promise<boolean> {
+  return (await ghContext()).hasToken;
 }
 
 export interface OpenPr {
@@ -47,10 +48,11 @@ export interface OpenPr {
   draft: boolean;
 }
 
-/** Open PRs, straight from GitHub (public read works untokened). */
+/** Open PRs from GitHub (a private repo needs the token to even list). */
 export async function listOpenPrs(): Promise<OpenPr[]> {
-  const res = await fetch(`${GH}/repos/${REPO}/pulls?state=open&per_page=20`, {
-    headers: ghHeaders(),
+  const { repo, headers } = await ghContext();
+  const res = await fetch(`${GH}/repos/${repo}/pulls?state=open&per_page=20`, {
+    headers,
     cache: "no-store",
   });
   if (!res.ok) throw new Error(`GitHub said ${res.status}`);
@@ -170,12 +172,13 @@ export async function authorizeMerge(event: {
     merged: false,
   };
 
-  let note = "authorization recorded — merge on GitHub (no GITHUB_TOKEN configured)";
-  if (mergeExecutionEnabled()) {
+  const gh = await ghContext();
+  let note = "authorization recorded — merge on GitHub (no token connected)";
+  if (gh.hasToken) {
     try {
-      const res = await fetch(`${GH}/repos/${REPO}/pulls/${pr}/merge`, {
+      const res = await fetch(`${GH}/repos/${gh.repo}/pulls/${pr}/merge`, {
         method: "PUT",
-        headers: { ...ghHeaders(), "Content-Type": "application/json" },
+        headers: { ...gh.headers, "Content-Type": "application/json" },
         body: JSON.stringify({ merge_method: "merge", sha }),
       });
       const data = await res.json().catch(() => ({}));

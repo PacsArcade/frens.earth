@@ -111,9 +111,11 @@ export default function MergeQueue() {
       {note && <p className="mb-3 font-pixel text-[10px] uppercase text-neon">{note}</p>}
       {!prs ? (
         <p className="font-body text-sm text-white/50">Reading the queue…</p>
+      ) : setup === "connect-github" ? (
+        /* paste the token right here — same pattern as the node URL boxes */
+        <ConnectGithub onConnected={load} />
       ) : setup ? (
-        /* our first NOTIFICATION — compact + dismissible, not a giant card */
-        <Notice id="github-token">connect your GitHub: {setup}</Notice>
+        <Notice id="github-reach">{setup}</Notice>
       ) : prs.length === 0 ? (
         <p className="border-2 border-edge bg-panel p-4 font-body text-sm text-white/60">
           Nothing waiting to merge — the board is clean. 🌱
@@ -166,10 +168,76 @@ export default function MergeQueue() {
       )}
       {!canExecute && prs && prs.length > 0 && (
         <p className="mt-2 font-body text-xs text-white/40">
-          Signatures are recorded as the sign-off; set <span className="font-mono">GITHUB_TOKEN</span>{" "}
-          in the deployment env and the button merges right here.
+          Signatures are recorded as the sign-off; connect a GitHub token and the button merges
+          right here.
         </p>
       )}
+    </div>
+  );
+}
+
+/** The connect box — paste a fine-grained PAT (contents + pull-requests
+    write, this repo only), save write-once, and the queue lights up. The
+    token is masked forever after; no deployment env required. */
+function ConnectGithub({ onConnected }: { onConnected: () => void }) {
+  const [token, setToken] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function save() {
+    setErr(null);
+    if (!token.trim()) {
+      setErr("paste a token first");
+      return;
+    }
+    setBusy(true);
+    try {
+      const res = await fetch("/api/admin/nodes", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ githubToken: token.trim() }),
+      });
+      const data = await res.json();
+      if (!data.ok) {
+        setErr(data.reason ?? "couldn't save");
+        return;
+      }
+      setToken("");
+      onConnected(); // reload — the queue lists now
+    } catch {
+      setErr("save hiccuped — try again");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="border-2 border-coin/60 bg-coin/5 p-4">
+      <p className="mb-2 font-pixel text-[10px] uppercase text-coin">CONNECT YOUR GITHUB — PASTE, SAVE, APPROVE</p>
+      <p className="mb-3 font-body text-xs text-white/70">
+        The repo is private, so the queue needs a key to see it. GitHub → Settings → Developer
+        settings → <span className="text-cyan">Fine-grained tokens</span>: resource owner ={" "}
+        <span className="text-cyan">your org</span>, this repo only, permissions{" "}
+        <span className="text-cyan">Contents + Pull requests (read/write)</span>. Paste it once —
+        it&apos;s stored write-only and never shown again.
+      </p>
+      <div className="flex flex-wrap gap-2">
+        <input
+          value={token}
+          onChange={(e) => setToken(e.target.value)}
+          type="password"
+          placeholder="github_pat_…"
+          className="min-w-0 flex-1 border-2 border-edge bg-void px-3 py-2 font-mono text-xs text-cyan placeholder:text-white/25 focus:border-cyan focus:outline-none"
+        />
+        <button
+          onClick={save}
+          disabled={busy}
+          className="min-h-11 border-2 border-coin px-4 font-pixel text-[9px] uppercase text-coin hover:glow-coin disabled:opacity-50"
+        >
+          {busy ? "SAVING…" : "▶ CONNECT"}
+        </button>
+      </div>
+      {err && <p className="mt-2 font-pixel text-[9px] uppercase text-ghost">{err}</p>}
     </div>
   );
 }
