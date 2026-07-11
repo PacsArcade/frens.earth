@@ -122,6 +122,22 @@ export interface MergeAuth {
   at: string;
   merged: boolean;
   mergeNote?: string;
+  closed?: boolean; // the change stays on the admiral's queue until closed
+}
+
+/** The admiral's close-out — the signature OPENS a change; only the close
+    ends it (merge → deploy → test → bug-or-close; ITSM, arcade style). */
+export async function closeAuthorization(pr: number): Promise<boolean> {
+  const log = await readLog();
+  let hit = false;
+  for (const e of log) {
+    if (e.pr === pr && !e.closed) {
+      e.closed = true;
+      hit = true;
+    }
+  }
+  if (hit) await writeLog(log);
+  return hit;
 }
 
 const BLOB_PATH = "merges/log.json";

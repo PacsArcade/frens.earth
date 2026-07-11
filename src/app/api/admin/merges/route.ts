@@ -4,6 +4,7 @@ import {
   listPrFiles,
   listAuthorizations,
   authorizeMerge,
+  closeAuthorization,
   mergeExecutionEnabled,
   tokenExpiration,
 } from "@/lib/merges";
@@ -50,11 +51,15 @@ export async function POST(request: Request) {
   if (!operatorFromCookieHeader(request.headers.get("cookie"))) {
     return Response.json({ ok: false, reason: "operator sign-in required" }, { status: 401 });
   }
-  let body: { event?: unknown };
+  let body: { event?: unknown; close?: unknown };
   try {
     body = await request.json();
   } catch {
     return Response.json({ ok: false, reason: "invalid request" }, { status: 400 });
+  }
+  /* the close-out — cookie-gated (low stakes: it only ends the watch) */
+  if (typeof body.close === "number") {
+    return Response.json({ ok: await closeAuthorization(body.close) });
   }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const result = await authorizeMerge(body.event as any);

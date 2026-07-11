@@ -26,6 +26,7 @@ interface MergeAuth {
   at: string;
   merged: boolean;
   mergeNote?: string;
+  closed?: boolean;
 }
 interface PrFile {
   file: string;
@@ -130,6 +131,33 @@ export default function MergeQueue() {
   useEffect(() => {
     load();
   }, [load]);
+
+  /* IN FLIGHT — the admiral's rule: a signature OPENS a change; it stays on
+     the queue through deploy → test → bug-or-close, and only the close-out
+     clears it. "Deployed?" is answered honestly: this build's stamp vs the
+     signature's timestamp (a new build IS the deploy on this ship). */
+  const builtAt = process.env.NEXT_PUBLIC_BUILD_AT ?? "";
+  const latestByPr = new Map<number, MergeAuth>();
+  for (const x of auths) if (!x.closed) latestByPr.set(x.pr, x);
+  const inFlight = [...latestByPr.values()].filter(
+    (x) => x.merged && !(prs ?? []).some((p) => p.number === x.pr),
+  );
+
+  async function closeOut(pr: number) {
+    setErr(null);
+    try {
+      const res = await fetch("/api/admin/merges", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ close: pr }),
+      });
+      const data = await res.json().catch(() => null);
+      if (data?.ok) load();
+      else setErr("couldn't close the change — try again");
+    } catch {
+      setErr("couldn't reach the server — try again");
+    }
+  }
 
   async function authorize(pr: OpenPr) {
     setErr(null);
@@ -288,6 +316,50 @@ export default function MergeQueue() {
               </div>
             );
           })}
+        </div>
+      )}
+      {inFlight.length > 0 && (
+        <div className="mt-8">
+          <p className="mb-2 font-pixel text-[10px] uppercase tracking-widest text-white/40">
+            SCAR ▸ IN FLIGHT — SIGNED; YOURS UNTIL YOU CLOSE IT OUT
+          </p>
+          <div className="space-y-2">
+            {inFlight.map((x) => {
+              const live = !!builtAt && x.at < builtAt;
+              return (
+                <div key={x.pr} className="border-2 border-edge bg-panel p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="font-mono text-xs text-white/40">
+                        #{x.pr} · signed by {x.by.slice(0, 8)}…
+                      </p>
+                      <p className={`mt-1 font-pixel text-[10px] uppercase ${live ? "text-neon" : "text-coin"}`}>
+                        {live
+                          ? "◉ DEPLOYED — TEST NOW, ADMIRAL"
+                          : "◌ MERGED — DEPLOY PENDING (Number One is shipping)"}
+                      </p>
+                    </div>
+                    <div className="flex flex-none items-center gap-2">
+                      <a
+                        href={`/support?pr=${x.pr}`}
+                        className="border-2 border-edge px-3 py-1.5 font-pixel text-[9px] uppercase text-ghost hover:border-ghost"
+                      >
+                        🐛 SUBMIT A BUG
+                      </a>
+                      <button
+                        onClick={() => closeOut(x.pr)}
+                        disabled={!live}
+                        title={live ? "verified — end the watch" : "test it live first, then close"}
+                        className="border-2 border-neon px-3 py-1.5 font-pixel text-[9px] uppercase text-neon disabled:opacity-40"
+                      >
+                        ✓ CLOSE OUT
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
       {!canExecute && prs && prs.length > 0 && (
