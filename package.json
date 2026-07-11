@@ -9,7 +9,8 @@
     "safari >= 17.5"
   ],
   "scripts": {
-    "predev": "node scripts/reset-registry.mjs",
+    "predev": "node scripts/setup.mjs && node scripts/reset-registry.mjs",
+    "setup": "node scripts/setup.mjs",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",

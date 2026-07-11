@@ -6,6 +6,25 @@ nostr verification (`alice@frens.earth`), anchored on-chain in batches via the
 [Spaces protocol](https://spacesprotocol.org). A project of the
 [Pac's Arcade](https://pacsarcade.org) non-profit.
 
+## Instant start — copy, paste, play
+
+```bash
+git clone https://github.com/PacsArcade/frens.earth my-space
+cd my-space
+npm install
+npm run dev
+```
+
+That's the whole install. First run writes your `.env.local` (with a fresh
+session secret, so sign-in just works) and opens a clean local registry. Then:
+
+1. open http://localhost:3000 and **claim a tag** — forge keys right in the
+   browser if you don't have any;
+2. hit **PLAY** — [Bitcoin Buddy](http://localhost:3000/bb) is already wired;
+3. start building — the operator console lives at `/a` (set `OPERATOR_NPUBS`
+   in `.env.local` to your npub to open it), tickets at `/support`, the
+   manuals in [`rtfm/`](rtfm/).
+
 ## How it works
 
 1. **PICK YOUR TAG** — live availability check against the registry.
@@ -42,8 +61,8 @@ operator console. No database, no user accounts — see
 ## Fork this for your own space
 
 This repo is a template: one deployment = one space, and the space is pure
-configuration. Copy [`.env.example`](.env.example) to `.env.local` (or set the
-same vars in your Vercel project) and change two values:
+configuration. Your `.env.local` already exists (first `npm run dev` wrote it);
+change two values in it — or set the same vars in your Vercel project:
 
 ```
 NEXT_PUBLIC_SPACE_NAME=yourspace          # tag = name@yourspace
