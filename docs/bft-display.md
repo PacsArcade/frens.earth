@@ -32,6 +32,27 @@ tray-clock** layout — time on top, date below, exactly like the OS taskbar
 | the block itself matters | prefix `▣ {h.toLocaleString()} · ` | `▣ 957,580 · 0018.04.15 14:30` |
 | an estimated stamp (no recorded block) | prefix `~ ` | `~ 0018.04.15 14:30` |
 
+## The month — why 04 isn't April (or July)
+
+The admiral's question, 0018.04.15 a₿: *"it says month 4 — what month is
+it really?"* Both calendars are real; they just count from different
+starting lines:
+
+- A BFT month is **28 days (4,032 blocks)**, and there are **13** of
+  them — they never line up with the old months.
+- The BFT year doesn't start January 1. It starts when the chain crosses
+  a year boundary: year 0018 opened at **block 943,488** (≈ old-calendar
+  early April 2026).
+- So "month 04" means: **the 4th 28-day month since the bitcoin new
+  year**. Today's arithmetic: 957,607 − 943,488 = 14,119 blocks in →
+  3 full months (12,096) + 2,023 → month 04, day 15, beat 007 — exactly
+  what the clock's microline shows.
+- The bitcoin new year **walks backward** through the old calendar ~1–2
+  days a year (a BFT year is 364 wall-days), so no fixed lookup will
+  ever hold. The block is the truth; the old months are scenery.
+- Want to feel it instead of computing it? The `/bday` date-picker
+  converts any old date — today included.
+
 ## The year — bitcoin's age, no explaining required
 
 **Years start at 0** (already true in `bft.ts`: genesis block 0 opens year
