@@ -53,3 +53,8 @@ next-env.d.ts
 
 # operator node-link config (holds tokens!) — never tracked; prod uses Blob
 /data/nodes.json
+
+# artist registry dev stores (roster / name requests / watches) — never tracked; prod uses Blob
+/data/artists.json
+/data/artist-requests.json
+/data/artist-watches.json
