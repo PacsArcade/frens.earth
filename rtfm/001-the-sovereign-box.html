@@ -280,7 +280,7 @@
     </ul>
 
     <h3>Make the boot media</h3>
-    <p>Grab the latest ISO from <a href="https://archlinux.org/download/">archlinux.org/download</a> (verify the signature), then write it to a spare USB. From your current Windows box the easy path is <a href="https://rufus.ie">Rufus</a> in <em class="tag">DD image</em> mode; on any Linux, <span class="mono">dd</span>.</p>
+    <p>Grab the latest ISO from <a href="https://archlinux.org/download/" target="_blank" rel="noopener">archlinux.org/download</a> (verify the signature), then write it to a spare USB. From your current Windows box the easy path is <a href="https://rufus.ie" target="_blank" rel="noopener">Rufus</a> in <em class="tag">DD image</em> mode; on any Linux, <span class="mono">dd</span>.</p>
     <div class="term">
       <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;write the ISO (from a Linux box)</div>
 <pre><span class="p">$</span> <span class="c"># find the stick — be certain of the device node!</span>
@@ -464,7 +464,7 @@
       <li><strong>Boot into a snapshot</strong> — <span class="mono">grub-btrfs</span> or a systemd-boot snapshot entry gives you "roll back the whole OS" from the boot menu.</li>
       <li><strong>The vault stays cold</strong> — periodic <span class="mono">btrfs send/receive</span> (or restic) from the box to the SATA vault; the critical-few keep mirroring to the Passport for offsite.</li>
       <li><strong>Fans &amp; sensors</strong> — <span class="mono">lm_sensors</span> + <span class="mono">sensors-detect</span>; this board's Nuvoton chip (<span class="mono">nct6775</span>) is in-kernel, but ASUS Q-Fan can hide the PWM interface. If fans don't show, set the headers to Auto-Detect / disable Q-Fan in BIOS, then <span class="mono">fancontrol</span>. A "works with a little fiddling" item, not plug-and-play.</li>
-      <li><strong>Update rhythm</strong> — <span class="mono">pacman -Syu</span> deliberately, read the <a href="https://archlinux.org/news/">Arch news</a> first; snapshots make it low-stakes.</li>
+      <li><strong>Update rhythm</strong> — <span class="mono">pacman -Syu</span> deliberately, read the <a href="https://archlinux.org/news/" target="_blank" rel="noopener">Arch news</a> first; snapshots make it low-stakes.</li>
       <li><strong>Secure Boot (optional)</strong> — <span class="mono">sbctl</span> to sign your kernel + NVIDIA modules and turn it back on, if you want it.</li>
     </ul>
     <div class="call check"><span class="lab">The finish line</span><p>A box that games at the top of the stack <em>and</em> keeps @frens alive — with an undo button on the whole operating system. Knowledge kept, tied to the block, ours.</p></div>

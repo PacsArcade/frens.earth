@@ -44,11 +44,16 @@
   h1.title { font-family:var(--mono); font-weight:700; font-size:clamp(2rem,6vw,3.2rem); line-height:1.04; letter-spacing:-.01em; margin:0; text-wrap:balance; }
   h1.title .glow { color:var(--sprout); text-shadow:0 0 24px color-mix(in srgb,var(--sprout) 45%,transparent); }
   .subtitle { color:var(--muted); font-size:1.05rem; max-width:62ch; margin:14px 0 0; }
-  .mission { margin-top:22px; padding:14px 18px; border-left:3px solid var(--heart); background:color-mix(in srgb,var(--heart) 9%,transparent); font-size:.95rem; border-radius:0 6px 6px 0; max-width:64ch; }
+  .mission { margin-top:22px; padding:14px 18px; border-left:3px solid var(--heart); background:color-mix(in srgb,var(--heart) 9%,transparent); font-size:.95rem; border-radius:0 6px 6px 0; }
   .mission b { color:var(--heart); }
 
-  section { margin-top:52px; scroll-margin-top:20px; }
+  section { margin-top:52px; scroll-margin-top:20px; position:relative; }
+  /* the proper git name, twice: a chip in the head row for every reader,
+     and a vertical rail on wide screens — visual reinforcement, all styles */
+  .gitv { position:absolute; top:2px; left:-46px; writing-mode:vertical-rl; transform:rotate(180deg); font-family:var(--mono); font-size:10px; letter-spacing:.3em; text-transform:uppercase; color:var(--muted); opacity:.75; }
+  @media (max-width:1040px) { .gitv { display:none; } }
   .head { display:flex; align-items:baseline; gap:14px; border-bottom:1px solid var(--edge); padding-bottom:12px; margin-bottom:20px; }
+  .head .git { margin-left:auto; font-family:var(--mono); font-size:11px; color:var(--teal); border:1px solid var(--edge); border-radius:5px; padding:2px 8px; white-space:nowrap; }
   .head .num { font-family:var(--mono); font-size:13px; color:var(--void); background:var(--sprout); padding:3px 9px; border-radius:5px; font-weight:700; }
   h2 { font-family:var(--mono); font-size:clamp(1.35rem,3.4vw,1.85rem); margin:0; letter-spacing:-.01em; text-wrap:balance; }
   h3 { font-family:var(--mono); font-size:1.02rem; margin:28px 0 10px; color:var(--teal); }
@@ -66,7 +71,7 @@
 
   .call { margin:18px 0; padding:14px 16px 14px 18px; border-radius:8px; border:1px solid var(--edge); border-left-width:3px; background:var(--panel); }
   .call .lab { font-family:var(--mono); font-size:11px; letter-spacing:.14em; text-transform:uppercase; font-weight:700; margin-bottom:6px; display:block; }
-  .call p { margin:0; }
+  .call p { margin:0; max-width:none; } /* text inside a box uses the box's room */
   .call.danger { border-left-color:var(--ghost); background:color-mix(in srgb,var(--ghost) 8%,var(--panel)); } .call.danger .lab { color:var(--ghost); }
   .call.check  { border-left-color:var(--sprout); background:color-mix(in srgb,var(--sprout) 8%,var(--panel)); } .call.check .lab { color:var(--sprout); }
   .call.tip    { border-left-color:var(--teal); } .call.tip .lab { color:var(--teal); }
@@ -85,13 +90,28 @@
   #rtfm-magic .secret b { color:var(--heart); }
   #rtfm-magic .foot { color:var(--muted); font-size:.85rem; margin-top:14px; }
 
-  /* clickable ceremony boxes — each step jumps to its section */
-  .flow { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:14px 0; }
-  .flow a.box { display:inline-block; border:2px solid var(--edge); border-radius:8px; background:var(--panel); padding:10px 14px; font-family:var(--mono); font-size:12px; color:var(--sprout); text-decoration:none; }
+  /* ── THE FLOW-BOX STANDARD (house template — see GLYPH refs) ──────────
+     · boxes live on a GRID and are always EQUAL width — never content-sized
+     · the chip (number/actor) sits top-left; the label stacks below it
+     · arrows get their own fixed 16px columns; narrow screens go vertical
+     · n5/n7 = how many boxes the row carries                              */
+  .flow { display:grid; align-items:stretch; gap:8px; margin:16px 0; }
+  .flow.n5 { grid-template-columns:1fr 16px 1fr 16px 1fr 16px 1fr 16px 1fr; }
+  .flow.n7 { grid-template-columns:1fr 16px 1fr 16px 1fr 16px 1fr 16px 1fr 16px 1fr 16px 1fr; }
+  .flow.n8 { grid-template-columns:1fr 16px 1fr 16px 1fr 16px 1fr 16px 1fr 16px 1fr 16px 1fr 16px 1fr; }
+  .flow a.box { display:flex; flex-direction:column; gap:7px; border:2px solid var(--edge); border-radius:8px; background:var(--panel); padding:10px 12px 12px; font-family:var(--mono); font-size:12.5px; line-height:1.4; color:var(--sprout); text-decoration:none; }
   .flow a.box:hover { border-color:var(--sprout); }
-  .flow a.box small { display:block; color:var(--muted); font-size:9px; text-transform:uppercase; letter-spacing:.08em; }
-  .flow .arr { color:var(--muted); font-family:var(--mono); }
+  .flow a.box small { display:block; color:var(--muted); font-size:9.5px; text-transform:uppercase; letter-spacing:.1em; }
+  .flow .arr { align-self:center; justify-self:center; color:var(--muted); font-family:var(--mono); font-size:11px; }
+  @media (max-width:760px) {
+    .flow.n5, .flow.n7 { grid-template-columns:1fr; }
+    .flow .arr { transform:rotate(90deg); }
+  }
   .sys { font-family:var(--mono); font-size:.9em; color:var(--teal); }
+  .shot { margin:16px 0; border:1px solid var(--edge); border-radius:8px; overflow:hidden; background:var(--panel); }
+  .shot img { display:block; width:100%; height:auto; }
+  .shot figcaption { padding:8px 12px; border-top:1px solid var(--edge); font-family:var(--mono); font-size:11px; color:var(--muted); }
+  .shot figcaption b { color:var(--sprout); }
 </style>
 </head>
 <body>
@@ -106,29 +126,33 @@
 <div class="wrap">
 
   <section id="s0">
-    <div class="head"><span class="num">CEREMONY</span><h2>How it really works here — click a box</h2></div>
+    <span class="gitv">git flow</span>
+    <div class="head"><span class="num">CEREMONY</span><h2>How it really works here — click a box</h2><span class="git">git flow</span></div>
     <p>The real workflow on <span class="sys">frens.earth</span> — you never write the code yourself:</p>
-    <div class="flow">
-      <a class="box" href="#s0"><small>you</small>idea</a><span class="arr">──▶</span>
-      <a class="box" href="#s0"><small>you</small>tell the agent</a><span class="arr">──▶</span>
-      <a class="box" href="https://github.com/PacsArcade/frens.earth/pulls"><small>the agent (Claude)</small>drafts commits + a PR</a><span class="arr">──▶</span>
-      <a class="box" href="https://frens.earth/a/scar"><small>the admiral — you</small>approve at SCARLET</a><span class="arr">──▶</span>
+    <div class="flow n5">
+      <a class="box" href="#s0"><small>you</small>idea</a><span class="arr">▶</span>
+      <a class="box" href="#s0"><small>you</small>tell the agent</a><span class="arr">▶</span>
+      <a class="box" href="https://github.com/PacsArcade/frens.earth/pulls"><small>the agent (Claude)</small>drafts commits + a PR</a><span class="arr">▶</span>
+      <a class="box" href="https://frens.earth/a/scar"><small>the admiral — you</small>approve at SCARLET</a><span class="arr">▶</span>
       <a class="box" href="#s6"><small>the agent</small>deploys — it's live</a>
     </div>
     <ul class="plain">
-      <li><b>the site</b> — <a href="https://frens.earth">frens.earth</a> (what the world sees)</li>
-      <li><b>the repo</b> — <a href="https://github.com/PacsArcade/frens.earth">github.com/PacsArcade/frens.earth</a> (the master copy)</li>
-      <li><b>SCARLET</b> — <a href="https://frens.earth/a/scar">frens.earth/a/scar</a> (your approval desk)</li>
+      <li><b>the site</b> — <a href="https://frens.earth" target="_blank" rel="noopener">frens.earth</a> (what the world sees)</li>
+      <li><b>the repo</b> — <a href="https://github.com/PacsArcade/frens.earth" target="_blank" rel="noopener">github.com/PacsArcade/frens.earth</a> (the master copy)</li>
+      <li><b>SCARLET</b> — <a href="https://frens.earth/a/scar" target="_blank" rel="noopener">frens.earth/a/scar</a> (your approval desk)</li>
       <li><b>the host</b> — Vercel project <span class="sys">adminpacmans-projects / frens-earth</span></li>
     </ul>
+    <p>Sailing a different ship? Wherever this manual says <span class="sys">frens.earth</span>, read your own site's name — every name above comes from your configuration (phase <a href="#s3">03</a>). This manual ships inside the template: part of the <b>brand kit in a box</b> when creator stores like <span class="sys">onecocreation</span> stand up.</p>
     <p>And the classic git flow underneath, each step a box you can click:</p>
-    <div class="flow">
-      <a class="box" href="#s1"><small>01</small>get the ship</a><span class="arr">──▶</span>
-      <a class="box" href="#s2"><small>02</small>first flight</a><span class="arr">──▶</span>
-      <a class="box" href="#s3"><small>03</small>make it yours</a><span class="arr">──▶</span>
-      <a class="box" href="#s4"><small>04</small>go live</a><span class="arr">──▶</span>
-      <a class="box" href="#s5"><small>05</small>the rhythm</a><span class="arr">──▶</span>
-      <a class="box" href="#s6"><small>06</small>hook up approvals</a>
+    <div class="flow n8">
+      <a class="box" href="#s1"><small>01</small>get the ship</a><span class="arr">▶</span>
+      <a class="box" href="#s2"><small>02</small>first flight</a><span class="arr">▶</span>
+      <a class="box" href="#s3"><small>03</small>make it yours</a><span class="arr">▶</span>
+      <a class="box" href="#s4"><small>04</small>go live</a><span class="arr">▶</span>
+      <a class="box" href="#s5"><small>05</small>the rhythm</a><span class="arr">▶</span>
+      <a class="box" href="#s6"><small>06</small>hook up approvals</a><span class="arr">▶</span>
+      <a class="box" href="#s7"><small>07</small>your rules</a><span class="arr">▶</span>
+      <a class="box" href="#s8"><small>08</small>when it breaks</a>
     </div>
     <ul class="plain">
       <li><b>branch</b> — a safe side copy</li>
@@ -140,23 +164,28 @@
   </section>
 
   <section id="s1">
-    <div class="head"><span class="num">01</span><h2>Get the ship (clone)</h2></div>
+    <span class="gitv">git clone</span>
+    <div class="head"><span class="num">01</span><h2>Get the ship (clone)</h2><span class="git">git clone</span></div>
     <div class="term">
       <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;one folder, whole repo</div>
-<pre><span class="p">$</span> git clone https://github.com/PacsArcade/frens.earth my-space
-<span class="p">$</span> cd my-space
+<pre><span class="p">$</span> gh auth login              <span class="c"># once — say yes when it offers to sign in git</span>
+<span class="p">$</span> git clone https://github.com/PacsArcade/frens.earth frens.hip
+<span class="p">$</span> cd frens.hip
 </pre>
     </div>
     <ul class="plain">
+      <li>bring three tools: <b>git</b> (git-scm.com) · <b>Node 20+</b> (nodejs.org — brings npm) · <b>gh</b> (cli.github.com)</li>
+      <li>the repo is private — <code>gh auth login</code> is the door key</li>
       <li>clone = download the repo, once</li>
-      <li>needs git installed, nothing else</li>
-      <li>private repo? sign in: <code>gh auth login</code></li>
+      <li>the folder is your <b>frens.hip</b> — <b>H</b>elp <b>I</b>m<b>P</b>rove; your copy of the ship</li>
+      <li>you should see: a new <code>frens.hip</code> folder full of the ship's files</li>
       <li>pull = refresh later: <code>git pull</code></li>
     </ul>
   </section>
 
   <section id="s2">
-    <div class="head"><span class="num">02</span><h2>First flight (run it)</h2></div>
+    <span class="gitv">npm run dev</span>
+    <div class="head"><span class="num">02</span><h2>First flight (run it)</h2><span class="git">npm run dev</span></div>
     <div class="term">
       <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;the whole install</div>
 <pre><span class="p">$</span> npm install
@@ -173,7 +202,8 @@
   </section>
 
   <section id="s3">
-    <div class="head"><span class="num">03</span><h2>Make it yours (two lines)</h2></div>
+    <span class="gitv">.env config</span>
+    <div class="head"><span class="num">03</span><h2>Make it yours (two lines)</h2><span class="git">.env config</span></div>
     <div class="term">
       <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;.env.local — your space, your domain</div>
 <pre>NEXT_PUBLIC_SPACE_NAME=<span class="s">yourspace</span>
@@ -188,63 +218,145 @@ NEXT_PUBLIC_NIP05_DOMAIN=<span class="s">yourspace.example</span>
   </section>
 
   <section id="s4">
-    <div class="head"><span class="num">04</span><h2>Go live (deploy)</h2></div>
+    <span class="gitv">vercel deploy</span>
+    <div class="head"><span class="num">04</span><h2>Go live (deploy)</h2><span class="git">vercel deploy</span></div>
     <div class="term">
       <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;vercel — once to set up, one line forever after</div>
 <pre><span class="p">$</span> npx vercel login
 <span class="p">$</span> npx vercel link          <span class="c"># create the project</span>
-<span class="p">$</span> npx vercel blob create-store my-registry
+<span class="p">$</span> npx vercel blob create-store my-registry --access public --yes
 <span class="p">$</span> npx vercel env add SEAT_SECRET production
 <span class="p">$</span> npx vercel env add OPERATOR_NPUBS production
 <span class="p">$</span> npx vercel deploy --prod  <span class="c"># ← the publish button</span>
 </pre>
     </div>
     <ul class="plain">
-      <li>SEAT_SECRET = any long random string</li>
-      <li>OPERATOR_NPUBS = your npub — opens /a</li>
-      <li>GITHUB_TOKEN later — merges from the panel</li>
+      <li>every <code>vercel</code> command asks questions — the defaults are almost always right</li>
+      <li><code>link</code> creates the project; the name you give it becomes your Vercel project name</li>
+      <li>the blob store connects to the project — that sets <code>BLOB_READ_WRITE_TOKEN</code>; without it, claims fail</li>
+      <li>SEAT_SECRET = any long random string (it signs the login cookies)</li>
+      <li>OPERATOR_NPUBS = your npub — this is what opens /a for you</li>
+      <li>GITHUB_TOKEN comes later, in phase <a href="#s6">06</a> — merges from the panel</li>
+      <li>you should see: a live <code>https://…vercel.app</code> address printed — your ship's first berth</li>
     </ul>
     <div class="call danger"><span class="lab">The two laws of deploys</span><p>① New env vars do NOTHING until you deploy again. ② Merging does NOT deploy — <code>npx vercel deploy --prod</code> is the publish button.</p></div>
   </section>
 
   <section id="s5">
-    <div class="head"><span class="num">05</span><h2>The rhythm (every change after)</h2></div>
+    <span class="gitv">gh pr merge</span>
+    <div class="head"><span class="num">05</span><h2>The rhythm (every change after)</h2><span class="git">gh pr merge</span></div>
     <div class="term">
-      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;your two commands, forever</div>
-<pre><span class="p">$</span> gh pr merge <span class="s">N</span> --merge      <span class="c"># accept proposal N</span>
-<span class="p">$</span> npx vercel deploy --prod   <span class="c"># publish the truth</span>
+      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;the merge kit — proper names on every step; run inside frens.hip</div>
+<pre><span class="p">$</span> gh pr list                 <span class="c"># LIST — every open proposal, numbered</span>
+<span class="p">$</span> gh pr view <span class="s">N</span>               <span class="c"># VIEW — read proposal N's story</span>
+<span class="p">$</span> gh pr checkout <span class="s">N</span>           <span class="c"># CHECKOUT — try it on your own desk (optional)</span>
+<span class="p">$</span> npm run dev                <span class="c">#   …look at localhost:3000, then come home:</span>
+<span class="p">$</span> git checkout main          <span class="c"># CHECKOUT main — back to the master copy</span>
+<span class="p">$</span> gh pr merge <span class="s">N</span> --merge      <span class="c"># MERGE — your signature; N = the number, e.g. 17</span>
+<span class="p">$</span> git pull                   <span class="c"># PULL — bring the merged truth down to your desk</span>
+<span class="p">$</span> npx vercel deploy --prod   <span class="c"># DEPLOY — publish the truth</span>
 </pre>
     </div>
     <ul class="plain">
       <li>proposals arrive as numbered PRs</li>
       <li>read it, merge it, deploy it</li>
-      <li>or approve at <a href="https://frens.earth/a/scar">SCARLET (frens.earth/a/scar)</a> — needs <a href="#s6">phase 06</a> once</li>
-      <li>order rarely matters; overlaps get flagged</li>
+      <li>or approve at <a href="https://frens.earth/a/scar" target="_blank" rel="noopener">SCARLET (frens.earth/a/scar)</a> — needs <a href="#s6">phase 06</a> once</li>
+      <li>sailing with an agent? your merge is the order — the agent runs the deploy</li>
+      <li>if two proposals touch the same lines, GitHub blocks the second until you look</li>
     </ul>
+    <div class="call tip"><span class="lab">You never push</span><p>Proposals are pushed <b>to</b> you — your whole side of git is <b>LIST → VIEW → CHECKOUT (optional) → MERGE → PULL → DEPLOY</b>. No <code>git push</code> lives in your rhythm (the one exception is damage control, phase <a href="#s8">08</a>).</p></div>
     <div class="call check"><span class="lab">The finish line</span><p>A live site whose every change passed through your hands. The merge is the ceremony; the deploy is the broadcast.</p></div>
   </section>
 
   <section id="s6">
-    <div class="head"><span class="num">06</span><h2>Hook up approvals at SCARLET (once)</h2></div>
-    <p>So the <span class="sys">MERGE QUEUE</span> at <a href="https://frens.earth/a/scar">frens.earth/a/scar</a> can list and merge proposals, it needs one key from GitHub. Two steps, five minutes, once.</p>
+    <span class="gitv">github token</span>
+    <div class="head"><span class="num">06</span><h2>Hook up approvals at SCARLET (once)</h2><span class="git">github token</span></div>
+    <p>So the <span class="sys">MERGE QUEUE</span> at <a href="https://frens.earth/a/scar" target="_blank" rel="noopener">frens.earth/a/scar</a> can list and merge proposals, it needs one key from GitHub. Two steps, five minutes, once a quarter.</p>
     <h3>Step A — make the key (on GitHub)</h3>
     <ul class="plain">
-      <li>go to <a href="https://github.com/settings/personal-access-tokens/new">github.com → Settings → Developer settings → Fine-grained tokens → Generate</a></li>
-      <li>name: <code>frens-earth-scar-merges</code> · expiry: 90 days</li>
-      <li><b>Resource owner: PacsArcade</b> (the org, not you)</li>
-      <li>repository access: only <span class="sys">PacsArcade/frens.earth</span></li>
-      <li>permissions: <b>Contents</b> + <b>Pull requests</b> — both read &amp; write, nothing else</li>
-      <li>Generate → copy it now (shown once)</li>
+      <li>go to <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">github.com → Settings → Developer settings → Fine-grained tokens → Generate</a></li>
+      <li>token name: <code>frens-earth-scar-merges</code> — just a label, <b>max 40 characters</b>, paste nothing else in that field</li>
+      <li>expiration: pick <b>90 days</b> from the dropdown (when it expires, repeat this phase)</li>
+      <li><b>Resource owner: PacsArcade</b> (the org, not your personal account)</li>
+      <li>repository access: <b>Only select repositories</b> → just <span class="sys">PacsArcade/frens.earth</span></li>
     </ul>
+    <figure class="shot"><img src="img/scarlet-pat-form.webp" alt="GitHub fine-grained token form: name field, resource owner PacsArcade, expiration dropdown" loading="lazy"><figcaption>the form — short <b>name</b>, owner <b>PacsArcade</b>, expiry set in the <b>dropdown</b>. The red warning is what pasting anything extra into the name field gets you.</figcaption></figure>
+    <ul class="plain">
+      <li>permissions: <b>Contents</b> + <b>Pull requests</b> — both <b>Read and write</b>; Metadata adds itself; nothing else</li>
+      <li><b>Generate token</b> → copy it right away (GitHub shows it exactly once)</li>
+    </ul>
+    <figure class="shot"><img src="img/scarlet-pat-permissions.webp" alt="Repository access limited to PacsArcade/frens.earth; permissions Contents and Pull requests read-and-write; Generate token button" loading="lazy"><figcaption>done right — <b>1 repository</b>, <b>Contents: Read and write</b>, <b>Pull requests: Read and write</b>, Metadata read-only (automatic). Then <b>Generate token</b>.</figcaption></figure>
     <h3>Step B — paste it (on the site — no Vercel needed)</h3>
     <ul class="plain">
-      <li>open <a href="https://frens.earth/a/scar">frens.earth/a/scar</a>, signed in as operator</li>
+      <li>open <a href="https://frens.earth/a/scar" target="_blank" rel="noopener">frens.earth/a/scar</a>, signed in as operator</li>
       <li>the queue shows <b>CONNECT YOUR GITHUB — PASTE, SAVE, APPROVE</b></li>
-      <li>paste the key → <b>▶ CONNECT</b> — done, forever</li>
+      <li>paste the key → <b>▶ CONNECT</b> — the queue reloads and lists every proposal; that's your proof it worked</li>
+      <li>done until the key expires (90 days) — then repeat this phase</li>
       <li>the key stores write-only; nobody can read it back, not even you</li>
     </ul>
     <div class="call tip"><span class="lab">The Vercel back door (only if the box is unreachable)</span><p>Vercel project <span class="sys">adminpacmans-projects / frens-earth</span> → Settings → Environment Variables → add <code>GITHUB_TOKEN</code> = the key → then deploy again (law ①: env changes need a deploy).</p></div>
     <div class="call check"><span class="lab">Checkpoint</span><p>SCARLET lists every open proposal with <b>✍ AUTHORIZE &amp; MERGE</b>. Your signature — bound to the exact code — is the whole approval. No more GitHub tabs.</p></div>
+  </section>
+
+  <section id="s7">
+    <span class="gitv">change control</span>
+    <div class="head"><span class="num">07</span><h2>Change control — your ship, your rules</h2><span class="git">change control</span></div>
+    <p>Everything above is a change-control system wearing ceremony clothes. Name the parts and you can tune them:</p>
+    <ul class="plain">
+      <li><b>the proposal</b> — every change arrives as a PR; nothing edits the master copy directly</li>
+      <li><b>the review</b> — you read what changed (SCARLET shows the summary; the GitHub link shows every line)</li>
+      <li><b>the approval</b> — your merge signature, bound to the exact code it approves</li>
+      <li><b>the record</b> — every authorization lands in the audit log; the repo history is the ledger</li>
+      <li><b>the release</b> — the deploy, kept separate on purpose (law ②: approving ≠ publishing)</li>
+    </ul>
+    <h3>Want a second approver?</h3>
+    <ul class="plain">
+      <li><code>OPERATOR_NPUBS</code> takes a list — add a first officer's npub and they can sign too</li>
+      <li>two-signature merges for high-stakes changes are on the roadmap — the sha-bound signature format already supports counter-signing</li>
+      <li>each <b>frens.hip</b> writes its own rules: solo captains merge alone; crews add officers</li>
+    </ul>
+    <div class="call tip"><span class="lab">HIP — Help ImProve</span><p>Your clone is your <b>frens.hip</b>: the copy of the ship you help improve. Its change rules are yours to set — this manual is only the default configuration.</p></div>
+  </section>
+
+  <section id="s8">
+    <span class="gitv">git revert</span>
+    <div class="head"><span class="num">08</span><h2>When it breaks (damage control)</h2><span class="git">git revert</span></div>
+    <p>Something merged, something deployed, the site is wrong. Nothing is lost — git keeps <b>every version of every file, forever</b>. Two moves: put the site back first, then fix the history calmly.</p>
+    <h3>First — put the site back (one minute)</h3>
+    <div class="term">
+      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;rollback — the previous deploy returns instantly</div>
+<pre><span class="p">$</span> npx vercel rollback        <span class="c"># ROLLBACK — the last good deploy is live again</span>
+</pre>
+    </div>
+    <ul class="plain">
+      <li>this touches only the live site — git is untouched; now you have all the time in the world</li>
+    </ul>
+    <h3>Then — find the bad change and read it</h3>
+    <div class="term">
+      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;the investigation kit</div>
+<pre><span class="p">$</span> git pull                   <span class="c"># PULL — stand on the latest truth</span>
+<span class="p">$</span> git log --oneline -5       <span class="c"># LOG — the last five changes, newest first</span>
+<span class="p">$</span> git show <span class="s">sha</span>               <span class="c"># SHOW — every line that change touched</span>
+<span class="p">$</span> git diff <span class="s">sha</span> HEAD          <span class="c"># DIFF — what's different between then and now</span>
+</pre>
+    </div>
+    <ul class="plain">
+      <li>prefer the browser? <a href="https://github.com/PacsArcade/frens.earth/commits/main" target="_blank" rel="noopener">github.com → the repo → Commits</a> — click any change to review every line, colored</li>
+      <li><code>sha</code> = the short code in front of each LOG line (e.g. <code>b2e97c7</code>)</li>
+    </ul>
+    <h3>Then — undo it, honestly</h3>
+    <div class="term">
+      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;revert — an undo that is itself on the record</div>
+<pre><span class="p">$</span> git revert <span class="s">sha</span> --no-edit   <span class="c"># REVERT — a new change that undoes that one</span>
+<span class="p">$</span> git push                   <span class="c"># PUSH — the emergency exception (see phase 05)</span>
+<span class="p">$</span> npx vercel deploy --prod   <span class="c"># DEPLOY — republish the fixed truth</span>
+</pre>
+    </div>
+    <ul class="plain">
+      <li>REVERT never deletes history — it writes a new entry that cancels the old one; the ledger stays honest</li>
+      <li>calmer route: tell your agent what broke — the fix arrives as a proposal, and you're back in the phase-05 rhythm</li>
+    </ul>
+    <div class="call check"><span class="lab">Checkpoint</span><p>The worst day on this ship is: one ROLLBACK to breathe, one REVERT to fix, one DEPLOY to republish. Nothing is ever lost.</p></div>
   </section>
 
   <footer>

@@ -33,8 +33,24 @@ bind everything here — especially rule 1: **no Disney, ever**
    prophet voice) reviews the displayed result for weight and rhythm.
    Writer → typesetter → writer's proof. (Admiral, 0018.04.15 a₿.)
 
+8. **The training dashboard — illustrate what the captain just did**
+   (admiral's spark, 0018.04.15 a₿): when a captain completes a hookup or
+   ceremony in the console, the screen SHOWS the flow they just walked —
+   manual-style flow boxes lighting up live — and tells them plainly they
+   did great. First instance shipped as plumbing: the SCARLET GitHub
+   handshake (KEY RECEIVED ▶ REACHING GITHUB ▶ QUEUE ONLINE). GLYPH owns
+   making the celebration sing site-wide. Split-view manual+console is
+   part of this exploration.
+
 ## Standing notes
 
+- **UPTRAINED (0018.04.15 a₿)**: the admiral flagged flow-box quality in
+  RTFM 002 (unequal sizes, ragged wrap, early text wrapping). The house
+  **box & flow standards** are now law: equal grid boxes · chip top-left,
+  label stacked · text in a box uses the box's room · screenshots as webp ·
+  external links open new tabs. Written into `glyph.skill`
+  (`references/box-standards.md`); reference implementation is
+  `rtfm/002-first-deployment.html`. Every future box adheres.
 - **Carroll drill logs → SCAR**: when the carroll.skill accuracy drills run,
   their results land on the SCAR ship's log tagged `DRILL`, so the admiral
   reads them from the admin.
