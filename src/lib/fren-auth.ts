@@ -69,7 +69,9 @@ export function makeFrenToken(handle: string, space: string): string {
    char; tokens themselves only use [a-z0-9-.]). First token = the active
    door. One key, two tags, zero re-signing — the door switcher. */
 const TOKEN_JOIN = "~";
-export const MAX_SESSIONS = 4;
+/* 8 doors: real frens carry many tags (the admiral tests with 6–7). Tokens
+   are ~100 bytes each — 8 stays comfortably under the 4KB cookie ceiling. */
+export const MAX_SESSIONS = 8;
 
 function parseToken(raw: string): { handle: string; space: string } | null {
   const [handle, space, exp, sig] = raw.split(".");

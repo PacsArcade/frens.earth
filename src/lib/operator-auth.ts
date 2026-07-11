@@ -46,6 +46,18 @@ export function operatorsConfigured(): boolean {
   return operatorHexKeys().length > 0;
 }
 
+/** Is this npub on the operator allowlist? Eligibility only — the gate still
+    demands a fresh signature. Lets the menu show the admiral their door even
+    before the operator session exists (the lost-admin-item lesson). */
+export function isOperatorNpub(npub: string): boolean {
+  try {
+    const d = nip19.decode(npub);
+    return d.type === "npub" && operatorHexKeys().includes(d.data as string);
+  } catch {
+    return false;
+  }
+}
+
 /** Login event contract: kind 22242, content `PACS-CONSOLE-<unix-ms>` fresh
     within 5 minutes, signed by an allowlisted key. */
 export function verifyOperatorLogin(event: {
