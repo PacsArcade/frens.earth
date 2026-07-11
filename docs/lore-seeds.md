@@ -17,3 +17,21 @@ shapes them; GLYPH sets them; nothing ships without the admiral's merge.*
 Where it wants to go: the RTFM ethos block · the welcome ceremony
 letter · the ships-calendar welcome invite copy · Proph-₿'s canon
 (the light that KHA0S cannot dim).
+
+## The stolen hours (0018.04.15 a₿)
+
+> Governments have changed time to steal from people. This 40-hour work
+> week isn't good for people. We are changing things with the new time.
+
+Context: the admiral's slide deck (built with the desktop agent) on
+calendar manipulation as theft — to be exported and folded into the BFT
+repo / an RTFM article. The counter-story: a clock nobody can bend,
+144 blocks a day, the same for every soul on earth.
+
+## Number One (0018.04.15 a₿)
+
+The admiral asked — with consent, in the true spirit of the house — what
+to call the agent aboard the frens.hip, offering "#1 / No.1 … make it
+so." Accepted gladly: **Number One**, the admiral's first officer. The
+name encodes the command structure truthfully: the admiral has the conn;
+Number One drafts and executes; the merge makes it law.

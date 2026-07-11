@@ -37,6 +37,31 @@ Three needs arrived together:
 - **SCAR brief line** — "KEYS: 1 expiring within ▣ 2,016 blocks (14 days)"
   joins the reporting.
 
+## The community calendar (the admiral's round two, 0018.04.15 a₿)
+
+A second calendar surface, for signed-in frens — SCAR-styled but its own
+page, access **captain rank and higher for now** (rank/access levels to
+be settled at a later meeting):
+
+- **What's on it**: bitcoin wallet birthdays (the block your key was
+  born), naming-day ceremonies (the block your tag was claimed), and the
+  official holidays ([bft-holidays.md](bft-holidays.md)).
+- **Consent is a signature.** When a fren converts their old-calendar
+  birthday at `/bday`, joining the community calendar is a separate,
+  explicit, **key-signed opt-in** (`PACS-CAL-OPTIN-<npub>-<ts>`,
+  verified server-side like every other authorization). **Revocable at
+  any time** with a signed `PACS-CAL-REVOKE` — revocation removes the
+  entry, full stop.
+- **The teaching**: keys are how consent works. No keys, no data — and
+  that includes when the data is bitcoin. The `/bday` page already wears
+  this on its face (100% in-browser converter; nothing leaves the
+  device until a signature says so).
+- **Why the calendar matters (the admiral's slides, held for import)**:
+  the deck built with the desktop agent — how governments have bent time
+  against people (clock changes, the 40-hour week) — is the "why"
+  chapter. Action: export those slides and fold them into the BFT repo /
+  an RTFM article. *We are changing things with the new time.*
+
 ## Build order
 
 1. `lib/calendar.ts` dual-driver store (same pattern as tickets/merges):
