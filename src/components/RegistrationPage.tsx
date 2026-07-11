@@ -54,13 +54,14 @@ export default function RegistrationPage({
         <h1 className="font-arcade text-5xl leading-tight text-coin glow-coin sm:text-6xl">
           <NeonTitle text="CLAIM YOUR" flickers={{ 2: 1.6, 8: 2.9 }} />
           <br />
-          <NeonTitle text="PLAYER TAG" flickers={{ 4: 2.2, 9: 3.6 }} />
+          <NeonTitle text="FREN TAG" flickers={{ 1: 2.2, 6: 3.6 }} />
         </h1>
         <p className="mx-auto mt-8 max-w-xl font-body text-lg text-white/80">
-          Enter your initials on the board — permanently. A free{" "}
-          <span className="text-pink glow-pink">{spaceTag}</span>{" "}handle is your player name across
-          the whole arcade and beyond: chat, leaderboards, campaigns. No company owns it. No renewal
-          fee. Yours.
+          Your name, your keys — a free{" "}
+          <span className="text-pink glow-pink">{spaceTag}</span>{" "}handle nobody can rent, revoke,
+          or reset. Verified on{" "}
+          <span className="text-cyan">nostr</span>{" "}the moment you claim it; tick tock, tied to
+          Bitcoin at the next batch. Your patch of earth.
         </p>
       </section>
 

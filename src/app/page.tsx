@@ -3,7 +3,7 @@ import RegistrationPage from "@/components/RegistrationPage";
 import { SPACE_NAME, NIP05_DOMAIN } from "@/lib/identity-config";
 
 export const metadata: Metadata = {
-  title: "Claim your player tag — Pac's Arcade",
+  title: "Claim your fren tag — frens.earth",
   description: `Free sovereign bitcoin handles from @${SPACE_NAME}. Your name, your keys — verifiable on nostr today, permanent on Bitcoin at the next batch.`,
 };
 
