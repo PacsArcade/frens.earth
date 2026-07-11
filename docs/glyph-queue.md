@@ -42,8 +42,25 @@ bind everything here — especially rule 1: **no Disney, ever**
    making the celebration sing site-wide. Split-view manual+console is
    part of this exploration.
 
+9. **Artist cards, round 2 (the admiral's spark, 0018.04.15 a₿)** — the
+   Artist Registry's cards get rebuilt on the **aceo-playground** 3D/reactive
+   card tech (`C:\dev\aceo-playground`, the `AceoCard` build): 3D mouse
+   tilt, holo glow that follows the cursor, the flip, the ASCII render
+   engine — so artists STAND OUT the way a pulled foil does. Rarity and
+   effects are **tied to the block** — look at the block, same law as cert
+   cases and fleet ranks. GLYPH is design lead. (The registry itself is on
+   `feat/artist-registry`; this spark folds into `docs/artist-registry.md`
+   when that branch lands.)
+
 ## Standing notes
 
+- **THE ARCADE STYLE BAND (the admiral's screenshots, 0018.04.15 a₿)** — the
+  reference band for the pacsarcade brand facelift is now law: **orbee's**
+  pixel-critter avatars and purple/pink waveform icons, and **Spiral's**
+  (spiral.xyz) pixel-magenta terminal type on black. Pixel critters ·
+  waveform marks · magenta terminal type on black — that band defines the
+  facelift's look; bring these elements in. House rule 2 still binds inside
+  the band: gold/coin = money ONLY.
 - **UPTRAINED (0018.04.15 a₿)**: the admiral flagged flow-box quality in
   RTFM 002 (unequal sizes, ragged wrap, early text wrapping). The house
   **box & flow standards** are now law: equal grid boxes · chip top-left,

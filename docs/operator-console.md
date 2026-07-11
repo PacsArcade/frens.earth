@@ -18,9 +18,26 @@ Everything behind `/a`, as one portable layer:
 | merge queue (sign to authorize) | `MergeQueue`, `lib/merges` | `GITHUB_TOKEN`, `GITHUB_REPO` |
 | node links (spaced / MUD) | `SpacesPanel`, `MudPanel`, `lib/nodeconfig` | from the GUI |
 | chat floor (the orbee door) | `ChatPanel`, `lib/nodeconfig` | from the GUI; falls back to `CHAT_NODE_URL`, then chat.frens.earth |
+| the chat gate (public side) | `app/chat/route.ts` + `next.config.ts` rewrite | fren session required — see below |
 | notifications | `Notice` | per-id, drop in anywhere |
 | ship's log | `ShipsLog`, `lib/shiplog` | committed entries |
 | time | `lib/bb/bft` + `docs/bft-display.md` | the standard |
+
+## The chat door — gated, never raw (0018.04.15 a₿)
+
+The floor is for signed-in frens; the node URL is never exposed to the
+anonymous public. `/chat` (`src/app/chat/route.ts`) is the gate: a fren
+session (`frenFromRequest`) bounces you 307 on to the configured chat node
+(`effectiveChatNode()`); no session lands you on `/login`. If no real node is
+linked (the default still points at the door domain itself), the gate says so
+honestly instead of chasing its own tail.
+
+**DNS: `chat.frens.earth` must point at the frens-earth Vercel project** —
+not at orbee. `next.config.ts` rewrites that host's root to `/chat` so the
+gate runs before any door opens. (The arcade redirects chat.pacsarcade.org
+straight out to orbee; ours goes through the gate on purpose.) Every door in
+the UI — the console's OPEN THE CHAT ▸ included — links `/chat`, never the
+raw node.
 
 ## How a templated site gets its console
 

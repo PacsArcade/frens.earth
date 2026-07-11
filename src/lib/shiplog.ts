@@ -14,6 +14,16 @@ export interface ShipLogEntry {
 
 export const SHIP_LOG: ShipLogEntry[] = [
   {
+    height: 957620,
+    title: "THE DOOR GETS A GATE",
+    bullets: [
+      "/chat is the fren gate in front of the floor — signed-in frens bounce 307 to the configured chat node, anonymous visitors meet /login; the node URL is never exposed raw",
+      "chat.frens.earth now points at THIS ship (DNS → the frens-earth Vercel project): the host's root rewrites to /chat so the gate runs before any door opens — the arcade redirects its chat host straight out, ours checks who's knocking",
+      "No node linked? The gate says so honestly instead of chasing its own tail (the default still names the door domain itself)",
+      "Console's OPEN THE CHAT ▸ goes through the gate too; parked for GLYPH: THE ARCADE STYLE BAND (orbee pixel critters + Spiral terminal magenta) and artist cards round 2 on the aceo 3D card tech",
+    ],
+  },
+  {
     height: 957619,
     title: "THE FLOOR GETS A DOOR",
     bullets: [
