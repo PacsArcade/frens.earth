@@ -9,8 +9,8 @@ nostr verification (`alice@frens.earth`), anchored on-chain in batches via the
 ## Instant start — copy, paste, play
 
 ```bash
-git clone https://github.com/PacsArcade/frens.earth my-space
-cd my-space
+git clone https://github.com/PacsArcade/frens.earth frens.hip
+cd frens.hip
 npm install
 npm run dev
 ```

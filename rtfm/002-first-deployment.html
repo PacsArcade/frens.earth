@@ -44,7 +44,7 @@
   h1.title { font-family:var(--mono); font-weight:700; font-size:clamp(2rem,6vw,3.2rem); line-height:1.04; letter-spacing:-.01em; margin:0; text-wrap:balance; }
   h1.title .glow { color:var(--sprout); text-shadow:0 0 24px color-mix(in srgb,var(--sprout) 45%,transparent); }
   .subtitle { color:var(--muted); font-size:1.05rem; max-width:62ch; margin:14px 0 0; }
-  .mission { margin-top:22px; padding:14px 18px; border-left:3px solid var(--heart); background:color-mix(in srgb,var(--heart) 9%,transparent); font-size:.95rem; border-radius:0 6px 6px 0; max-width:64ch; }
+  .mission { margin-top:22px; padding:14px 18px; border-left:3px solid var(--heart); background:color-mix(in srgb,var(--heart) 9%,transparent); font-size:.95rem; border-radius:0 6px 6px 0; }
   .mission b { color:var(--heart); }
 
   section { margin-top:52px; scroll-margin-top:20px; }
@@ -66,7 +66,7 @@
 
   .call { margin:18px 0; padding:14px 16px 14px 18px; border-radius:8px; border:1px solid var(--edge); border-left-width:3px; background:var(--panel); }
   .call .lab { font-family:var(--mono); font-size:11px; letter-spacing:.14em; text-transform:uppercase; font-weight:700; margin-bottom:6px; display:block; }
-  .call p { margin:0; }
+  .call p { margin:0; max-width:none; } /* text inside a box uses the box's room */
   .call.danger { border-left-color:var(--ghost); background:color-mix(in srgb,var(--ghost) 8%,var(--panel)); } .call.danger .lab { color:var(--ghost); }
   .call.check  { border-left-color:var(--sprout); background:color-mix(in srgb,var(--sprout) 8%,var(--panel)); } .call.check .lab { color:var(--sprout); }
   .call.tip    { border-left-color:var(--teal); } .call.tip .lab { color:var(--teal); }
@@ -85,13 +85,27 @@
   #rtfm-magic .secret b { color:var(--heart); }
   #rtfm-magic .foot { color:var(--muted); font-size:.85rem; margin-top:14px; }
 
-  /* clickable ceremony boxes — each step jumps to its section */
-  .flow { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:14px 0; }
-  .flow a.box { display:inline-block; border:2px solid var(--edge); border-radius:8px; background:var(--panel); padding:10px 14px; font-family:var(--mono); font-size:12px; color:var(--sprout); text-decoration:none; }
+  /* ── THE FLOW-BOX STANDARD (house template — see GLYPH refs) ──────────
+     · boxes live on a GRID and are always EQUAL width — never content-sized
+     · the chip (number/actor) sits top-left; the label stacks below it
+     · arrows get their own fixed 16px columns; narrow screens go vertical
+     · n5/n7 = how many boxes the row carries                              */
+  .flow { display:grid; align-items:stretch; gap:8px; margin:16px 0; }
+  .flow.n5 { grid-template-columns:1fr 16px 1fr 16px 1fr 16px 1fr 16px 1fr; }
+  .flow.n7 { grid-template-columns:1fr 16px 1fr 16px 1fr 16px 1fr 16px 1fr 16px 1fr 16px 1fr; }
+  .flow a.box { display:flex; flex-direction:column; gap:7px; border:2px solid var(--edge); border-radius:8px; background:var(--panel); padding:10px 12px 12px; font-family:var(--mono); font-size:12.5px; line-height:1.4; color:var(--sprout); text-decoration:none; }
   .flow a.box:hover { border-color:var(--sprout); }
-  .flow a.box small { display:block; color:var(--muted); font-size:9px; text-transform:uppercase; letter-spacing:.08em; }
-  .flow .arr { color:var(--muted); font-family:var(--mono); }
+  .flow a.box small { display:block; color:var(--muted); font-size:9.5px; text-transform:uppercase; letter-spacing:.1em; }
+  .flow .arr { align-self:center; justify-self:center; color:var(--muted); font-family:var(--mono); font-size:11px; }
+  @media (max-width:760px) {
+    .flow.n5, .flow.n7 { grid-template-columns:1fr; }
+    .flow .arr { transform:rotate(90deg); }
+  }
   .sys { font-family:var(--mono); font-size:.9em; color:var(--teal); }
+  .shot { margin:16px 0; border:1px solid var(--edge); border-radius:8px; overflow:hidden; background:var(--panel); }
+  .shot img { display:block; width:100%; height:auto; }
+  .shot figcaption { padding:8px 12px; border-top:1px solid var(--edge); font-family:var(--mono); font-size:11px; color:var(--muted); }
+  .shot figcaption b { color:var(--sprout); }
 </style>
 </head>
 <body>
@@ -108,27 +122,29 @@
   <section id="s0">
     <div class="head"><span class="num">CEREMONY</span><h2>How it really works here — click a box</h2></div>
     <p>The real workflow on <span class="sys">frens.earth</span> — you never write the code yourself:</p>
-    <div class="flow">
-      <a class="box" href="#s0"><small>you</small>idea</a><span class="arr">──▶</span>
-      <a class="box" href="#s0"><small>you</small>tell the agent</a><span class="arr">──▶</span>
-      <a class="box" href="https://github.com/PacsArcade/frens.earth/pulls"><small>the agent (Claude)</small>drafts commits + a PR</a><span class="arr">──▶</span>
-      <a class="box" href="https://frens.earth/a/scar"><small>the admiral — you</small>approve at SCARLET</a><span class="arr">──▶</span>
+    <div class="flow n5">
+      <a class="box" href="#s0"><small>you</small>idea</a><span class="arr">▶</span>
+      <a class="box" href="#s0"><small>you</small>tell the agent</a><span class="arr">▶</span>
+      <a class="box" href="https://github.com/PacsArcade/frens.earth/pulls"><small>the agent (Claude)</small>drafts commits + a PR</a><span class="arr">▶</span>
+      <a class="box" href="https://frens.earth/a/scar"><small>the admiral — you</small>approve at SCARLET</a><span class="arr">▶</span>
       <a class="box" href="#s6"><small>the agent</small>deploys — it's live</a>
     </div>
     <ul class="plain">
-      <li><b>the site</b> — <a href="https://frens.earth">frens.earth</a> (what the world sees)</li>
-      <li><b>the repo</b> — <a href="https://github.com/PacsArcade/frens.earth">github.com/PacsArcade/frens.earth</a> (the master copy)</li>
-      <li><b>SCARLET</b> — <a href="https://frens.earth/a/scar">frens.earth/a/scar</a> (your approval desk)</li>
+      <li><b>the site</b> — <a href="https://frens.earth" target="_blank" rel="noopener">frens.earth</a> (what the world sees)</li>
+      <li><b>the repo</b> — <a href="https://github.com/PacsArcade/frens.earth" target="_blank" rel="noopener">github.com/PacsArcade/frens.earth</a> (the master copy)</li>
+      <li><b>SCARLET</b> — <a href="https://frens.earth/a/scar" target="_blank" rel="noopener">frens.earth/a/scar</a> (your approval desk)</li>
       <li><b>the host</b> — Vercel project <span class="sys">adminpacmans-projects / frens-earth</span></li>
     </ul>
+    <p>Sailing a different ship? Wherever this manual says <span class="sys">frens.earth</span>, read your own site's name — every name above comes from your configuration (phase <a href="#s3">03</a>). This manual ships inside the template: part of the <b>brand kit in a box</b> when creator stores like <span class="sys">onecocreation</span> stand up.</p>
     <p>And the classic git flow underneath, each step a box you can click:</p>
-    <div class="flow">
-      <a class="box" href="#s1"><small>01</small>get the ship</a><span class="arr">──▶</span>
-      <a class="box" href="#s2"><small>02</small>first flight</a><span class="arr">──▶</span>
-      <a class="box" href="#s3"><small>03</small>make it yours</a><span class="arr">──▶</span>
-      <a class="box" href="#s4"><small>04</small>go live</a><span class="arr">──▶</span>
-      <a class="box" href="#s5"><small>05</small>the rhythm</a><span class="arr">──▶</span>
-      <a class="box" href="#s6"><small>06</small>hook up approvals</a>
+    <div class="flow n7">
+      <a class="box" href="#s1"><small>01</small>get the ship</a><span class="arr">▶</span>
+      <a class="box" href="#s2"><small>02</small>first flight</a><span class="arr">▶</span>
+      <a class="box" href="#s3"><small>03</small>make it yours</a><span class="arr">▶</span>
+      <a class="box" href="#s4"><small>04</small>go live</a><span class="arr">▶</span>
+      <a class="box" href="#s5"><small>05</small>the rhythm</a><span class="arr">▶</span>
+      <a class="box" href="#s6"><small>06</small>hook up approvals</a><span class="arr">▶</span>
+      <a class="box" href="#s7"><small>07</small>your rules</a>
     </div>
     <ul class="plain">
       <li><b>branch</b> — a safe side copy</li>
@@ -143,14 +159,16 @@
     <div class="head"><span class="num">01</span><h2>Get the ship (clone)</h2></div>
     <div class="term">
       <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;one folder, whole repo</div>
-<pre><span class="p">$</span> git clone https://github.com/PacsArcade/frens.earth my-space
-<span class="p">$</span> cd my-space
+<pre><span class="p">$</span> git clone https://github.com/PacsArcade/frens.earth frens.hip
+<span class="p">$</span> cd frens.hip
 </pre>
     </div>
     <ul class="plain">
       <li>clone = download the repo, once</li>
+      <li>the folder is your <b>frens.hip</b> — <b>H</b>elp <b>I</b>m<b>P</b>rove; your copy of the ship</li>
       <li>needs git installed, nothing else</li>
-      <li>private repo? sign in: <code>gh auth login</code></li>
+      <li>private repo? sign in first: <code>gh auth login</code></li>
+      <li>you should see: a new <code>frens.hip</code> folder full of the ship's files</li>
       <li>pull = refresh later: <code>git pull</code></li>
     </ul>
   </section>
@@ -200,9 +218,12 @@ NEXT_PUBLIC_NIP05_DOMAIN=<span class="s">yourspace.example</span>
 </pre>
     </div>
     <ul class="plain">
-      <li>SEAT_SECRET = any long random string</li>
-      <li>OPERATOR_NPUBS = your npub — opens /a</li>
-      <li>GITHUB_TOKEN later — merges from the panel</li>
+      <li>every <code>vercel</code> command asks questions — the defaults are almost always right</li>
+      <li><code>link</code> creates the project; the name you give it becomes your Vercel project name</li>
+      <li>SEAT_SECRET = any long random string (it signs the login cookies)</li>
+      <li>OPERATOR_NPUBS = your npub — this is what opens /a for you</li>
+      <li>GITHUB_TOKEN comes later, in phase <a href="#s6">06</a> — merges from the panel</li>
+      <li>you should see: a live <code>https://…vercel.app</code> address printed — your ship's first berth</li>
     </ul>
     <div class="call danger"><span class="lab">The two laws of deploys</span><p>① New env vars do NOTHING until you deploy again. ② Merging does NOT deploy — <code>npx vercel deploy --prod</code> is the publish button.</p></div>
   </section>
@@ -218,7 +239,7 @@ NEXT_PUBLIC_NIP05_DOMAIN=<span class="s">yourspace.example</span>
     <ul class="plain">
       <li>proposals arrive as numbered PRs</li>
       <li>read it, merge it, deploy it</li>
-      <li>or approve at <a href="https://frens.earth/a/scar">SCARLET (frens.earth/a/scar)</a> — needs <a href="#s6">phase 06</a> once</li>
+      <li>or approve at <a href="https://frens.earth/a/scar" target="_blank" rel="noopener">SCARLET (frens.earth/a/scar)</a> — needs <a href="#s6">phase 06</a> once</li>
       <li>order rarely matters; overlaps get flagged</li>
     </ul>
     <div class="call check"><span class="lab">The finish line</span><p>A live site whose every change passed through your hands. The merge is the ceremony; the deploy is the broadcast.</p></div>
@@ -226,25 +247,50 @@ NEXT_PUBLIC_NIP05_DOMAIN=<span class="s">yourspace.example</span>
 
   <section id="s6">
     <div class="head"><span class="num">06</span><h2>Hook up approvals at SCARLET (once)</h2></div>
-    <p>So the <span class="sys">MERGE QUEUE</span> at <a href="https://frens.earth/a/scar">frens.earth/a/scar</a> can list and merge proposals, it needs one key from GitHub. Two steps, five minutes, once.</p>
+    <p>So the <span class="sys">MERGE QUEUE</span> at <a href="https://frens.earth/a/scar" target="_blank" rel="noopener">frens.earth/a/scar</a> can list and merge proposals, it needs one key from GitHub. Two steps, five minutes, once.</p>
     <h3>Step A — make the key (on GitHub)</h3>
     <ul class="plain">
-      <li>go to <a href="https://github.com/settings/personal-access-tokens/new">github.com → Settings → Developer settings → Fine-grained tokens → Generate</a></li>
-      <li>name: <code>frens-earth-scar-merges</code> · expiry: 90 days</li>
-      <li><b>Resource owner: PacsArcade</b> (the org, not you)</li>
-      <li>repository access: only <span class="sys">PacsArcade/frens.earth</span></li>
-      <li>permissions: <b>Contents</b> + <b>Pull requests</b> — both read &amp; write, nothing else</li>
-      <li>Generate → copy it now (shown once)</li>
+      <li>go to <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">github.com → Settings → Developer settings → Fine-grained tokens → Generate</a></li>
+      <li>token name: <code>frens-earth-scar-merges</code> — just a label, <b>max 40 characters</b>, paste nothing else in that field</li>
+      <li>expiration: pick <b>90 days</b> from the dropdown (when it expires, repeat this phase)</li>
+      <li><b>Resource owner: PacsArcade</b> (the org, not your personal account)</li>
+      <li>repository access: <b>Only select repositories</b> → just <span class="sys">PacsArcade/frens.earth</span></li>
     </ul>
+    <figure class="shot"><img src="img/scarlet-pat-form.webp" alt="GitHub fine-grained token form: name field, resource owner PacsArcade, expiration dropdown" loading="lazy"><figcaption>the form — short <b>name</b>, owner <b>PacsArcade</b>, expiry set in the <b>dropdown</b>. The red warning is what pasting anything extra into the name field gets you.</figcaption></figure>
+    <ul class="plain">
+      <li>permissions: <b>Contents</b> + <b>Pull requests</b> — both <b>Read and write</b>; Metadata adds itself; nothing else</li>
+      <li><b>Generate token</b> → copy it right away (GitHub shows it exactly once)</li>
+    </ul>
+    <figure class="shot"><img src="img/scarlet-pat-permissions.webp" alt="Repository access limited to PacsArcade/frens.earth; permissions Contents and Pull requests read-and-write; Generate token button" loading="lazy"><figcaption>done right — <b>1 repository</b>, <b>Contents: Read and write</b>, <b>Pull requests: Read and write</b>, Metadata read-only (automatic). Then <b>Generate token</b>.</figcaption></figure>
     <h3>Step B — paste it (on the site — no Vercel needed)</h3>
     <ul class="plain">
-      <li>open <a href="https://frens.earth/a/scar">frens.earth/a/scar</a>, signed in as operator</li>
+      <li>open <a href="https://frens.earth/a/scar" target="_blank" rel="noopener">frens.earth/a/scar</a>, signed in as operator</li>
       <li>the queue shows <b>CONNECT YOUR GITHUB — PASTE, SAVE, APPROVE</b></li>
       <li>paste the key → <b>▶ CONNECT</b> — done, forever</li>
+      <li>SCARLET runs the handshake in front of you — <span class="sys">KEY RECEIVED ▶ REACHING GITHUB ▶ QUEUE ONLINE</span> — and says so plainly when you did great</li>
       <li>the key stores write-only; nobody can read it back, not even you</li>
     </ul>
     <div class="call tip"><span class="lab">The Vercel back door (only if the box is unreachable)</span><p>Vercel project <span class="sys">adminpacmans-projects / frens-earth</span> → Settings → Environment Variables → add <code>GITHUB_TOKEN</code> = the key → then deploy again (law ①: env changes need a deploy).</p></div>
     <div class="call check"><span class="lab">Checkpoint</span><p>SCARLET lists every open proposal with <b>✍ AUTHORIZE &amp; MERGE</b>. Your signature — bound to the exact code — is the whole approval. No more GitHub tabs.</p></div>
+  </section>
+
+  <section id="s7">
+    <div class="head"><span class="num">07</span><h2>Change control — your ship, your rules</h2></div>
+    <p>Everything above is a change-control system wearing ceremony clothes. Name the parts and you can tune them:</p>
+    <ul class="plain">
+      <li><b>the proposal</b> — every change arrives as a PR; nothing edits the master copy directly</li>
+      <li><b>the review</b> — you read what changed (SCARLET shows the summary; the GitHub link shows every line)</li>
+      <li><b>the approval</b> — your merge signature, bound to the exact code it approves</li>
+      <li><b>the record</b> — every authorization lands in the audit log; the repo history is the ledger</li>
+      <li><b>the release</b> — the deploy, kept separate on purpose (law ②: approving ≠ publishing)</li>
+    </ul>
+    <h3>Want a second approver?</h3>
+    <ul class="plain">
+      <li><code>OPERATOR_NPUBS</code> takes a list — add a first officer's npub and they can sign too</li>
+      <li>two-signature merges for high-stakes changes are on the roadmap — the sha-bound signature format already supports counter-signing</li>
+      <li>each <b>frens.hip</b> writes its own rules: solo captains merge alone; crews add officers</li>
+    </ul>
+    <div class="call tip"><span class="lab">HIP — Help ImProve</span><p>Your clone is your <b>frens.hip</b>: the copy of the ship you help improve. Its change rules are yours to set — this manual is only the default configuration.</p></div>
   </section>
 
   <footer>
