@@ -46,4 +46,7 @@ next-env.d.ts
 
 # build artifacts
 *.zip
-*.tar/data/merges.json
+*.tar
+
+# dev-only merge-authorization audit log (like the other data stores)
+/data/merges.json
