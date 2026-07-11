@@ -46,4 +46,4 @@ next-env.d.ts
 
 # build artifacts
 *.zip
-*.tar
+*.tar/data/merges.json
