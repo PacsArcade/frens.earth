@@ -159,15 +159,16 @@
     <div class="head"><span class="num">01</span><h2>Get the ship (clone)</h2></div>
     <div class="term">
       <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;one folder, whole repo</div>
-<pre><span class="p">$</span> git clone https://github.com/PacsArcade/frens.earth frens.hip
+<pre><span class="p">$</span> gh auth login              <span class="c"># once — say yes when it offers to sign in git</span>
+<span class="p">$</span> git clone https://github.com/PacsArcade/frens.earth frens.hip
 <span class="p">$</span> cd frens.hip
 </pre>
     </div>
     <ul class="plain">
+      <li>bring three tools: <b>git</b> (git-scm.com) · <b>Node 20+</b> (nodejs.org — brings npm) · <b>gh</b> (cli.github.com)</li>
+      <li>the repo is private — <code>gh auth login</code> is the door key</li>
       <li>clone = download the repo, once</li>
       <li>the folder is your <b>frens.hip</b> — <b>H</b>elp <b>I</b>m<b>P</b>rove; your copy of the ship</li>
-      <li>needs git installed, nothing else</li>
-      <li>private repo? sign in first: <code>gh auth login</code></li>
       <li>you should see: a new <code>frens.hip</code> folder full of the ship's files</li>
       <li>pull = refresh later: <code>git pull</code></li>
     </ul>
@@ -211,7 +212,7 @@ NEXT_PUBLIC_NIP05_DOMAIN=<span class="s">yourspace.example</span>
       <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;vercel — once to set up, one line forever after</div>
 <pre><span class="p">$</span> npx vercel login
 <span class="p">$</span> npx vercel link          <span class="c"># create the project</span>
-<span class="p">$</span> npx vercel blob create-store my-registry
+<span class="p">$</span> npx vercel blob create-store my-registry --access public --yes
 <span class="p">$</span> npx vercel env add SEAT_SECRET production
 <span class="p">$</span> npx vercel env add OPERATOR_NPUBS production
 <span class="p">$</span> npx vercel deploy --prod  <span class="c"># ← the publish button</span>
@@ -220,6 +221,7 @@ NEXT_PUBLIC_NIP05_DOMAIN=<span class="s">yourspace.example</span>
     <ul class="plain">
       <li>every <code>vercel</code> command asks questions — the defaults are almost always right</li>
       <li><code>link</code> creates the project; the name you give it becomes your Vercel project name</li>
+      <li>the blob store connects to the project — that sets <code>BLOB_READ_WRITE_TOKEN</code>; without it, claims fail</li>
       <li>SEAT_SECRET = any long random string (it signs the login cookies)</li>
       <li>OPERATOR_NPUBS = your npub — this is what opens /a for you</li>
       <li>GITHUB_TOKEN comes later, in phase <a href="#s6">06</a> — merges from the panel</li>
@@ -231,8 +233,8 @@ NEXT_PUBLIC_NIP05_DOMAIN=<span class="s">yourspace.example</span>
   <section id="s5">
     <div class="head"><span class="num">05</span><h2>The rhythm (every change after)</h2></div>
     <div class="term">
-      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;your two commands, forever</div>
-<pre><span class="p">$</span> gh pr merge <span class="s">N</span> --merge      <span class="c"># accept proposal N</span>
+      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;your two commands, forever — run inside frens.hip</div>
+<pre><span class="p">$</span> gh pr merge <span class="s">N</span> --merge      <span class="c"># N = the proposal number, e.g. 17</span>
 <span class="p">$</span> npx vercel deploy --prod   <span class="c"># publish the truth</span>
 </pre>
     </div>
@@ -240,14 +242,15 @@ NEXT_PUBLIC_NIP05_DOMAIN=<span class="s">yourspace.example</span>
       <li>proposals arrive as numbered PRs</li>
       <li>read it, merge it, deploy it</li>
       <li>or approve at <a href="https://frens.earth/a/scar" target="_blank" rel="noopener">SCARLET (frens.earth/a/scar)</a> — needs <a href="#s6">phase 06</a> once</li>
-      <li>order rarely matters; overlaps get flagged</li>
+      <li>sailing with an agent? your merge is the order — the agent runs the deploy</li>
+      <li>if two proposals touch the same lines, GitHub blocks the second until you look</li>
     </ul>
     <div class="call check"><span class="lab">The finish line</span><p>A live site whose every change passed through your hands. The merge is the ceremony; the deploy is the broadcast.</p></div>
   </section>
 
   <section id="s6">
     <div class="head"><span class="num">06</span><h2>Hook up approvals at SCARLET (once)</h2></div>
-    <p>So the <span class="sys">MERGE QUEUE</span> at <a href="https://frens.earth/a/scar" target="_blank" rel="noopener">frens.earth/a/scar</a> can list and merge proposals, it needs one key from GitHub. Two steps, five minutes, once.</p>
+    <p>So the <span class="sys">MERGE QUEUE</span> at <a href="https://frens.earth/a/scar" target="_blank" rel="noopener">frens.earth/a/scar</a> can list and merge proposals, it needs one key from GitHub. Two steps, five minutes, once a quarter.</p>
     <h3>Step A — make the key (on GitHub)</h3>
     <ul class="plain">
       <li>go to <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">github.com → Settings → Developer settings → Fine-grained tokens → Generate</a></li>
@@ -266,8 +269,8 @@ NEXT_PUBLIC_NIP05_DOMAIN=<span class="s">yourspace.example</span>
     <ul class="plain">
       <li>open <a href="https://frens.earth/a/scar" target="_blank" rel="noopener">frens.earth/a/scar</a>, signed in as operator</li>
       <li>the queue shows <b>CONNECT YOUR GITHUB — PASTE, SAVE, APPROVE</b></li>
-      <li>paste the key → <b>▶ CONNECT</b> — done, forever</li>
-      <li>SCARLET runs the handshake in front of you — <span class="sys">KEY RECEIVED ▶ REACHING GITHUB ▶ QUEUE ONLINE</span> — and says so plainly when you did great</li>
+      <li>paste the key → <b>▶ CONNECT</b> — the queue reloads and lists every proposal; that's your proof it worked</li>
+      <li>done until the key expires (90 days) — then repeat this phase</li>
       <li>the key stores write-only; nobody can read it back, not even you</li>
     </ul>
     <div class="call tip"><span class="lab">The Vercel back door (only if the box is unreachable)</span><p>Vercel project <span class="sys">adminpacmans-projects / frens-earth</span> → Settings → Environment Variables → add <code>GITHUB_TOKEN</code> = the key → then deploy again (law ①: env changes need a deploy).</p></div>
