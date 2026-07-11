@@ -12,7 +12,7 @@
 export const BLOCKS_PER_DAY = 144;
 export const BLOCKS_PER_MONTH = 4032; // 28 days · 2 difficulty epochs
 export const BLOCKS_PER_YEAR = 52416; // 13 months · 26 difficulty epochs
-const GENESIS_MS = Date.UTC(2009, 0, 3); // 2009-01-03, block 0
+export const GENESIS_MS = Date.UTC(2009, 0, 3); // 2009-01-03, block 0
 
 export interface BftDate {
   year: number;
