@@ -141,20 +141,31 @@ export function estimateHeight(nowMs = Date.now()): number {
   return Math.max(0, Math.floor((nowMs - GENESIS_MS) / 600_000));
 }
 
-export async function currentBlock(): Promise<number> {
+/** `estimated: true` = the network was unreachable and the height is a
+    genesis-anchored ~10-min/block guess — display it with the honest `~`. */
+export interface BlockInfo {
+  height: number;
+  estimated: boolean;
+}
+
+export async function currentBlockInfo(): Promise<BlockInfo> {
   const now = Date.now();
-  if (_tipCache && now - _tipCache.at < 60_000) return _tipCache.height;
+  if (_tipCache && now - _tipCache.at < 60_000) return { height: _tipCache.height, estimated: false };
   try {
     const res = await fetch("https://mempool.space/api/blocks/tip/height", { cache: "no-store" });
     if (res.ok) {
       const h = parseInt((await res.text()).trim(), 10);
       if (Number.isFinite(h) && h > 0) {
         _tipCache = { height: h, at: now };
-        return h;
+        return { height: h, estimated: false };
       }
     }
   } catch {
     /* offline / blocked → fall through to the estimate */
   }
-  return estimateHeight(now);
+  return { height: estimateHeight(now), estimated: true };
+}
+
+export async function currentBlock(): Promise<number> {
+  return (await currentBlockInfo()).height;
 }

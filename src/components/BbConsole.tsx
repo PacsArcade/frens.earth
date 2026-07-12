@@ -5,7 +5,7 @@ import { nip19 } from "nostr-tools";
 import { PixelAvatar } from "@pacsarcade/arcade-ui";
 import useFrenSession, { applyFrenSession } from "@/hooks/useFrenSession";
 import type { StoredBuddy } from "@/lib/bb/types";
-import { currentBlock } from "@/lib/bb/bft";
+import { currentBlockInfo } from "@/lib/bb/bft";
 import { loadBuddies, upsertBuddy } from "@/lib/bb/store";
 import Hatchery from "@/components/bb/Hatchery";
 import BuddyDevice from "@/components/bb/BuddyDevice";
@@ -24,6 +24,7 @@ export default function BbConsole() {
   const { fren, checked } = useFrenSession();
   const [clientNpub, setClientNpub] = useState<string | null>(null);
   const [block, setBlock] = useState<number | null>(null);
+  const [blockEstimated, setBlockEstimated] = useState(false);
   const [buddies, setBuddies] = useState<StoredBuddy[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [hatching, setHatching] = useState(false);
@@ -31,7 +32,20 @@ export default function BbConsole() {
 
   const npub = fren?.npub ?? clientNpub;
 
-  useEffect(() => { currentBlock().then(setBlock); }, []);
+  /* Live block, refreshed each minute (the BftClock cadence): the buddy's
+     age, the scene's light and the block-break shimmer all ride the tip.
+     `estimated` = offline fallback → every height renders the honest ~. */
+  useEffect(() => {
+    let on = true;
+    const tick = () => currentBlockInfo().then((i) => {
+      if (!on) return;
+      setBlock(i.height);
+      setBlockEstimated(i.estimated);
+    });
+    tick();
+    const id = setInterval(tick, 60_000);
+    return () => { on = false; clearInterval(id); };
+  }, []);
 
   useEffect(() => {
     if (!npub) return;
@@ -197,7 +211,7 @@ export default function BbConsole() {
       )}
 
       {active && !showHatchery ? (
-        <BuddyDevice buddy={active} currentBlock={block} onChange={handleChange} onNew={() => setHatching(true)} />
+        <BuddyDevice buddy={active} currentBlock={block} estimatedBlock={blockEstimated} onChange={handleChange} onNew={() => setHatching(true)} />
       ) : (
         <Hatchery npub={npub} currentBlock={block} onHatched={handleHatched} />
       )}

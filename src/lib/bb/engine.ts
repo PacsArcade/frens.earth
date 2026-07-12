@@ -67,8 +67,9 @@ export function applyCare(action: BuddyCareAction, v: BuddyVitals, stage: BuddyS
     case "sleep":
       return { vitals: { ...v, energy: clamp(v.energy + 35) }, quip: `zzz… ${emoji.sleep}`, reaction: "sleep" };
     case "talk": {
+      // a chat is care too — a small lift so EVERY action moves a stat
       const pool = Math.random() < 0.18 ? EASTER : QUIPS[stage];
-      return { vitals: v, quip: pool[Math.floor(Math.random() * pool.length)], reaction: "talk" };
+      return { vitals: { ...v, happiness: clamp(v.happiness + 5) }, quip: pool[Math.floor(Math.random() * pool.length)], reaction: "talk" };
     }
   }
 }

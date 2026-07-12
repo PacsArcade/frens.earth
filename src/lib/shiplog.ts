@@ -14,6 +14,16 @@ export interface ShipLogEntry {
 
 export const SHIP_LOG: ShipLogEntry[] = [
   {
+    height: 957634,
+    title: "THE BUDDY WAKES UP",
+    bullets: [
+      "/bb action buttons fixed — root cause was TWO CLOCKS: doAction stamped reactions in Date.now() epoch ms while the canvas loop compared them against the requestAnimationFrame timestamp (performance.now() timebase, ~57 years apart), so the sprite sat 'reacting' forever at progress 0 — no animation, idle dance suppressed, buttons read dead. One clock now; talk gained a sway + a small happiness lift so every action moves a stat, shows on the sprite, and persists",
+      "The moon stops lying — the device footer hardcoded a 🌙 crescent glyph beside the real phase NAME, so mid-month it read '🌙 Full'. Now glyph + name + BFT day render from one source of truth (D15 🌕 Full today); the helper mapping verified honest: day 1 = 🌑 New, mid-month = 🌕 Full",
+      "The garden behind the buddy is now BFT-procedural — everything seeded from the chain: the beat (0–143) sets dawn/day/dusk/night light, the moon phase draws the moon and brightens the night, the 13 months turn a seasonal palette wheel, the year-animal hangs as a faint constellation, the hills reseed on every block, and a soft shimmer sweeps the scene when the block breaks (tip polled each minute, the BftClock cadence)",
+      "Scene cached per block into an offscreen canvas (the /bb perf lesson, one level up) — the rAF loop only blits; honors prefers-reduced-motion; heights render the honest ~ when the tip is an offline estimate; night-garden palette only, no gold — no money on this screen",
+    ],
+  },
+  {
     height: 957627,
     title: "THE FLEET WEARS YOUR NAME",
     bullets: [
