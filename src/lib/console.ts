@@ -30,7 +30,8 @@ export const CONSOLE_ROOMS: ConsoleRoom[] = [
     href: "/a/scar",
     label: "SCAR",
     blurb: "the duty roster — tickets, merges, the ship's log",
-    accent: "border-coin/50 text-coin",
+    // cyan (verify/sign — SCAR is where signatures authorize), not coin: gold = money only (Pac's house law)
+    accent: "border-cyan/50 text-cyan",
   },
   {
     key: "decisions",

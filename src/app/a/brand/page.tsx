@@ -25,7 +25,7 @@ export default async function AdminBrandPage() {
     return <OperatorGate configured={operatorsConfigured()} />;
   }
   return (
-    <div className="min-h-screen bg-void">
+    <div className="min-h-screen console-ground">
       <AdminNav current="brand" />
       <BrandTester />
     </div>

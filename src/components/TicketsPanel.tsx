@@ -32,14 +32,19 @@ const KINDS: { v: TicketKind; label: string }[] = [
   { v: "spark", label: "SPARK" },
 ];
 
+/** State encoded in form as well as label: OPEN needs action (neon outline),
+    CLAIMED is being worked (cyan, filled), RESOLVED recedes (muted, checked).
+    No coin here — the semantic law keeps gold for money. */
 function StatusPill({ s }: { s: TicketStatus }) {
   const map = {
-    open: "border-coin text-coin",
-    claimed: "border-cyan text-cyan glow-cyan",
-    resolved: "border-neon text-neon glow-neon",
+    open: { accent: "neon", cls: "pill", mark: "" },
+    claimed: { accent: "cyan", cls: "pill pill--solid", mark: "" },
+    resolved: { accent: "neon", cls: "pill pill--muted", mark: "✓ " },
   } as const;
+  const { accent, cls, mark } = map[s];
   return (
-    <span className={`inline-block border-2 px-2 py-0.5 font-pixel text-[9px] uppercase ${map[s]}`}>
+    <span className={cls} data-accent={accent}>
+      {mark}
       {s}
     </span>
   );
@@ -119,8 +124,8 @@ export default function TicketsPanel({ mode }: { mode: "support" | "crew" }) {
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-10">
-      <p className="mb-2 font-pixel text-[10px] uppercase tracking-widest text-white/40">
-        {isCrew ? "SCAR ▸ FRENS.EARTH" : "FRENS.EARTH ▸ SUPPORT"}
+      <p className="lcars-eyebrow mb-3" data-accent="cyan">
+        {isCrew ? "SCAR · FRENS.EARTH" : "FRENS.EARTH · SUPPORT"}
       </p>
       <h1 className="mb-3 font-arcade text-4xl text-cyan glow-cyan">
         {isCrew ? "DUTY ROSTER" : "RAISE A TICKET"}
@@ -134,8 +139,8 @@ export default function TicketsPanel({ mode }: { mode: "support" | "crew" }) {
       {err && <p className="mb-4 font-pixel text-[10px] uppercase text-ghost">{err}</p>}
 
       {!isCrew && authed === false && (
-        <div className="border-2 border-coin/60 bg-coin/5 p-4 font-body text-sm text-white/80">
-          <p className="mb-2 font-pixel text-[10px] uppercase text-coin">SIGN IN FIRST</p>
+        <div className="console-card p-4 font-body text-sm text-white/80" data-accent="cyan">
+          <p className="mb-2 font-pixel text-[10px] uppercase text-cyan">SIGN IN FIRST</p>
           <p>
             Tickets ride your <span className="text-pink">@frens</span> tag. Sign in with your key
             (or <a href="/" className="text-cyan hover:glow-cyan underline">claim a free tag</a>)
@@ -145,15 +150,15 @@ export default function TicketsPanel({ mode }: { mode: "support" | "crew" }) {
       )}
 
       {!isCrew && authed && (
-        <div className="mb-10 space-y-4 border-2 border-edge bg-panel p-5">
+        <div className="console-card mb-10 space-y-4 p-5">
           <div className="flex flex-wrap gap-2">
             {KINDS.map((k) => (
               <button
                 key={k.v}
                 onClick={() => setKind(k.v)}
-                className={`border-2 px-3 py-1.5 font-pixel text-[9px] uppercase ${
-                  kind === k.v ? "border-cyan text-cyan" : "border-edge text-white/40 hover:text-white/70"
-                }`}
+                data-accent="cyan"
+                className={`btn-pill ${kind === k.v ? "btn-pill--solid" : "btn-pill--muted"}`}
+                aria-pressed={kind === k.v}
               >
                 {k.label}
               </button>
@@ -165,7 +170,7 @@ export default function TicketsPanel({ mode }: { mode: "support" | "crew" }) {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="one line — what's up?"
-              className="mt-1 w-full border-2 border-edge bg-void px-3 py-2 font-body text-sm text-cyan placeholder:text-white/25 focus:border-cyan focus:outline-none"
+              className="mt-1 w-full rounded-lg border-2 border-edge bg-void px-3 py-2 font-body text-sm text-cyan placeholder:text-white/25 focus:border-cyan focus:outline-none"
             />
           </label>
           <label className="block">
@@ -175,13 +180,14 @@ export default function TicketsPanel({ mode }: { mode: "support" | "crew" }) {
               onChange={(e) => setDetail(e.target.value)}
               rows={4}
               placeholder="what happened, what you expected, anything that helps"
-              className="mt-1 w-full border-2 border-edge bg-void px-3 py-2 font-body text-sm text-white/80 placeholder:text-white/25 focus:border-cyan focus:outline-none"
+              className="mt-1 w-full rounded-lg border-2 border-edge bg-void px-3 py-2 font-body text-sm text-white/80 placeholder:text-white/25 focus:border-cyan focus:outline-none"
             />
           </label>
           <button
             onClick={raise}
             disabled={raising || title.trim().length < 3}
-            className="button block w-full text-center disabled:opacity-50"
+            data-accent="neon"
+            className="btn-pill btn-pill--solid w-full"
           >
             {raising ? "SENDING…" : "▶ RAISE IT"}
           </button>
@@ -200,10 +206,10 @@ export default function TicketsPanel({ mode }: { mode: "support" | "crew" }) {
       ) : (
         <div className="space-y-2">
           {tickets.map((t) => (
-            <div key={t.id} className="border-2 border-edge bg-panel p-4">
+            <div key={t.id} className="console-card p-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-3">
-                  <span className="font-mono text-xs text-white/40">{t.id}</span>
+                  <span className="font-mono text-xs tabular-nums text-white/40">{t.id}</span>
                   <StatusPill s={t.status} />
                 </div>
                 {isCrew && <span className="font-mono text-[11px] text-pink">{t.raisedBy}</span>}
@@ -213,26 +219,17 @@ export default function TicketsPanel({ mode }: { mode: "support" | "crew" }) {
               {isCrew && (
                 <div className="mt-3 flex flex-wrap gap-2">
                   {t.status !== "claimed" && t.status !== "resolved" && (
-                    <button
-                      onClick={() => act(t.id, "claim")}
-                      className="border-2 border-cyan px-3 py-1 font-pixel text-[9px] uppercase text-cyan hover:glow-cyan"
-                    >
+                    <button onClick={() => act(t.id, "claim")} className="btn-pill" data-accent="cyan">
                       CLAIM
                     </button>
                   )}
                   {t.status !== "resolved" && (
-                    <button
-                      onClick={() => act(t.id, "resolve")}
-                      className="border-2 border-neon px-3 py-1 font-pixel text-[9px] uppercase text-neon hover:glow-neon"
-                    >
+                    <button onClick={() => act(t.id, "resolve")} className="btn-pill" data-accent="neon">
                       RESOLVE
                     </button>
                   )}
                   {t.status === "resolved" && (
-                    <button
-                      onClick={() => act(t.id, "reopen")}
-                      className="border-2 border-edge px-3 py-1 font-pixel text-[9px] uppercase text-white/50 hover:text-white/80"
-                    >
+                    <button onClick={() => act(t.id, "reopen")} className="btn-pill btn-pill--muted">
                       REOPEN
                     </button>
                   )}

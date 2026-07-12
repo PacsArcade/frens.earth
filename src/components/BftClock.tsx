@@ -66,11 +66,12 @@ export default function BftClock() {
   const pad2 = (n: number) => String(n).padStart(2, "0");
 
   return (
-    /* docked where the old block ticker lived — top corner, under the login
-       menu; persistent on every page. The btc-orange ring is the mempool
-       filling toward the next block; it pulses when the block breaks. */
+    /* docked bottom-right so the login dropdown never covers it (Pac flagged the
+       top-corner clock hiding behind the open menu, 0018.04.16 a₿); persistent on
+       every page. The btc-orange ring is the mempool filling toward the next block;
+       it pulses when the block breaks. */
     <div
-      className={`fixed right-3 top-[88px] z-40 select-none rounded-lg sm:top-[104px] ${
+      className={`fixed bottom-3 right-3 z-40 select-none rounded-lg ${
         breaking ? "block-break" : ""
       }`}
       style={{

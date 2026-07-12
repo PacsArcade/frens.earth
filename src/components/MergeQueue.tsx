@@ -303,17 +303,17 @@ export default function MergeQueue() {
 
   return (
     <div className="mx-auto mb-10 max-w-3xl px-6">
-      <p className="mb-2 font-pixel text-[10px] uppercase tracking-widest text-white/40">
-        SCAR ▸ MERGE QUEUE — YOUR SIGNATURE IS THE AUTHORIZATION
+      <p className="lcars-eyebrow mb-3" data-accent="cyan">
+        MERGE QUEUE · YOUR SIGNATURE IS THE AUTHORIZATION
       </p>
       {expiry && daysLeft !== null && (
-        <p className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[10px] uppercase">
+        <p className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[10px] tabular-nums uppercase">
           <span className={daysLeft <= 14 ? "text-ghost" : "text-white/40"}>
             key expires in ~{daysLeft} days · ▣ ~{(daysLeft * 144).toLocaleString()} blocks
           </span>
           <button
             onClick={downloadRenewalIcs}
-            className="border border-edge px-2 py-0.5 text-cyan hover:border-cyan"
+            className="rounded-full border border-edge px-3 py-1 text-cyan hover:border-cyan"
           >
             ⤓ calendar (.ics)
           </button>
@@ -329,7 +329,7 @@ export default function MergeQueue() {
       ) : setup ? (
         <Notice id="github-reach">{setup}</Notice>
       ) : prs.length === 0 ? (
-        <p className="border-2 border-edge bg-panel p-4 font-body text-sm text-white/60">
+        <p className="console-card p-4 font-body text-sm text-white/60">
           Nothing waiting to merge — the board is clean. 🌱
         </p>
       ) : (
@@ -337,25 +337,27 @@ export default function MergeQueue() {
           {prs.map((pr) => {
             const a = authFor(pr);
             return (
-              <div key={pr.number} className="border-2 border-edge bg-panel p-4">
-                <div className="flex flex-wrap items-center justify-between gap-2">
+              <div key={pr.number} className="console-card p-4" data-accent="cyan">
+                <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="font-mono text-xs text-white/40">
+                    <p className="font-mono text-xs tabular-nums text-white/40">
                       #{pr.number} · {pr.branch} · {pr.headSha.slice(0, 7)}
-                      {pr.draft && <span className="ml-2 text-coin">DRAFT</span>}
+                      {pr.draft && <span className="pill pill--muted ml-2">DRAFT</span>}
                     </p>
                     <p className="mt-1 font-body text-sm text-white/90">{pr.title}</p>
                   </div>
-                  <div className="flex flex-none items-center gap-2">
+                  <div className="flex flex-wrap items-center justify-end gap-2">
                     <button
                       onClick={() => toggleChanges(pr.number)}
-                      className="border-2 border-edge px-3 py-1.5 font-pixel text-[9px] uppercase text-cyan hover:border-cyan"
+                      className="btn-pill"
+                      data-accent="cyan"
                     >
                       {changes[pr.number] ? "▾" : "▸"} CHANGES
                     </button>
                     <button
                       onClick={() => toggleNote(pr.number)}
-                      className="border-2 border-edge px-3 py-1.5 font-pixel text-[9px] uppercase text-pink hover:border-pink"
+                      className="btn-pill"
+                      data-accent="pink"
                     >
                       {pr.number in drafts ? "▾" : "✎"} NOTE
                     </button>
@@ -363,14 +365,15 @@ export default function MergeQueue() {
                       href={pr.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="border-2 border-edge px-3 py-1.5 font-pixel text-[9px] uppercase text-white/60 hover:text-white/90"
+                      className="btn-pill btn-pill--muted"
                     >
                       GITHUB ▸
                     </a>
                     <button
                       onClick={() => authorize(pr)}
                       disabled={busyPr === pr.number}
-                      className="border-2 border-coin px-3 py-1.5 font-pixel text-[9px] uppercase text-coin hover:glow-coin disabled:opacity-50"
+                      className="btn-pill btn-pill--solid"
+                      data-accent="cyan"
                     >
                       {busyPr === pr.number
                         ? "SIGNING…"
@@ -424,7 +427,7 @@ export default function MergeQueue() {
                       rows={3}
                       disabled={noteBusy === pr.number}
                       placeholder="leave a note on this change — your key signs the exact words"
-                      className="w-full border-2 border-edge bg-void px-3 py-2 font-mono text-xs text-white/85 placeholder:text-white/25 focus:border-pink focus:outline-none disabled:opacity-50"
+                      className="w-full rounded-lg border-2 border-edge bg-void px-3 py-2 font-mono text-xs text-white/85 placeholder:text-white/25 focus:border-pink focus:outline-none disabled:opacity-50"
                     />
                     <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
                       <p className="font-mono text-[10px] text-white/40">
@@ -435,7 +438,8 @@ export default function MergeQueue() {
                       <button
                         onClick={() => signAndPostNote(pr.number)}
                         disabled={noteBusy === pr.number}
-                        className="border-2 border-pink px-3 py-1.5 font-pixel text-[9px] uppercase text-pink hover:bg-pink/10 disabled:opacity-50"
+                        className="btn-pill"
+                        data-accent="pink"
                       >
                         {noteBusy === pr.number ? "SIGNING…" : "✍ SIGN & POST"}
                       </button>
@@ -464,41 +468,44 @@ export default function MergeQueue() {
       )}
       {inFlight.length > 0 && (
         <div className="mt-8">
-          <p className="mb-2 font-pixel text-[10px] uppercase tracking-widest text-white/40">
-            SCAR ▸ IN FLIGHT — SIGNED; YOURS UNTIL YOU CLOSE IT OUT
+          <p className="lcars-eyebrow mb-3" data-accent="neon">
+            IN FLIGHT · SIGNED; YOURS UNTIL YOU CLOSE IT OUT
           </p>
           <div className="space-y-2">
             {inFlight.map((x) => {
               const live = !!builtAt && x.at < builtAt;
               return (
-                <div key={x.pr} className="border-2 border-edge bg-panel p-4">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
+                <div key={x.pr} className="console-card p-4" data-accent="neon">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="font-mono text-xs text-white/40">
+                      <p className="font-mono text-xs tabular-nums text-white/40">
                         #{x.pr} · signed by {x.by.slice(0, 8)}…
                       </p>
-                      <p className={`mt-1 font-pixel text-[10px] uppercase ${live ? "text-neon" : "text-coin"}`}>
+                      <p className={`mt-1 font-pixel text-[10px] uppercase ${live ? "text-neon" : "text-cyan"}`}>
                         {live
                           ? "◉ DEPLOYED — TEST NOW, ADMIRAL"
                           : "◌ MERGED — DEPLOY PENDING (Number One is shipping)"}
                       </p>
                     </div>
-                    <div className="flex flex-none items-center gap-2">
+                    <div className="flex flex-wrap items-center justify-end gap-2">
                       <button
                         onClick={() => toggleBrief(x.pr)}
-                        className="border-2 border-edge px-3 py-1.5 font-pixel text-[9px] uppercase text-cyan hover:border-cyan"
+                        className="btn-pill"
+                        data-accent="cyan"
                       >
                         {briefs[x.pr] ? "▾" : "▸"} WHAT TO TEST
                       </button>
                       <button
                         onClick={() => toggleNote(x.pr)}
-                        className="border-2 border-edge px-3 py-1.5 font-pixel text-[9px] uppercase text-heart hover:border-heart"
+                        className="btn-pill"
+                        data-accent="pink"
                       >
                         ✎ FEEDBACK
                       </button>
                       <a
                         href={`/support?pr=${x.pr}`}
-                        className="border-2 border-edge px-3 py-1.5 font-pixel text-[9px] uppercase text-ghost hover:border-ghost"
+                        className="btn-pill"
+                        data-accent="ghost"
                       >
                         🐛 SUBMIT A BUG
                       </a>
@@ -506,7 +513,8 @@ export default function MergeQueue() {
                         onClick={() => closeOut(x.pr)}
                         disabled={!live}
                         title={live ? "verified — end the watch" : "test it live first, then close"}
-                        className="border-2 border-neon px-3 py-1.5 font-pixel text-[9px] uppercase text-neon disabled:opacity-40"
+                        className="btn-pill btn-pill--solid"
+                        data-accent="neon"
                       >
                         ✓ CLOSE OUT
                       </button>
@@ -536,12 +544,13 @@ export default function MergeQueue() {
                         onChange={(e) => setDrafts((p) => ({ ...p, [x.pr]: e.target.value }))}
                         rows={3}
                         placeholder="what you saw, what you'd change — your key signs these exact words"
-                        className="w-full border-2 border-edge bg-void px-3 py-2 font-mono text-xs text-white/85 placeholder:text-white/25 focus:border-heart focus:outline-none"
+                        className="w-full rounded-lg border-2 border-edge bg-void px-3 py-2 font-mono text-xs text-white/85 placeholder:text-white/25 focus:border-pink focus:outline-none"
                       />
                       <button
                         onClick={() => signAndPostNote(x.pr)}
                         disabled={noteBusy === x.pr}
-                        className="mt-2 border-2 border-heart px-3 py-1.5 font-pixel text-[9px] uppercase text-heart disabled:opacity-50"
+                        data-accent="pink"
+                        className="btn-pill mt-2"
                       >
                         {noteBusy === x.pr ? "SIGNING…" : "✍ SIGN & POST FEEDBACK"}
                       </button>
@@ -651,8 +660,8 @@ function ConnectGithub({ onConnected }: { onConnected: () => void }) {
   const stageMark: Record<StageState, string> = { wait: "", run: "▸ ", done: "✓ ", fail: "✗ " };
 
   return (
-    <div className="border-2 border-coin/60 bg-coin/5 p-4">
-      <p className="mb-2 font-pixel text-[10px] uppercase text-coin">CONNECT YOUR GITHUB — PASTE, SAVE, APPROVE</p>
+    <div className="console-card p-4" data-accent="cyan">
+      <p className="mb-2 font-pixel text-[10px] uppercase text-cyan">CONNECT YOUR GITHUB — PASTE, SAVE, APPROVE</p>
       {!stages && (
         <p className="mb-3 font-body text-xs text-white/70">
           The repo is private, so the queue needs a key to see it. GitHub → Settings → Developer
@@ -681,7 +690,7 @@ function ConnectGithub({ onConnected }: { onConnected: () => void }) {
       )}
 
       {great && (
-        <div className="mb-3 border-2 border-neon bg-neon/10 p-4">
+        <div className="mb-3 rounded-xl border-2 border-neon bg-neon/10 p-4">
           <p className="font-pixel text-[11px] uppercase tracking-widest text-neon">
             ✓ YOU DID GREAT, CAPTAIN.
           </p>
@@ -703,12 +712,13 @@ function ConnectGithub({ onConnected }: { onConnected: () => void }) {
             type="password"
             placeholder="github_pat_…"
             disabled={busy}
-            className="min-w-0 flex-1 border-2 border-edge bg-void px-3 py-2 font-mono text-xs text-cyan placeholder:text-white/25 focus:border-cyan focus:outline-none disabled:opacity-50"
+            className="min-w-0 flex-1 rounded-lg border-2 border-edge bg-void px-3 py-2 font-mono text-xs text-cyan placeholder:text-white/25 focus:border-cyan focus:outline-none disabled:opacity-50"
           />
           <button
             onClick={connect}
             disabled={busy}
-            className="min-h-11 border-2 border-coin px-4 font-pixel text-[9px] uppercase text-coin hover:glow-coin disabled:opacity-50"
+            data-accent="cyan"
+            className="btn-pill btn-pill--solid px-4"
           >
             {busy ? "SHAKING HANDS…" : "▶ CONNECT"}
           </button>
@@ -737,7 +747,7 @@ function FragmentedStage({
       {index > 0 && (
         <span className="hidden place-self-center font-mono text-[11px] text-white/30 sm:grid">▶</span>
       )}
-      <div className={`flex flex-col gap-1 border-2 bg-panel p-2.5 ${style}`}>
+      <div className={`flex flex-col gap-1 rounded-lg border-2 bg-panel p-2.5 ${style}`}>
         <span className="font-mono text-[8px] uppercase tracking-widest opacity-60">
           {String(index + 1).padStart(2, "0")}
         </span>

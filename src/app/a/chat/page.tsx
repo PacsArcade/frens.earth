@@ -24,7 +24,7 @@ export default async function AdminChatPage() {
     return <OperatorGate configured={operatorsConfigured()} />;
   }
   return (
-    <main className="min-h-screen bg-void">
+    <main className="min-h-screen console-ground">
       <AdminNav current="chat" />
       <ChatPanel />
     </main>
