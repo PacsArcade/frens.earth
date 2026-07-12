@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- ═══════════════════════════════════════════════════════════════════════
+     RTFM ARTICLE TEMPLATE
+     Copy this file to  NNN-slug.html  (e.g. 002-your-topic.html), then:
+       1. set the <title>            → "NNN · Your Title — RTFM"
+       2. set the eyebrow            → "RTFM · NNN · one-line what-it-is"
+       3. write the <h1> + subtitle
+       4. fill the sections; use .term for commands, .call.* for callouts
+       5. KEEP the magic block at the bottom (that's the whole point)
+     House style = the frens.earth night-garden, terminal treatment. Both
+     light + dark themes are handled by the tokens; don't hardcode colors.
+     ═══════════════════════════════════════════════════════════════════════ -->
+<title>004 · Wear Your Own Name — RTFM</title>
+<style>
+  :root {
+    --void:#0d1210; --panel:#151d18; --edge:#2f4033;
+    --ink:#e8ede9; --muted:#839388;
+    --sprout:#5ef78a; --teal:#53e0d4; --gold:#f7c948; --ghost:#ff6b6b; --heart:#b795ff;
+    --mono: ui-monospace,"Cascadia Code","JetBrains Mono","SFMono-Regular",Menlo,Consolas,monospace;
+    --sans: ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --maxw:900px;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --void:#f3f6f1; --panel:#fff; --edge:#d6ded3; --ink:#17211b; --muted:#5a6b60;
+      --sprout:#12924a; --teal:#0e8b82; --gold:#a97c07; --ghost:#c23a3a; --heart:#6f4dc0;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--void); color:var(--ink); font-family:var(--sans); font-size:16px; line-height:1.65; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:var(--maxw); margin:0 auto; padding:0 20px 96px; }
+  a { color:var(--teal); text-decoration:none; border-bottom:1px solid transparent; }
+  a:hover { border-bottom-color:currentColor; }
+  a:focus-visible { outline:2px solid var(--teal); outline-offset:2px; }
+  code,.mono { font-family:var(--mono); }
+
+  header.hero { max-width:var(--maxw); margin:0 auto; padding:64px 20px 36px; }
+  .eyebrow { font-family:var(--mono); font-size:12px; letter-spacing:.22em; text-transform:uppercase; color:var(--sprout); display:flex; align-items:center; gap:10px; margin-bottom:20px; }
+  .eyebrow::before { content:""; width:22px; height:1px; background:var(--sprout); }
+  h1.title { font-family:var(--mono); font-weight:700; font-size:clamp(2rem,6vw,3.2rem); line-height:1.04; letter-spacing:-.01em; margin:0; text-wrap:balance; }
+  h1.title .glow { color:var(--sprout); text-shadow:0 0 24px color-mix(in srgb,var(--sprout) 45%,transparent); }
+  .subtitle { color:var(--muted); font-size:1.05rem; max-width:62ch; margin:14px 0 0; }
+  .mission { margin-top:22px; padding:14px 18px; border-left:3px solid var(--heart); background:color-mix(in srgb,var(--heart) 9%,transparent); font-size:.95rem; border-radius:0 6px 6px 0; }
+  .mission b { color:var(--heart); }
+
+  section { margin-top:52px; scroll-margin-top:20px; position:relative; }
+  /* the proper git name, twice: a chip in the head row for every reader,
+     and a vertical rail on wide screens — visual reinforcement, all styles */
+  .gitv { position:absolute; top:2px; left:-46px; writing-mode:vertical-rl; transform:rotate(180deg); font-family:var(--mono); font-size:10px; letter-spacing:.3em; text-transform:uppercase; color:var(--muted); opacity:.75; }
+  @media (max-width:1040px) { .gitv { display:none; } }
+  .head { display:flex; align-items:baseline; gap:14px; border-bottom:1px solid var(--edge); padding-bottom:12px; margin-bottom:20px; }
+  .head .git { margin-left:auto; font-family:var(--mono); font-size:11px; color:var(--teal); border:1px solid var(--edge); border-radius:5px; padding:2px 8px; white-space:nowrap; }
+  .head .num { font-family:var(--mono); font-size:13px; color:var(--void); background:var(--sprout); padding:3px 9px; border-radius:5px; font-weight:700; }
+  h2 { font-family:var(--mono); font-size:clamp(1.35rem,3.4vw,1.85rem); margin:0; letter-spacing:-.01em; text-wrap:balance; }
+  h3 { font-family:var(--mono); font-size:1.02rem; margin:28px 0 10px; color:var(--teal); }
+  p, ul { max-width:68ch; }
+  ul.plain { padding-left:20px; }
+  ul.plain li { margin:5px 0; }
+  strong { color:var(--ink); }
+
+  .term { margin:14px 0; border:1px solid var(--edge); border-radius:8px; overflow:hidden; background:color-mix(in srgb,var(--panel) 82%,var(--void)); }
+  .term .bar { display:flex; align-items:center; gap:8px; padding:7px 12px; border-bottom:1px solid var(--edge); font-family:var(--mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); background:var(--panel); }
+  .term .bar .dot { width:9px; height:9px; border-radius:50%; background:var(--edge); }
+  .term .bar .dot.g { background:var(--sprout); }
+  .term pre { margin:0; padding:14px 16px; overflow-x:auto; font-family:var(--mono); font-size:13px; line-height:1.7; }
+  .term pre .c { color:var(--muted); } .term pre .p { color:var(--sprout); } .term pre .s { color:var(--gold); }
+
+  .call { margin:18px 0; padding:14px 16px 14px 18px; border-radius:8px; border:1px solid var(--edge); border-left-width:3px; background:var(--panel); }
+  .call .lab { font-family:var(--mono); font-size:11px; letter-spacing:.14em; text-transform:uppercase; font-weight:700; margin-bottom:6px; display:block; }
+  .call p { margin:0; max-width:none; } /* text inside a box uses the box's room */
+  .call.danger { border-left-color:var(--ghost); background:color-mix(in srgb,var(--ghost) 8%,var(--panel)); } .call.danger .lab { color:var(--ghost); }
+  .call.check  { border-left-color:var(--sprout); background:color-mix(in srgb,var(--sprout) 8%,var(--panel)); } .call.check .lab { color:var(--sprout); }
+  .call.tip    { border-left-color:var(--teal); } .call.tip .lab { color:var(--teal); }
+
+  footer { max-width:var(--maxw); margin:56px auto 0; padding:24px 20px 0; border-top:1px solid var(--edge); color:var(--muted); font-family:var(--mono); font-size:12px; }
+  footer b { color:var(--heart); }
+  .kbd { font-family:var(--mono); font-size:.82em; border:1px solid var(--edge); border-bottom-width:2px; border-radius:4px; padding:1px 6px; color:var(--ink); }
+
+  /* the magic — keep this. RTFM rewards the readers. */
+  #rtfm-magic { position:fixed; inset:0; display:grid; place-items:center; padding:24px; background:rgba(5,8,6,.82); z-index:9999; }
+  #rtfm-magic[hidden] { display:none; }
+  #rtfm-magic .card { max-width:440px; width:100%; border:2px solid var(--sprout); border-radius:12px; background:var(--panel); padding:28px; text-align:center; box-shadow:0 0 44px color-mix(in srgb,var(--sprout) 34%,transparent); }
+  #rtfm-magic .eye { font-family:var(--mono); font-size:11px; letter-spacing:.2em; text-transform:uppercase; color:var(--sprout); }
+  #rtfm-magic h2 { font-family:var(--mono); font-size:1.6rem; margin:.35em 0 .5em; }
+  #rtfm-magic .secret { font-family:var(--mono); margin-top:16px; border:1px dashed var(--edge); border-radius:8px; padding:10px 12px; }
+  #rtfm-magic .secret b { color:var(--heart); }
+  #rtfm-magic .foot { color:var(--muted); font-size:.85rem; margin-top:14px; }
+
+  /* ── THE FLOW-BOX STANDARD (house template — see GLYPH refs) ──────────
+     · boxes live on a GRID and are always EQUAL width — never content-sized
+     · the chip (number/actor) sits top-left; the label stacks below it
+     · arrows get their own fixed 16px columns; narrow screens go vertical
+     · n5/n7 = how many boxes the row carries                              */
+  .flow { display:grid; align-items:stretch; gap:8px; margin:16px 0; }
+  .flow.n5 { grid-template-columns:1fr 16px 1fr 16px 1fr 16px 1fr 16px 1fr; }
+  .flow.n7 { grid-template-columns:1fr 16px 1fr 16px 1fr 16px 1fr 16px 1fr 16px 1fr 16px 1fr; }
+  .flow.n8 { grid-template-columns:1fr 16px 1fr 16px 1fr 16px 1fr 16px 1fr 16px 1fr 16px 1fr 16px 1fr; }
+  .flow a.box { display:flex; flex-direction:column; gap:7px; border:2px solid var(--edge); border-radius:8px; background:var(--panel); padding:10px 12px 12px; font-family:var(--mono); font-size:12.5px; line-height:1.4; color:var(--sprout); text-decoration:none; }
+  .flow a.box:hover { border-color:var(--sprout); }
+  .flow a.box small { display:block; color:var(--muted); font-size:9.5px; text-transform:uppercase; letter-spacing:.1em; }
+  .flow .arr { align-self:center; justify-self:center; color:var(--muted); font-family:var(--mono); font-size:11px; }
+  @media (max-width:760px) {
+    .flow.n5, .flow.n7 { grid-template-columns:1fr; }
+    .flow .arr { transform:rotate(90deg); }
+  }
+  .sys { font-family:var(--mono); font-size:.9em; color:var(--teal); }
+  .shot { margin:16px 0; border:1px solid var(--edge); border-radius:8px; overflow:hidden; background:var(--panel); }
+  .shot img { display:block; width:100%; height:auto; }
+  .shot figcaption { padding:8px 12px; border-top:1px solid var(--edge); font-family:var(--mono); font-size:11px; color:var(--muted); }
+  .shot figcaption b { color:var(--sprout); }
+
+  /* ── the masking table (added for 004's fleet roster; tokens only) ──── */
+  .maskwrap { margin:16px 0; border:1px solid var(--edge); border-radius:8px; overflow-x:auto; background:var(--panel); }
+  table.mask { border-collapse:collapse; width:100%; min-width:760px; font-size:.88rem; }
+  table.mask th { font-family:var(--mono); font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); text-align:left; padding:10px 12px; border-bottom:1px solid var(--edge); background:color-mix(in srgb,var(--panel) 82%,var(--void)); }
+  table.mask td { padding:10px 12px; border-bottom:1px solid var(--edge); vertical-align:top; }
+  table.mask tr:last-child td { border-bottom:none; }
+  table.mask td:first-child { font-family:var(--mono); color:var(--sprout); white-space:nowrap; }
+  table.mask .fx { font-family:var(--mono); font-size:11px; white-space:nowrap; color:var(--teal); }
+  table.mask .fx.fork { color:var(--ghost); }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="eyebrow">RTFM · 004 · mask every door behind your brand</div>
+  <h1 class="title">Wear your<br><span class="glow">own name.</span></h1>
+  <p class="subtitle">For a captain whose doors — chat, classrooms, treasury, the lot — should fly the house flag. What's a DNS record, what's a config file, and what honestly needs a fork.</p>
+  <div class="mission"><b>The admiral's order (0018.04.15 a₿): branding is everything.</b> The protocols stay open — nostr, Matrix, Bitcoin. But every door a fren walks through wears YOUR name, not the vendor's. This manual is the masking kit.</div>
+</header>
+
+<div class="wrap">
+
+  <section id="s0">
+    <span class="gitv">doors &amp; floors</span>
+    <div class="head"><span class="num">CEREMONY</span><h2>Doors and floors — the one idea</h2><span class="git">doors &amp; floors</span></div>
+    <p>A <b>floor</b> is where the thing actually happens — the chat relay, the homeserver, the game engine. A <b>door</b> is the address a fren types. The whole art of wearing your own name is: <b>you always own the door, even when someone else built the floor.</b></p>
+    <div class="flow n5">
+      <a class="box" href="#s0"><small>you</small>your brand</a><span class="arr">▶</span>
+      <a class="box" href="#s1"><small>dns</small>the door</a><span class="arr">▶</span>
+      <a class="box" href="#s1"><small>the app</small>the gate</a><span class="arr">▶</span>
+      <a class="box" href="#s2"><small>a server</small>the floor</a><span class="arr">▶</span>
+      <a class="box" href="#s4"><small>everything</small>the fleet</a>
+    </div>
+    <ul class="plain">
+      <li><b>door</b> — the hostname frens see: <span class="sys">chat.frens.earth</span></li>
+      <li><b>gate</b> — the check that runs before the door opens (who's knocking?)</li>
+      <li><b>floor</b> — the running service behind it (a relay, a homeserver, a node)</li>
+      <li><b>station</b> — one room on a chat floor (orbee's word for a NIP-29 group)</li>
+      <li><b>mask</b> — putting your name on a door whose floor you didn't write</li>
+    </ul>
+    <p>Worked example throughout: <b>orbee</b> — <a href="https://github.com/imperviousinc/orbee" target="_blank" rel="noopener">github.com/imperviousinc/orbee</a>, Apache-2.0, the nostr <a href="https://nips.nostr.com/29" target="_blank" rel="noopener">NIP-29</a> group-chat client both houses use as the floor chat. Everything said about orbee below was verified against its source on 0018.04.15 a₿; where something couldn't be verified, this manual says so instead of guessing.</p>
+  </section>
+
+  <section id="s1">
+    <span class="gitv">dns + rewrites</span>
+    <div class="head"><span class="num">A</span><h2>The door wears your name</h2><span class="git">dns + rewrites</span></div>
+    <p>Shipped and live. Both houses put their own hostname in front of the same floor — with two different patterns, and the difference is the lesson.</p>
+
+    <h3>The arcade's pattern — the straight redirect</h3>
+    <p><span class="sys">chat.pacsarcade.org</span> sends every path straight out to orbee's own app (from <span class="sys">pacsarcade-org/next.config.ts</span>, read 0018.04.15 a₿):</p>
+    <div class="term">
+      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;pacsarcade-org · next.config.ts — redirects()</div>
+<pre>{
+  source: <span class="s">"/:path*"</span>,
+  has: [{ type: <span class="s">"host"</span>, value: <span class="s">"chat.pacsarcade.org"</span> }],
+  destination: <span class="s">"https://app.orbee.chat/:path*"</span>,
+  permanent: false,   <span class="c">// temporary ON PURPOSE — the domain comes home</span>
+}                     <span class="c">// when the arcade's own floor ships</span>
+</pre>
+    </div>
+    <ul class="plain">
+      <li>the fren types your name, then the browser <b>moves</b> — the URL bar ends up reading <span class="sys">app.orbee.chat</span></li>
+      <li>the door is branded; the ride is orbee's — honest and fine as a stepping stone</li>
+      <li><code>permanent: false</code> is deliberate: browsers don't cache it, so the door can come home later without stale redirects haunting you</li>
+    </ul>
+
+    <h3>frens.earth's pattern — the gated rewrite</h3>
+    <p><span class="sys">chat.frens.earth</span> never sends anyone anywhere until the gate has looked at them. The host points at THIS app, and the app answers (from <span class="sys">next.config.ts</span> + <span class="sys">src/app/chat/route.ts</span> on this branch):</p>
+    <div class="term">
+      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;frens-earth · next.config.ts — rewrites(), not redirects()</div>
+<pre><span class="c">/* beforeFiles: the chat host's root rewrites to /chat — the gate */</span>
+{ source: <span class="s">"/"</span>,       has: [{ type: <span class="s">"host"</span>, value: <span class="s">"chat.frens.earth"</span> }], destination: <span class="s">"/chat"</span> }
+<span class="c">/* fallback: anything on the chat host that isn't a real route also
+   lands at the gate — deep links from the direct-door era included */</span>
+{ source: <span class="s">"/:path*"</span>, has: [{ type: <span class="s">"host"</span>, value: <span class="s">"chat.frens.earth"</span> }], destination: <span class="s">"/chat"</span> }
+</pre>
+    </div>
+    <ul class="plain">
+      <li><b>the gate</b> (<span class="sys">src/app/chat/route.ts</span>): a signed-in fren bounces 307 on to the configured floor; anyone else meets <span class="sys">/login</span></li>
+      <li>the floor's URL comes from <span class="sys">effectiveChatNode()</span> — stored config → <code>CHAT_NODE_URL</code> env → the house default — and is <b>never exposed raw</b> in any UI</li>
+      <li><b>the loop guard</b>: if no real floor is linked (the default points at the door domain itself), the gate says so honestly instead of chasing its own tail — house rule, honest empty states</li>
+      <li><span class="sys">/login</span> and <span class="sys">/api</span> stay reachable on the chat host on purpose: root-only + fallback, or nobody could ever get through the gate there</li>
+    </ul>
+    <div class="call tip"><span class="lab">Redirect vs rewrite — the whole difference</span><p>A <b>redirect</b> tells the browser "go over there" — the fren leaves your name behind. A <b>rewrite</b> answers on your own host — so a gate can run first, and your name stays in the bar until the moment YOU choose to bounce them. The arcade chose speed; frens.earth chose the gate.</p></div>
+
+    <h3>DNS — one record per house</h3>
+    <div class="term">
+      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;both houses ride Vercel — same two steps</div>
+<pre><span class="c"># 1 · at your DNS panel (registrar / ZAP / wherever the zone lives):</span>
+CNAME  chat  →  cname.vercel-dns.com
+<span class="c"># 2 · at Vercel: project → Settings → Domains → add the chat host</span>
+<span class="c">#     frens.earth  → project frens-earth   (the rewrite+gate answer there)</span>
+<span class="c">#     the arcade   → project pacsarcade-org (the redirect answers there)</span>
+<span class="c"># "Valid Configuration" within minutes; the certificate issues itself</span>
+</pre>
+    </div>
+    <div class="call check"><span class="lab">Checkpoint</span><p>Your chat host resolves, TLS is green, and: arcade-style you land on the orbee app; frens-style you meet the gate — <span class="sys">/login</span> anonymous, 307 to the floor signed in, or the honest "no floor linked yet" card.</p></div>
+  </section>
+
+  <section id="s2">
+    <span class="gitv">fork &amp; patch</span>
+    <div class="head"><span class="num">B</span><h2>The floor wears your name</h2><span class="git">fork &amp; patch</span></div>
+    <p>Phase A masks a door. Phase B is owning the floor itself — running your own orbee, then deciding how much of its face becomes yours. First, what orbee actually is (verified against the repo, 0018.04.15 a₿):</p>
+    <ul class="plain">
+      <li><b>a client, not a server</b> — a SolidJS + Vite single-page app; the chat itself lives on <b>NIP-29 relays</b>, and handles come from the Spaces protocol faucet</li>
+      <li><b>Apache-2.0</b> — fork-friendly with attribution (more below)</li>
+      <li><b>app.orbee.chat</b> is just this SPA served from a Cloudflare Worker; <span class="sys">orbee.chat</span> is a static landing page — two Workers, one repo (<span class="sys">wrangler.jsonc</span>)</li>
+    </ul>
+    <div class="call danger"><span class="lab">Honest flag — there is no docker</span><p>The commission said "docker/build per its README" — verified: the repo has <b>no Dockerfile and no docker-compose</b>, and the README documents only <code>npm install / npm run dev</code> plus Cloudflare Worker deploys. Self-hosting orbee = building a static SPA and serving the files. That's lighter than docker, not heavier — but don't go hunting for a compose file that doesn't exist.</p></div>
+
+    <h3>Run the app from your VPS</h3>
+    <div class="term">
+      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;the whole self-host — node 20+, then static files</div>
+<pre><span class="p">$</span> git clone https://github.com/imperviousinc/orbee && cd orbee
+<span class="p">$</span> npm install
+<span class="p">$</span> npm run build:app          <span class="c"># vite build → dist-app/</span>
+<span class="p">$</span> sudo cp -r dist-app /var/www/chat-floor
+<span class="c"># nginx: serve it as an SPA — every path falls back to the app shell</span>
+server {
+  server_name <span class="s">chat-app.frens.earth</span>;
+  root /var/www/chat-floor;
+  location / { try_files $uri /app.html; }
+}
+<span class="p">$</span> sudo certbot --nginx -d <span class="s">chat-app.frens.earth</span>
+</pre>
+    </div>
+    <ul class="plain">
+      <li>SPA fallback is load-bearing: station links like <code>/s/…</code> aren't real files — they must land on the app shell (upstream's own Worker config sets <code>single-page-application</code> fallback for the same reason)</li>
+      <li>then point <span class="sys">/a/chat</span> at this host (phase <a href="#s3">C</a>) and the gate bounces frens here</li>
+      <li>honest note: these steps were verified against the repo's build scripts and Worker config, not by running a build on the VPS — expect the usual first-run friction</li>
+    </ul>
+
+    <h3>The floor under the floor — your own relay</h3>
+    <p>The app is furniture; the conversation lives on a NIP-29 relay. Orbee's default is hardcoded: <code>STATIONS_RELAY_URL = "wss://stations.orbee.chat"</code> (<span class="sys">src/lib/nostr.ts</span>). Fully wearing your own name means your own relay — the orbee repo doesn't ship one, so you bring a NIP-29 relay like <a href="https://github.com/fiatjaf/relay29" target="_blank" rel="noopener">relay29</a> (khatru29 / strfry29 / relayer29 flavors) and stand it up at <span class="sys">stations.frens.earth</span>.</p>
+    <p>Station naming follows the NIP-29 canonical form <code>&lt;host&gt;'&lt;id&gt;</code> — apostrophe-separated, one copy-pasteable token. Orbee's own community station is <span class="sys">stations.orbee.chat'orbee</span>; yours becomes:</p>
+    <div class="term">
+      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;station naming — theirs → yours</div>
+<pre>stations.orbee.chat'orbee        <span class="c"># orbee's station on orbee's relay</span>
+<span class="s">stations.frens.earth'frens</span>       <span class="c"># your station on YOUR relay</span>
+<span class="c"># in the app the door is  /s/stations.frens.earth'frens</span>
+</pre>
+    </div>
+
+    <h3>Branding the floor — what's config, what's a fork</h3>
+    <p><b>No fork needed — your station's name</b> (verified): NIP-29 station metadata is runtime data. An admin edit (kind 9002) sets <code>name</code>, <code>about</code>, <code>picture</code>, open/closed, and the relay re-emits it as kind 39000 to every client. Orbee's station settings UI drives exactly this. Your station is fully yours — name, blurb, avatar — on ANYONE's orbee app, today.</p>
+    <p><b>Fork needed — the app's own face</b> (verified: no theming config, no env hooks, no white-label switch anywhere in the repo). Everything below is hardcoded, so re-skinning the app means fork-and-patch:</p>
+    <ul class="plain">
+      <li><b>name</b> — "Orbee" lives in <span class="sys">app.html</span> (title, OG/Twitter meta)</li>
+      <li><b>logo/icons</b> — <span class="sys">public/</span> (favicon, PWA icons, og-image; <span class="sys">scripts/gen-icons.mjs</span> regenerates the set)</li>
+      <li><b>colors</b> — CSS custom properties in <span class="sys">src/index.css</span> (accent is fuchsia <code>#d946ef</code>; swap the token block for your palette)</li>
+      <li><b>fonts</b> — Google Fonts links in <span class="sys">app.html</span> (self-host yours instead)</li>
+      <li><b>default relay</b> — <code>STATIONS_RELAY_URL</code> in <span class="sys">src/lib/nostr.ts</span>; profile relays in <span class="sys">src/lib/relay-pool-worker.ts</span></li>
+      <li><b>featured stations</b> — the <code>FEATURED</code> array in <span class="sys">src/components/ExploreView.tsx</span> (point the shelf at YOUR stations)</li>
+      <li><b>the handle faucet</b> — <code>FAUCET_BASE</code> in <span class="sys">src/lib/faucet.ts</span> points at <span class="sys">faucet.spacesprotocol.org</span>; keep it (handles stay protocol-level, not orbee-level) or run your own</li>
+    </ul>
+    <p>One genuinely hopeful signal upstream: the station-config event (kind 30078) is documented in-source as carrying "future theme / emoji / welcome bits" — per-station theming looks planned, but as of 0018.04.15 a₿ it holds only scope + pins. Watch that file before forking deeper than you need.</p>
+    <div class="call tip"><span class="lab">The Apache-2.0 fork route — clean and legal</span><p>Fork on GitHub → keep the <code>LICENSE</code> file → add a NOTICE line ("based on orbee by Impervious, Apache-2.0") → state your changes (the patch list above IS the changelog). Keep patches small and mechanical so upstream merges stay cheap — and offer the theming hooks upstream first; if they land, your fork shrinks to a config file. Homage, not redesign: orbee's bee stays orbee's (the arcade's own design guide says the same).</p></div>
+    <div class="call check"><span class="lab">Checkpoint</span><p>A relay answering at <span class="sys">stations.frens.earth</span>, your station minted and named, the app built from your fork serving under your host — and phase A's gate pointing at it. The whole stack wears the house name.</p></div>
+  </section>
+
+  <section id="s3">
+    <span class="gitv">nodeconfig</span>
+    <div class="head"><span class="num">C</span><h2>One fleet, many doors</h2><span class="git">nodeconfig</span></div>
+    <p>The template story, and the reason phases A and B stay separate: <b>every frens.hip ships with the gate built in and the floor left blank.</b> A new ship doesn't inherit our chat — it points at its own.</p>
+    <div class="flow n5">
+      <a class="box" href="#s3"><small>01</small>fork the ship</a><span class="arr">▶</span>
+      <a class="box" href="#s2"><small>02</small>stand up a floor</a><span class="arr">▶</span>
+      <a class="box" href="#s3"><small>03</small>/a/chat — point</a><span class="arr">▶</span>
+      <a class="box" href="#s3"><small>04</small>save · test</a><span class="arr">▶</span>
+      <a class="box" href="#s1"><small>05</small>your door opens</a>
+    </div>
+    <ul class="plain">
+      <li><b>/a/chat</b> (shipped): point · save · test your orbee door from the operator console — honest REACHABLE / UNREACHABLE states, OPEN THE CHAT ▸ goes through the gate, never the raw node</li>
+      <li>precedence: <b>stored config</b> (what you saved at /a/chat) → <b><code>CHAT_NODE_URL</code></b> env bootstrap → <b>the house floor</b> at <span class="sys">chat.frens.earth</span> — a fresh fork's chat door still opens somewhere honest</li>
+      <li>same rail as the Spaces and MUD nodes: the app never runs the floor, it only points at it — <b>chatUrl is just another node link</b></li>
+      <li>so the fleet picture: one template, N ships, each with its own door (phase A), each free to run its own floor (phase B), all wired through the same gate</li>
+    </ul>
+    <div class="call check"><span class="lab">Checkpoint</span><p>Your deployment's <span class="sys">/a/chat</span> shows YOUR NODE — SAVED HERE and REACHABLE, and the public door bounces signed-in frens to it. That's the whole fleet contract honored by one saved URL.</p></div>
+  </section>
+
+  <section id="s4">
+    <span class="gitv">fleet mask</span>
+    <div class="head"><span class="num">D</span><h2>The whole fleet wears your name</h2><span class="git">fleet mask</span></div>
+    <p>The admiral's mid-voyage expansion: chat was the worked example — now the roster. Every tool in the suite, one row each: what it is, whose name it wears out of the box, how it puts on yours, and how heavy the lift is.</p>
+    <div class="maskwrap">
+      <table class="mask">
+        <thead><tr><th>the tool</th><th>what it is · default name</th><th>mask it under your brand</th><th>effort</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>orbee chat</td>
+            <td>NIP-29 floor chat · <span class="sys">app.orbee.chat</span>, relay <span class="sys">stations.orbee.chat</span></td>
+            <td>Phases <a href="#s1">A</a>–<a href="#s3">C</a> above: your door via DNS + the gate; your station name via NIP-29 metadata (no fork); the app's own face via fork-and-patch (Apache-2.0)</td>
+            <td><span class="fx">dns + config</span><br><span class="fx fork">fork for the skin</span></td>
+          </tr>
+          <tr>
+            <td>Matrix classrooms</td>
+            <td>the classes floor (rooms like <span class="sys">#btc101-run1</span>) · <span class="sys">matrix.org</span> / <span class="sys">app.element.io</span></td>
+            <td>Two names, two rules — see below. <b>server_name</b> is the name inside every ID (<span class="sys">@tag:pacsarcade.org</span>) — chosen once, forever. The <b>Element client</b> re-brands entirely by <code>config.json</code>: no fork</td>
+            <td><span class="fx">config + dns</span><br><span class="fx fork">server_name: forever</span></td>
+          </tr>
+          <tr>
+            <td>the MUD</td>
+            <td>P.O.K.E. knowledge-engine — a companion daemon, admin API on <span class="sys">:4001</span></td>
+            <td>It's YOUR software on YOUR box — nothing to mask. Reverse-proxy it behind <span class="sys">mud.frens.earth</span>, point <span class="sys">/a/mud</span> at it (<code>MUD_NODE_URL</code> + admin token); names live in the node's own config</td>
+            <td><span class="fx">dns + proxy</span></td>
+          </tr>
+          <tr>
+            <td>BTCPay</td>
+            <td>the treasury — self-hosted payment server</td>
+            <td>Domain is your DNS (<span class="sys">pay.frens.earth</span>). Store Settings → General → Branding: logo + brand color + custom CSS on customer-facing pages (checkout, invoices, payment requests, pull payments). Server Settings → Branding: whole-server theme via CSS custom properties</td>
+            <td><span class="fx">config</span></td>
+          </tr>
+          <tr>
+            <td>the spaced node</td>
+            <td>Spaces protocol node — sovereign handles anchored to Bitcoin</td>
+            <td>Nothing to mask — <b>the name IS the protocol object</b>. <span class="sys">@yourspace</span> is yours at the protocol level; the node just serves it. Point it at <span class="sys">/a/spaces</span> and the brand takes care of itself</td>
+            <td><span class="fx">none — it's yours</span></td>
+          </tr>
+          <tr>
+            <td>RTFM</td>
+            <td>this knowledge repo — self-contained HTML articles</td>
+            <td>The comment header at the top of every article IS the rebrand path: copy the shell, swap the token block (<code>--sprout</code>, <code>--teal</code>, …), write. No fonts, no scripts, no external anything — it wears any house style offline, forever</td>
+            <td><span class="fx">edit tokens</span></td>
+          </tr>
+          <tr>
+            <td>the console</td>
+            <td>the /a operator layer — a module, not furniture</td>
+            <td>Site identity derives from env today (<code>NEXT_PUBLIC_SPACE_NAME</code>, <code>NEXT_PUBLIC_NIP05_DOMAIN</code> → <code>CONSOLE_SITE</code>). The <b>brand cartridge</b> (docs/brand-cartridge.md) is the endgame — themes as signed nostr notes — sparked, not yet shipped</td>
+            <td><span class="fx">env today</span><br><span class="fx">cartridge later</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Matrix, the headline row — two names, two rules</h3>
+    <p>The classrooms ride Matrix, and Matrix splits your name in two. Get this wrong and it's wrong forever:</p>
+    <ul class="plain">
+      <li><b>Rule 1 — the server_name is a tattoo.</b> Synapse's <code>server_name</code> "will appear at the end of usernames and room addresses created on your server" and — quoting the docs — <b>"cannot be changed later so it is important to configure this correctly before you start Synapse."</b> The arcade chose <span class="sys">pacsarcade.org</span>, so every fren's door reads <span class="sys">@tag:pacsarcade.org</span> and classes live at <span class="sys">#btc101-run1:pacsarcade.org</span>. Choose the apex, not the machine name.</li>
+      <li><b>Rule 2 — the machine can live anywhere.</b> <a href="https://element-hq.github.io/synapse/latest/delegate.html" target="_blank" rel="noopener">Well-known delegation</a>: serve <code>/.well-known/matrix/server</code> → <code>{"m.server": "matrix.frens.earth:443"}</code> at the apex, and IDs keep wearing <span class="sys">frens.earth</span> while the daemon answers at <span class="sys">matrix.frens.earth</span>. Identity and infrastructure, decoupled on purpose.</li>
+      <li><b>The client re-brands by config, no fork.</b> Element Web is static files + one <code>config.json</code> (<a href="https://github.com/element-hq/element-web/blob/develop/docs/config.md" target="_blank" rel="noopener">documented options</a>): <code>brand</code> (the app's name everywhere), <code>branding.auth_header_logo_url</code> / <code>welcome_background_url</code> / <code>auth_footer_links</code>, <code>default_server_config</code> (lock the homeserver so there's no server picker), <code>setting_defaults.custom_themes</code> (full color themes), <code>permalink_prefix</code> (share links point at YOUR deployment).</li>
+      <li><b>The live proof is already at sea:</b> the arcade's Element cabinet at <span class="sys">portal.pacsarcade.org</span> wears "Pac's Arcade Chat", an Arcade CRT custom theme, its own logo and footer links, homeserver pre-locked to <span class="sys">pacsarcade.org</span> — all of it one config.json on a static deploy, zero forked code (verified against the shipped config, 0018.04.15 a₿).</li>
+    </ul>
+    <div class="call danger"><span class="lab">Verified vs not — the honesty ledger for this table</span><p>Verified from source or live config: orbee (repo read end-to-end), Matrix/Element (Synapse + Element docs, plus the arcade's shipped config.json), the MUD, the spaced node, RTFM, and the console (this repo's own code). Verified from vendor docs but <b>not exercised by this crew</b>: BTCPay's branding screens — the docs and release notes describe store logo/brand color/custom CSS, but nobody clicked through them for this article. Trust the row, budget a shakedown.</p></div>
+
+    <div class="call tip"><span class="lab">Next in the series — RTFM 005 is commissioned</span><p><b>CLASSROOM SETUPS &amp; MANAGEMENT</b>: standing up the Matrix homeserver on the VPS (Synapse install, the server_name ceremony, well-known delegation, TLS), rooms-as-classrooms (the <span class="sys">#code-runN</span> pattern, one room per class run), the teacher's console (power levels, moderation, kicks and read-only lecture mode, cleaning up after a session), and wiring it into SOCIAL101 so a fren's Matrix door lights up on their profile rail. This article's Matrix row is the map; 005 is the drill.</p></div>
+  </section>
+
+  <footer>
+    <b>frens.earth</b> · RTFM 004 · the admiral's order: branding is everything<br>
+    <span style="opacity:.32">the frens who read to the end find the magic. ↑ ↑ ↓ ↓ …</span>
+  </footer>
+</div>
+
+<div id="rtfm-magic" hidden>
+  <div class="card">
+    <p class="eye">RTFM ▸ you looked hard enough</p>
+    <h2>🌱 the magic</h2>
+    <p>You read the manual. Most won't. Your name on every door — starting with this one.</p>
+    <p class="secret">secret word: <b>name-your-floor</b></p>
+    <p class="foot">Whisper it to the attendant — masked-fleet frens get their tag gilded. Esc to close.</p>
+  </div>
+</div>
+<script>
+  (function () {
+    var seq = ["arrowup","arrowup","arrowdown","arrowdown","arrowleft","arrowright","arrowleft","arrowright","b","a"];
+    var i = 0, el = document.getElementById("rtfm-magic");
+    if (!el) return;
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") { el.hidden = true; return; }
+      var k = e.key.toLowerCase();
+      if (k === seq[i]) { i++; if (i === seq.length) { i = 0; el.hidden = false; } }
+      else { i = (k === seq[0] ? 1 : 0); }
+    });
+    el.addEventListener("click", function (e) { if (e.target === el) el.hidden = true; });
+  })();
+</script>
+</body>
+</html>

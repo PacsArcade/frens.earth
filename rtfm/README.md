@@ -18,8 +18,9 @@ body of work.
 | [001](001-the-sovereign-box.html) | **The Sovereign Box** | Wipe Windows, install Arch forever, keep it a gaming rig, host the stack. |
 | [002](002-first-deployment.html) | **Your First Deployment** | The git ceremony in arrows — clone → run → deploy, terse bullets for total beginners. |
 | [003](003-treasury-rescue.html) | **Treasury Rescue** | BTCPay damage control — locked out of the panel, sats "not moving", and the lightning sync runbook that keeps it from recurring. |
+| [004](004-wear-your-own-name.html) | **Wear Your Own Name** | Mask every door behind your brand — DNS doors vs gated rewrites, your own orbee floor (what's config, what's a fork), and the whole-fleet masking table. |
 
-_(more to come.)_
+_(more to come — 005 CLASSROOM SETUPS & MANAGEMENT is commissioned.)_
 
 ## Writing a new one
 
