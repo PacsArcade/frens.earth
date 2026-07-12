@@ -15,6 +15,7 @@ Everything behind `/a`, as one portable layer:
 | room registry | `CONSOLE_ROOMS` in `lib/console.ts` | add/remove entries |
 | site identity (the ⌂ way out) | `CONSOLE_SITE` | `NEXT_PUBLIC_NIP05_DOMAIN` / `SPACE_NAME` |
 | tickets (raise/work) | `TicketsPanel`, `lib/tickets` | works with zero infra |
+| decisions (pending rulings → action cards) | `DecisionsPanel`, `lib/decisions` | `SEED_DECISIONS` (committed); works with zero infra |
 | merge queue (sign to authorize) | `MergeQueue`, `lib/merges` | `GITHUB_TOKEN`, `GITHUB_REPO` |
 | node links (spaced / MUD) | `SpacesPanel`, `MudPanel`, `lib/nodeconfig` | from the GUI |
 | chat floor (the orbee door) | `ChatPanel`, `lib/nodeconfig` | from the GUI; falls back to `CHAT_NODE_URL`, then chat.frens.earth |

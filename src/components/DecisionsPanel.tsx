@@ -1,0 +1,248 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import { bftDateTime } from "@/lib/bb/bft";
+
+/**
+ * The Decisions room — pending rulings as ACTION cards. Each open decision
+ * shows the question, the context, the options as selectable chips (Number
+ * One's pick badged ✦ RECOMMENDED in neon with its why), a note box, and a
+ * one-click RECORD MY CHOICE. Decided ones collapse into a BFT-stamped list.
+ * Types are inlined on purpose: the decisions store pulls server-only modules,
+ * so a client component must not import it.
+ */
+
+interface DecisionOption {
+  key: string;
+  label: string;
+  note?: string;
+}
+interface Decision {
+  id: string;
+  question: string;
+  context: string;
+  options: DecisionOption[];
+  recommendation: string;
+  recommendationWhy: string;
+  status: "open" | "decided";
+  choice?: string;
+  note?: string;
+  at?: number;
+  source?: string;
+}
+
+export default function DecisionsPanel() {
+  const [decisions, setDecisions] = useState<Decision[] | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const [ok, setOk] = useState<string | null>(null);
+  const [picks, setPicks] = useState<Record<string, string>>({});
+  const [notes, setNotes] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setErr(null);
+    try {
+      const res = await fetch("/api/admin/decisions");
+      if (res.status === 401) {
+        setDecisions([]);
+        setErr("operator sign-in required");
+        return;
+      }
+      const data = await res.json();
+      if (data.ok) setDecisions(data.decisions);
+      else setErr(data.reason ?? "couldn't read the board");
+    } catch {
+      setErr("couldn't reach the app — try again");
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  async function record(id: string) {
+    const choice = picks[id];
+    if (!choice) {
+      setErr("pick an option first");
+      return;
+    }
+    setErr(null);
+    setOk(null);
+    setSaving(id);
+    try {
+      const res = await fetch("/api/admin/decisions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, choice, note: notes[id] ?? "" }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.ok) {
+        setErr(data?.reason ?? `the server hiccuped (HTTP ${res.status}) — try again`);
+        return;
+      }
+      setOk(`recorded — ${data.decision.id}`);
+      setPicks((p) => {
+        const n = { ...p };
+        delete n[id];
+        return n;
+      });
+      setNotes((p) => {
+        const n = { ...p };
+        delete n[id];
+        return n;
+      });
+      load();
+    } catch {
+      setErr("couldn't reach the server — check your connection and try again");
+    } finally {
+      setSaving(null);
+    }
+  }
+
+  const open = (decisions ?? []).filter((d) => d.status === "open");
+  const decided = (decisions ?? []).filter((d) => d.status === "decided");
+
+  return (
+    <div className="mx-auto max-w-3xl px-6 py-10">
+      <p className="mb-2 font-pixel text-[10px] uppercase tracking-widest text-white/40">
+        OPERATOR CONSOLE ▸ DECISIONS — NUMBER ONE RECOMMENDS, YOU RECORD
+      </p>
+      <h1 className="mb-3 font-arcade text-4xl text-cyan glow-cyan">DECISIONS ROOM</h1>
+      <p className="mb-8 font-mono text-[11px] text-white/50">
+        THE PENDING RULINGS — EACH ONE A CARD, EACH ONE ONE CLICK FROM DONE
+      </p>
+
+      {err && <p className="mb-4 font-pixel text-[10px] uppercase text-ghost">{err}</p>}
+      {ok && <p className="mb-4 font-pixel text-[10px] uppercase text-neon">{ok}</p>}
+
+      <h2 className="mb-3 font-pixel text-xs uppercase text-white/50">
+        ON THE BOARD
+        {decisions ? <span className="text-white/30"> · {open.length}</span> : null}
+      </h2>
+
+      {!decisions ? (
+        <p className="font-body text-sm text-white/50">Reading the board…</p>
+      ) : open.length === 0 ? (
+        <p className="border-2 border-edge bg-panel p-4 font-body text-sm text-white/60">
+          The board is clear — no decisions waiting. 🌱
+        </p>
+      ) : (
+        <div className="space-y-4">
+          {open.map((d) => {
+            const picked = picks[d.id];
+            return (
+              <div key={d.id} className="border-2 border-edge bg-panel p-5">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <span className="font-mono text-[10px] uppercase text-white/30">{d.id}</span>
+                  {d.source && (
+                    <span className="font-mono text-[10px] uppercase text-white/30">{d.source}</span>
+                  )}
+                </div>
+                <h3 className="mt-1 font-pixel text-base uppercase leading-snug text-cyan">
+                  {d.question}
+                </h3>
+                <p className="mt-2 font-body text-sm text-white/60">{d.context}</p>
+
+                <div className="mt-4 space-y-2">
+                  {d.options.map((o) => {
+                    const isRec = o.key === d.recommendation;
+                    const isPicked = picked === o.key;
+                    return (
+                      <button
+                        key={o.key}
+                        onClick={() => setPicks((p) => ({ ...p, [d.id]: o.key }))}
+                        className={`block w-full border-2 p-3 text-left transition-colors ${
+                          isPicked
+                            ? "border-cyan bg-cyan/5"
+                            : "border-edge hover:border-cyan/50"
+                        }`}
+                      >
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span
+                            aria-hidden
+                            className={`font-mono text-sm ${isPicked ? "text-cyan" : "text-white/40"}`}
+                          >
+                            {isPicked ? "◉" : "○"}
+                          </span>
+                          <span className={`font-body text-sm ${isPicked ? "text-cyan" : "text-white/85"}`}>
+                            {o.label}
+                          </span>
+                          {isRec && (
+                            <span className="border border-neon px-1.5 py-0.5 font-pixel text-[8px] uppercase tracking-widest text-neon">
+                              ✦ RECOMMENDED
+                            </span>
+                          )}
+                        </div>
+                        {o.note && (
+                          <p className="mt-1 pl-6 font-mono text-[11px] text-white/45">{o.note}</p>
+                        )}
+                        {isRec && (
+                          <p className="mt-2 pl-6 font-body text-xs leading-relaxed text-neon/80">
+                            {d.recommendationWhy}
+                          </p>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <label className="mt-4 block">
+                  <span className="font-pixel text-[9px] uppercase text-white/40">
+                    NOTE — OPTIONAL, RIDES THE RECORD
+                  </span>
+                  <textarea
+                    value={notes[d.id] ?? ""}
+                    onChange={(e) => setNotes((p) => ({ ...p, [d.id]: e.target.value }))}
+                    rows={2}
+                    placeholder="why you called it this way (optional)"
+                    className="mt-1 w-full border-2 border-edge bg-void px-3 py-2 font-mono text-xs text-white/85 placeholder:text-white/25 focus:border-cyan focus:outline-none"
+                  />
+                </label>
+
+                <button
+                  onClick={() => record(d.id)}
+                  disabled={!picked || saving === d.id}
+                  className="mt-3 border-2 border-neon px-4 py-2 font-pixel text-[10px] uppercase text-neon hover:glow-neon disabled:opacity-40"
+                >
+                  {saving === d.id ? "RECORDING…" : "✍ RECORD MY CHOICE"}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {decided.length > 0 && (
+        <div className="mt-10">
+          <p className="mb-3 font-pixel text-[10px] uppercase tracking-widest text-white/40">
+            DECIDED · {decided.length} — RECORDED, BLOCK-STAMPED
+          </p>
+          <div className="space-y-2">
+            {decided.map((d) => {
+              const chosen = d.options.find((o) => o.key === d.choice);
+              return (
+                <div key={d.id} className="border-2 border-edge bg-panel p-4">
+                  <div className="flex flex-wrap items-baseline justify-between gap-2">
+                    <span className="font-mono text-[10px] uppercase text-white/30">{d.id}</span>
+                    <span className="font-mono text-[10px] text-neon">
+                      ✓ {d.at ? bftDateTime(d.at) : "recorded"}
+                    </span>
+                  </div>
+                  <p className="mt-1 font-body text-sm text-white/80">{d.question}</p>
+                  <p className="mt-1 font-pixel text-[10px] uppercase text-neon">
+                    ✓ {chosen?.label ?? d.choice}
+                  </p>
+                  {d.note && (
+                    <p className="mt-1 font-mono text-[11px] text-white/50">
+                      &ldquo;{d.note}&rdquo;
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
