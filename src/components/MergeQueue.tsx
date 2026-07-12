@@ -210,6 +210,30 @@ export default function MergeQueue() {
   }
 
   /** ✎ NOTE — the row's signed comment box, collapsible like ▸ CHANGES. */
+  /** ▸ WHAT TO TEST — the change's own brief (PR title+body), fetched once. */
+  const [briefs, setBriefs] = useState<Record<number, { title: string; body: string } | "loading">>({});
+  async function toggleBrief(pr: number) {
+    if (briefs[pr]) {
+      setBriefs((p) => {
+        const next = { ...p };
+        delete next[pr];
+        return next;
+      });
+      return;
+    }
+    setBriefs((p) => ({ ...p, [pr]: "loading" }));
+    try {
+      const res = await fetch(`/api/admin/merges?brief=${pr}`);
+      const data = await res.json();
+      setBriefs((p) => ({
+        ...p,
+        [pr]: data.ok ? { title: data.title, body: data.body } : { title: "", body: "couldn't read the brief — see it on GitHub" },
+      }));
+    } catch {
+      setBriefs((p) => ({ ...p, [pr]: { title: "", body: "couldn't reach the server — try again" } }));
+    }
+  }
+
   function toggleNote(pr: number) {
     setDrafts((p) => {
       const next = { ...p };
@@ -460,6 +484,18 @@ export default function MergeQueue() {
                       </p>
                     </div>
                     <div className="flex flex-none items-center gap-2">
+                      <button
+                        onClick={() => toggleBrief(x.pr)}
+                        className="border-2 border-edge px-3 py-1.5 font-pixel text-[9px] uppercase text-cyan hover:border-cyan"
+                      >
+                        {briefs[x.pr] ? "▾" : "▸"} WHAT TO TEST
+                      </button>
+                      <button
+                        onClick={() => toggleNote(x.pr)}
+                        className="border-2 border-edge px-3 py-1.5 font-pixel text-[9px] uppercase text-heart hover:border-heart"
+                      >
+                        ✎ FEEDBACK
+                      </button>
                       <a
                         href={`/support?pr=${x.pr}`}
                         className="border-2 border-edge px-3 py-1.5 font-pixel text-[9px] uppercase text-ghost hover:border-ghost"
@@ -476,6 +512,41 @@ export default function MergeQueue() {
                       </button>
                     </div>
                   </div>
+                  {briefs[x.pr] === "loading" && (
+                    <p className="mt-2 font-mono text-[10px] text-white/40">reading the brief…</p>
+                  )}
+                  {briefs[x.pr] && briefs[x.pr] !== "loading" && (
+                    /* the change's own words — what the admiral tests */
+                    <div className="mt-3 border-t border-edge pt-2">
+                      {(briefs[x.pr] as { title: string }).title && (
+                        <p className="mb-1 font-body text-sm text-white/90">
+                          {(briefs[x.pr] as { title: string }).title}
+                        </p>
+                      )}
+                      <p className="whitespace-pre-wrap font-mono text-[11px] leading-relaxed text-white/65">
+                        {(briefs[x.pr] as { body: string }).body || "the proposal carried no brief — test what the title promises, and say so in feedback"}
+                      </p>
+                    </div>
+                  )}
+                  {x.pr in drafts && (
+                    /* the admiral's feedback — signed words, straight onto the PR */
+                    <div className="mt-3 border-t border-edge pt-3">
+                      <textarea
+                        value={drafts[x.pr]}
+                        onChange={(e) => setDrafts((p) => ({ ...p, [x.pr]: e.target.value }))}
+                        rows={3}
+                        placeholder="what you saw, what you'd change — your key signs these exact words"
+                        className="w-full border-2 border-edge bg-void px-3 py-2 font-mono text-xs text-white/85 placeholder:text-white/25 focus:border-heart focus:outline-none"
+                      />
+                      <button
+                        onClick={() => signAndPostNote(x.pr)}
+                        disabled={noteBusy === x.pr}
+                        className="mt-2 border-2 border-heart px-3 py-1.5 font-pixel text-[9px] uppercase text-heart disabled:opacity-50"
+                      >
+                        {noteBusy === x.pr ? "SIGNING…" : "✍ SIGN & POST FEEDBACK"}
+                      </button>
+                    </div>
+                  )}
                 </div>
               );
             })}
