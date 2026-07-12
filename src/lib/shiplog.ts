@@ -14,6 +14,16 @@ export interface ShipLogEntry {
 
 export const SHIP_LOG: ShipLogEntry[] = [
   {
+    height: 957661,
+    title: "COPY A ₿ WITHOUT LEAVING HOME",
+    bullets: [
+      "MEDIA / ASSETS page shipped (/media) — the emojipedia replacement, but ours: one-click copy for the house bitcoin glyphs (₿ U+20BF, the SATOSHI mark, the BFT markers a₿ / b₿ / ▣, and ⚡ lightning), the frens.earth mark (view · DOWNLOAD SVG · COPY SVG straight from public/frens-mark.svg), the FRENS.EARTH wordmark in the house pixel type, the night-garden palette as click-to-copy hex swatches, and a press one-liner + short paragraph for anyone writing about us — every button an honest COPIED ✓ (and a truthful COPY FAILED when the clipboard is blocked), motion-safe, mobile-first, no wireframe arrows",
+      "Gold stayed money-only, enforced: coin gold rides ONLY the ₿ and the sat mark (sats ARE money); the a₿ / b₿ / ▣ markers wear cyan because they're TIME not money, and ⚡ wears neon as the live rail — the palette shows every hex but labels coin 'money ONLY'",
+      "The house SATOSHI mark lands as a PROPOSAL — Candidate A, 'the struck ess' (a lowercase gold s pierced by ₿'s two hash-bars), composited inline because there is no Unicode codepoint for the satoshi (only ₿ was ever encoded); clearly badged 'house proposal — pending the admiral's pick' among four candidates, with the honest copyable value being the text fallback 'sats' — the word wallets already print",
+      "Discoverable-not-loud: a small MEDIA / PRESS link tucked into EarthFooter. Shipped onto a main a bad merge broke earlier today — branched clean off the healed origin/main, tsc --noEmit green",
+    ],
+  },
+  {
     height: 957660,
     title: "THE FLEET STOPS PHONING OUT",
     bullets: [
