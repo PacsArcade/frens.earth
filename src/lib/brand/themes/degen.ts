@@ -64,7 +64,7 @@ export const degenTheme: BrandTheme = {
       blurb:
         "Free for everyone. Explore the collection, join the mint, follow the White Rabbit — the identity you carry all the way down the hole.",
       href: "https://degenwonderland.com",
-      cta: "GET YOUR DEGEN TAG — FREE ▸",
+      cta: "GET YOUR DEGEN TAG — FREE",
       accent: "cyan",
     },
   ],
