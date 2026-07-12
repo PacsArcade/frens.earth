@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { StoredBuddy, BuddyVitals, BuddyCareAction } from "@/lib/bb/types";
-import { moonPhase, yearAnimal } from "@/lib/bb/bft";
+import { bft, moonPhase, yearAnimal } from "@/lib/bb/bft";
+import { bftScene, drawBftBackground, type BftScene } from "@/lib/bb/scene";
 import BftDate from "@/components/bb/BftDate";
 import {
   applyCare, decayVitals, isDead, statusLine, stageForAgeDays, STAGES, DEATH_CAUSES,
@@ -19,10 +20,12 @@ const ACTIONS: { a: BuddyCareAction; icon: string; label: string }[] = [
 const meterColor = (v: number) => `hsl(${(Math.max(0, v) / 100) * 142} 78% 60%)`;
 
 export default function BuddyDevice({
-  buddy, currentBlock, onChange, onNew,
+  buddy, currentBlock, estimatedBlock = false, onChange, onNew,
 }: {
   buddy: StoredBuddy;
   currentBlock: number;
+  /** true when the height is an offline estimate — heights render with the honest ~. */
+  estimatedBlock?: boolean;
   onChange: (b: StoredBuddy) => void;
   onNew: () => void;
 }) {
@@ -108,7 +111,11 @@ export default function BuddyDevice({
       delete coolRef.current[a];
       setCooldowns((c) => { const n = { ...c }; delete n[a]; return n; });
     }, COOLDOWN[a] * 1000);
-    reactionRef.current = { type: res.reaction, until: Date.now() + 1100 };
+    /* ONE clock for reactions (the dead-buttons fix, 0018.04.15 a₿): the draw
+       loop compares `until` against the rAF timestamp, which runs on the
+       performance.now() timebase — stamping it with Date.now() (epoch ms,
+       ~57 years bigger) left the sprite "reacting" forever at progress 0. */
+    reactionRef.current = { type: res.reaction, until: performance.now() + 1100 };
     vitalsRef.current = res.vitals;
     setVitals(res.vitals);
     if (isDead(res.vitals)) { die(); return; }
@@ -144,35 +151,50 @@ export default function BuddyDevice({
     let raf = 0;
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-    // cache the sky gradient once (W/H are fixed) instead of rebuilding it every frame
-    const sky = ctx.createLinearGradient(0, 0, 0, H);
-    sky.addColorStop(0, "#0c1a14"); sky.addColorStop(0.6, "#0a130e"); sky.addColorStop(1, "#0a0f0c");
-    // pre-render the moon emoji offscreen, only when the phase changes (fillText per frame was the drain)
-    const moonCanvas = document.createElement("canvas"); moonCanvas.width = moonCanvas.height = 48;
-    const mctx = moonCanvas.getContext("2d")!;
-    let moonIdx = -1;
+    /* The BFT-procedural garden, cached PER BLOCK (the same perf lesson as the
+       old cached gradient/moon, one level up): the whole static scene — beat
+       lighting, seasonal tint, moon, constellation, hills — is a pure function
+       of the height, painted once per block into an offscreen canvas. The rAF
+       loop only blits it; the dynamic bits are star twinkle + the block-break
+       shimmer + the sprite. */
+    const bg = document.createElement("canvas");
+    bg.width = W; bg.height = H;
+    const bgctx = bg.getContext("2d")!;
+    let bgHeight = -1;
+    let scene: BftScene | null = null;
+    let shimmerAt = -1; // rAF-clock ms of the last block break
 
     const draw = (t: number) => {
-      ctx.fillStyle = sky; ctx.fillRect(0, 0, W, H);
-      const mp = moonPhase(blockRef.current);
-      if (mp.index !== moonIdx) {
-        moonIdx = mp.index;
-        mctx.clearRect(0, 0, 48, 48);
-        mctx.font = "30px serif"; mctx.textAlign = "center"; mctx.textBaseline = "middle";
-        mctx.fillText(mp.emoji, 24, 24);
+      if (blockRef.current !== bgHeight) {
+        if (bgHeight !== -1 && !reduce) shimmerAt = t; // the block broke mid-visit
+        bgHeight = blockRef.current;
+        scene = bftScene(bgHeight);
+        drawBftBackground(bgctx, W, H, scene);
       }
-      ctx.globalAlpha = aliveRef.current ? 1 : 0.5;
-      ctx.drawImage(moonCanvas, W - 74, 26);
-      ctx.globalAlpha = 1;
-      ctx.fillStyle = "rgba(241,239,231,0.5)";
-      for (let i = 0; i < 16; i++) {
-        const sx = (i * 53) % W, sy = (i * 29) % 110, tw = reduce ? 1 : 0.5 + 0.5 * Math.sin(t / 600 + i);
-        ctx.globalAlpha = 0.15 + 0.4 * tw; ctx.fillRect(sx, sy, 2, 2);
+      ctx.drawImage(bg, 0, 0);
+
+      // twinkling stars — dynamic, fading with the beat's daylight
+      const starGlow = scene ? scene.night : 1;
+      if (starGlow > 0.04) {
+        ctx.fillStyle = "rgba(241,239,231,0.5)";
+        for (let i = 0; i < 16; i++) {
+          const sx = (i * 53) % W, sy = (i * 29) % 110, tw = reduce ? 1 : 0.5 + 0.5 * Math.sin(t / 600 + i);
+          ctx.globalAlpha = (0.15 + 0.4 * tw) * starGlow;
+          ctx.fillRect(sx, sy, 2, 2);
+        }
+        ctx.globalAlpha = 1;
       }
-      ctx.globalAlpha = 1;
-      ctx.fillStyle = "#12281c"; ctx.fillRect(0, H - 44, W, 44);
-      ctx.fillStyle = "#2f4a35";
-      for (let i = 0; i < 7; i++) ctx.fillRect(22 + i * 50, H - 44 - 6, 3, 6);
+
+      // the block breaks → one soft shimmer sweeps the garden (skipped on reduced motion)
+      if (shimmerAt >= 0 && t - shimmerAt < 1200) {
+        const p = (t - shimmerAt) / 1200;
+        const x = -80 + (W + 160) * p;
+        const g = ctx.createLinearGradient(x - 70, 0, x + 70, 0);
+        g.addColorStop(0, "rgba(222,251,233,0)");
+        g.addColorStop(0.5, `rgba(222,251,233,${0.16 * Math.sin(p * Math.PI)})`);
+        g.addColorStop(1, "rgba(222,251,233,0)");
+        ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      }
 
       // sprite
       const img = spriteRef.current;
@@ -192,6 +214,7 @@ export default function BuddyDevice({
           if (type === "feed") { sy = 1 + e * 0.18; sx = 1 - e * 0.1; }         // happy stretch up
           else if (type === "play") { rot = Math.sin(p * Math.PI * 3) * 0.28 * e; bob += -e * 10; } // wiggle + hop (no jagged spin)
           else if (type === "sleep") { sy = 1 - e * 0.22; sx = 1 + e * 0.08; }  // gentle settle down
+          else if (type === "talk") { rot = Math.sin(p * Math.PI * 2) * 0.14 * e; sy = 1 + e * 0.05; } // chatty sway
         }
         const ageDays = Math.max(0, (blockRef.current - buddy.bornBlock) / 144);
         const grow = 1 + stageForAgeDays(ageDays).index * 0.12;
@@ -216,6 +239,12 @@ export default function BuddyDevice({
   const stage = stageForAgeDays(ageDays).stage;
   const status = statusLine(buddy.name, vitals);
   const animal = yearAnimal(buddy.bornBlock);
+  /* One source of truth for the sky: glyph + name + BFT day all come from
+     moonPhase/bft — the old footer hardcoded a 🌙 crescent next to the real
+     phase NAME, so mid-month it lied "🌙 Full" (fixed 0018.04.15 a₿). */
+  const moon = moonPhase(currentBlock);
+  const bftDay = bft(currentBlock).day;
+  const tilde = estimatedBlock ? "~" : "";
 
   return (
     <div className="mx-auto w-full max-w-md rounded-2xl border-2 border-edge bg-panel p-5">
@@ -297,7 +326,9 @@ export default function BuddyDevice({
       </div>
 
       <div className="mt-4 flex items-center justify-between gap-2">
-        <span className="font-mono text-[10px] tracking-wider text-white/40">Tick tock — tied to the block · 🌙 {moonPhase(currentBlock).name}</span>
+        <span className="font-mono text-[10px] tracking-wider text-white/40">
+          Tick tock · blk {tilde}{currentBlock.toLocaleString()} · D{String(bftDay).padStart(2, "0")} {moon.emoji} {moon.name}
+        </span>
         <button onClick={onNew} className="font-mono text-[10px] uppercase tracking-widest text-white/40 hover:text-neon">＋ New</button>
       </div>
     </div>
