@@ -160,12 +160,14 @@ export default function TagClaim({
   }, []);
   const spaceTag = `@${space}`;
 
-  // current bitcoin block height, so the anchor estimate has a frame of reference
+  // current bitcoin block height, so the anchor estimate has a frame of
+  // reference — through the fleet's own door (/api/chain/tip → the configured
+  // node), not mempool.space directly (sovereignty fix, 2026-07-11)
   useEffect(() => {
     if (!claimed) return;
-    fetch("https://mempool.space/api/blocks/tip/height")
+    fetch("/api/chain/tip", { cache: "no-store" })
       .then((r) => r.json())
-      .then((h) => typeof h === "number" && setTipHeight(h))
+      .then((d) => d?.ok && typeof d.height === "number" && setTipHeight(d.height))
       .catch(() => {
         /* the estimate is a nicety — never block the success screen on it */
       });

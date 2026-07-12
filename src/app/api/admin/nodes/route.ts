@@ -16,11 +16,13 @@ function masked(c: NodeConfig) {
     chatUrl: c.chatUrl,
     githubRepo: c.githubRepo,
     githubTokenSet: !!c.githubToken || !!process.env.GITHUB_TOKEN?.trim(),
+    mempoolUrl: c.mempoolUrl, // a URL, not a secret — no masking
     ceremony: c.ceremony,
     envFallback: {
       spacesUrl: process.env.SPACES_NODE_URL?.trim() || null,
       mudUrl: process.env.MUD_NODE_URL?.trim() || null,
       chatUrl: process.env.CHAT_NODE_URL?.trim() || null,
+      mempoolUrl: process.env.MEMPOOL_NODE_URL?.trim() || null,
     },
   };
 }
@@ -50,6 +52,7 @@ export async function PUT(request: Request) {
   if (typeof body.chatUrl === "string") patch.chatUrl = body.chatUrl.trim();
   if (typeof body.githubToken === "string") patch.githubToken = body.githubToken.trim();
   if (typeof body.githubRepo === "string") patch.githubRepo = body.githubRepo.trim();
+  if (typeof body.mempoolUrl === "string") patch.mempoolUrl = body.mempoolUrl.trim();
   if (body.ceremony && typeof body.ceremony === "object") {
     patch.ceremony = {
       certTemplate: String(body.ceremony.certTemplate ?? "").slice(0, 60) || "bft-auto",

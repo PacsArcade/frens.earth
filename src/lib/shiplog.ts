@@ -14,6 +14,16 @@ export interface ShipLogEntry {
 
 export const SHIP_LOG: ShipLogEntry[] = [
   {
+    height: 957660,
+    title: "THE FLEET STOPS PHONING OUT",
+    bullets: [
+      "The admiral's sovereignty fix — the fleet hardcoded mempool.space for the block tip + mempool fill; chain data is now read through a CONFIGURABLE node. effectiveMempoolNode() resolves stored (mempoolUrl, GUI-editable) → env (MEMPOOL_NODE_URL) → the public mempool.space, with an honest source: 'default' that tells exactly when we're still phoning a third party",
+      "One door for the whole fleet: /api/chain/tip (public, read-only) reads the configured node's /api/blocks/tip/height + /api/mempool, falls back to mempool.space server-side if the node's dark, and returns { ok:false } on total failure so the client keeps its genesis estimate (the honest ~). currentBlock() (bft.ts), the BftClock ring fill, /bb (BbConsole + BuddyDevice ride currentBlockInfo), and the tag-claim tip all route through it; the server-side claim route reads effectiveMempoolNode() directly",
+      "New CHAIN NODE room on the console manifest (/a/mempool) — POINT · SAVE · TEST, the same rail as chat/spaces/mud; honest 'using the public mempool.space (fallback) — point your own below', REACHABLE/UNREACHABLE pills, the live tip + a BFT ~ stamp on the test, and no token (read-only public chain data, no key ever touches it)",
+      "Left as TODO: FrenProfile's timestamp→height backfill hits a different mempool.space endpoint the tip proxy doesn't serve yet — a low-stakes best-effort read, noted in place. ops-todos opened: self-host mempool.space on the VPS against our own bitcoind, skin it in Pac's Arcade branding, point mempoolUrl at it — then the fleet stops phoning out for good",
+    ],
+  },
+  {
     height: 957634,
     title: "THE BUDDY WAKES UP",
     bullets: [

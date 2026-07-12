@@ -54,6 +54,13 @@ export const CONSOLE_ROOMS: ConsoleRoom[] = [
     accent: "border-neon/50 text-neon",
   },
   {
+    key: "mempool",
+    href: "/a/mempool",
+    label: "CHAIN NODE",
+    blurb: "point at your own mempool — the fleet stops phoning a third party",
+    accent: "border-cyan/50 text-cyan",
+  },
+  {
     key: "brand",
     href: "/a/brand",
     label: "DRESSING ROOM",

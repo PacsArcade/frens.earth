@@ -58,6 +58,11 @@ function usePlayerSinceBlock(
     const ts = Math.floor(new Date(requestedAt).getTime() / 1000);
     if (!Number.isFinite(ts) || ts <= 0) return;
     let alive = true;
+    // TODO (sovereignty): this is a timestamp→height backfill, a different
+    // endpoint (/api/v1/mining/blocks/timestamp) than /api/chain/tip serves.
+    // Route through the configured node once the proxy grows a timestamp lookup
+    // — until then it phones the public mempool.space directly. Best-effort
+    // backfill for pre-R2 entries, so a third-party read here is low-stakes.
     fetch(`https://mempool.space/api/v1/mining/blocks/timestamp/${ts}`)
       .then((r) => r.json())
       .then((d) => alive && typeof d?.height === "number" && setHeight(d.height))

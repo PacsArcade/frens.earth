@@ -1,19 +1,33 @@
 import { claimHandle } from "@/lib/registry";
 import { spaceForHost } from "@/lib/identity-config";
+import { effectiveMempoolNode, MEMPOOL_URL_DEFAULT } from "@/lib/nodeconfig";
 
 /* Bitcoin time for the entry — "player since block N". Best-effort with a
-   short leash: a slow or down explorer must never block a claim. */
-async function currentTipHeight(): Promise<number | null> {
+   short leash: a slow or down explorer must never block a claim. Server-side,
+   so it reads the admiral's configured mempool node directly (sovereignty fix,
+   2026-07-11) rather than a hardcoded third party — the public mempool.space is
+   only the fallback when the configured node is dark. */
+async function tipFrom(base: string): Promise<number | null> {
   try {
-    const res = await fetch("https://mempool.space/api/blocks/tip/height", {
+    const res = await fetch(`${base.replace(/\/+$/, "")}/api/blocks/tip/height`, {
       signal: AbortSignal.timeout(3000),
       cache: "no-store",
     });
-    const h = await res.json();
-    return typeof h === "number" ? h : null;
+    if (!res.ok) return null;
+    const h = parseInt((await res.text()).trim(), 10);
+    return Number.isFinite(h) && h > 0 ? h : null;
   } catch {
     return null;
   }
+}
+
+async function currentTipHeight(): Promise<number | null> {
+  const { url } = await effectiveMempoolNode();
+  const h = await tipFrom(url);
+  if (h != null) return h;
+  // configured node dark → fall back to the public default, then give up (the
+  // requestedAt date is the ultimate fallback — never block a claim on this)
+  return url !== MEMPOOL_URL_DEFAULT ? tipFrom(MEMPOOL_URL_DEFAULT) : null;
 }
 
 export async function POST(request: Request) {

@@ -33,6 +33,12 @@ export interface NodeConfig {
       admiral never has to touch deployment env (Pac, 2026-07-11). */
   githubToken: string;
   githubRepo: string;
+  /** Chain-data node — the mempool.space REST API the fleet reads block tip +
+      mempool fill from. Sovereignty fix (the admiral, 2026-07-11): don't
+      hardcode a third party. Point this at Pac's Arcade's OWN self-hosted
+      mempool instance; unset falls through env to the public mempool.space so
+      a fresh fork still ticks. No token — read-only public chain data. */
+  mempoolUrl: string;
   ceremony: CeremonyConfig;
 }
 
@@ -44,12 +50,18 @@ const EMPTY: NodeConfig = {
   chatUrl: "",
   githubToken: "",
   githubRepo: "",
+  mempoolUrl: "",
   ceremony: { certTemplate: "bft-auto", welcomeMessage: "" },
 };
 
 /** The house floor — where the chat door opens when nothing is pointed.
     Mirrors the arcade: chat.pacsarcade.org is orbee's door there, chat.frens.earth here. */
 export const CHAT_URL_DEFAULT = "https://chat.frens.earth";
+
+/** The public fallback for chain data — the fleet still ticks on a fresh fork
+    that hasn't stood up its own node. The whole point of mempoolUrl is to stop
+    phoning this third party; it's the floor, not the goal. */
+export const MEMPOOL_URL_DEFAULT = "https://mempool.space";
 
 const BLOB_PATH = "config/nodes.json";
 const filePath = () => path.join(process.cwd(), "data", "nodes.json");
@@ -129,6 +141,22 @@ export async function effectiveChatNode(): Promise<{
   const env = process.env.CHAT_NODE_URL?.trim();
   if (env) return { url: env, source: "env" };
   return { url: CHAT_URL_DEFAULT, source: "default" };
+}
+
+/** The chain-data node, with its provenance — stored config first, env
+    bootstrap (MEMPOOL_NODE_URL) second, the public mempool.space last. Like the
+    chat door, this one carries a default so a fresh fork still reads the tip;
+    `source: "default"` is the honest tell that the fleet is phoning a third
+    party and the admiral hasn't pointed their own node yet. */
+export async function effectiveMempoolNode(): Promise<{
+  url: string;
+  source: "stored" | "env" | "default";
+}> {
+  const c = await readNodeConfig();
+  if (c.mempoolUrl) return { url: c.mempoolUrl, source: "stored" };
+  const env = process.env.MEMPOOL_NODE_URL?.trim();
+  if (env) return { url: env, source: "env" };
+  return { url: MEMPOOL_URL_DEFAULT, source: "default" };
 }
 
 export async function effectiveGithub(): Promise<{ repo: string; token: string }> {

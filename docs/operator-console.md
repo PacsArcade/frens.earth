@@ -18,6 +18,7 @@ Everything behind `/a`, as one portable layer:
 | merge queue (sign to authorize) | `MergeQueue`, `lib/merges` | `GITHUB_TOKEN`, `GITHUB_REPO` |
 | node links (spaced / MUD) | `SpacesPanel`, `MudPanel`, `lib/nodeconfig` | from the GUI |
 | chat floor (the orbee door) | `ChatPanel`, `lib/nodeconfig` | from the GUI; falls back to `CHAT_NODE_URL`, then chat.frens.earth |
+| chain node (block tip + mempool fill) | `MempoolPanel`, `app/api/chain/tip`, `lib/nodeconfig` | from the GUI; falls back to `MEMPOOL_NODE_URL`, then public mempool.space |
 | the chat gate (public side) | `app/chat/route.ts` + `next.config.ts` rewrite | fren session required — see below |
 | notifications | `Notice` | per-id, drop in anywhere |
 | ship's log | `ShipsLog`, `lib/shiplog` | committed entries |
