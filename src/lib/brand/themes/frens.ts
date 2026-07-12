@@ -52,7 +52,7 @@ export const frensTheme: BrandTheme = {
       blurb:
         "Free for everyone. Learn together, test, tinker, join classes, back campaigns — the account you can afford to experiment with. As frens, we learn together.",
       href: "https://frens.earth",
-      cta: "GET YOUR PLAY TAG — FREE ▸",
+      cta: "GET YOUR PLAY TAG — FREE",
       accent: "cyan",
     },
     {
@@ -61,7 +61,7 @@ export const frensTheme: BrandTheme = {
       blurb:
         "The step up when you commit to the path: classes → etched certs → the artist gate → running campaigns. When you're ready for school, this is enrollment.",
       href: "/register",
-      cta: "SET UP YOUR SCHOOL ACCOUNT ▸",
+      cta: "SET UP YOUR SCHOOL ACCOUNT",
       accent: "pink",
     },
   ],

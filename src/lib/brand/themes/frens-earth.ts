@@ -67,7 +67,7 @@ export const frensEarthTheme: BrandTheme = {
       blurb:
         "Free forever. Your tag, your keys, your patch of earth — play, learn, back your frens. The digital renaissance starts at home.",
       href: "/",
-      cta: "CLAIM YOUR TAG ▸",
+      cta: "CLAIM YOUR TAG",
       accent: "neon",
     },
     {
@@ -76,7 +76,7 @@ export const frensEarthTheme: BrandTheme = {
       blurb:
         "When you're ready to go deeper: classes → etched certs → the artist gate. School is a walk up the road — same keys, same frens.",
       href: "https://pacsarcade.org/register",
-      cta: "ENROLL AT THE ARCADE ▸",
+      cta: "ENROLL AT THE ARCADE",
       accent: "pink",
     },
   ],
