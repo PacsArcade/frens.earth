@@ -2,6 +2,7 @@ import { operatorFromCookieHeader } from "@/lib/operator-auth";
 import {
   listOpenPrs,
   listPrFiles,
+  getPrBrief,
   listAuthorizations,
   authorizeMerge,
   closeAuthorization,
@@ -18,6 +19,16 @@ export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
   if (!operatorFromCookieHeader(request.headers.get("cookie"))) {
     return Response.json({ ok: false, reason: "operator sign-in required" }, { status: 401 });
+  }
+  /* ?brief=N — the PR's own title+body (what to test, in the change's words) */
+  const briefFor = new URL(request.url).searchParams.get("brief");
+  if (briefFor) {
+    try {
+      const brief = await getPrBrief(Number(briefFor));
+      return Response.json({ ok: true, ...brief });
+    } catch {
+      return Response.json({ ok: false, reason: "couldn't read the brief — see it on GitHub" });
+    }
   }
   /* ?files=N — the change list for one proposal (the captain's review) */
   const filesFor = new URL(request.url).searchParams.get("files");

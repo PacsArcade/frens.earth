@@ -118,6 +118,17 @@ export async function listPrFiles(pr: number): Promise<PrFile[]> {
   }));
 }
 
+/** The change's own brief — title + body of the PR (open OR merged), so the
+    IN FLIGHT board can tell the admiral WHAT TO TEST in the change's own
+    words. */
+export async function getPrBrief(pr: number): Promise<{ title: string; body: string }> {
+  const { repo, headers } = await ghContext();
+  const res = await fetch(`${GH}/repos/${repo}/pulls/${pr}`, { headers, cache: "no-store" });
+  if (!res.ok) throw new Error(`GitHub said ${res.status}`);
+  const data = (await res.json()) as { title: string; body: string | null };
+  return { title: data.title, body: data.body ?? "" };
+}
+
 // ── the audit log (dual driver, same pattern as tickets) ────────────────────
 
 export interface MergeAuth {
