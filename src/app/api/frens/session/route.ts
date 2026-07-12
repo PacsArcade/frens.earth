@@ -6,6 +6,7 @@ import {
   FREN_COOKIE,
 } from "@/lib/fren-auth";
 import { getEntry } from "@/lib/registry";
+import { OPERATOR_COOKIE } from "@/lib/operator-auth";
 import { spaceForHost } from "@/lib/identity-config";
 
 function sessionCookie(value: string, maxAge: number): HeadersInit {
@@ -129,7 +130,19 @@ export async function PUT(request: Request) {
   );
 }
 
-/* Sign out — every door at once (that's the promise in the confirm). */
+/* Sign out — every door at once (that's the promise in the confirm),
+   INCLUDING the operator deck. The admiral's catch (0018.04.15 a₿): the
+   30-day fe-operator cookie outlived sign-out, so ⚓ ADMIN DECK kept
+   showing after the key was removed. Sign out means all the way out. */
 export async function DELETE() {
-  return Response.json({ ok: true }, { headers: sessionCookie("", 0) });
+  const headers = new Headers();
+  headers.append(
+    "Set-Cookie",
+    `${FREN_COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`
+  );
+  headers.append(
+    "Set-Cookie",
+    `${OPERATOR_COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0`
+  );
+  return Response.json({ ok: true }, { headers });
 }
