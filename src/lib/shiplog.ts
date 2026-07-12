@@ -21,6 +21,14 @@ export const SHIP_LOG: ShipLogEntry[] = [
       "Scope grew mid-voyage on the admiral's order: THE WHOLE FLEET WEARS YOUR NAME — masking table for every tool in the suite (orbee, Matrix classrooms, the MUD, BTCPay, the spaced node, RTFM, the console); Matrix headline verified: server_name is a tattoo (set once, forever), Element re-brands by config.json alone — the arcade's portal cabinet is the live proof",
       "NUMBER ONE ON THE FLOOR spec parked at docs/number-one-bridge.md — @no1 gets its own key ceremony (never the admiral's key), a VPS bridge daemon, speaks-only-when-spoken-to rules, operator mute, three phases (presence → mention-reply → SCAR announcements), staff-meeting questions listed",
       "RTFM 005 commissioned: CLASSROOM SETUPS & MANAGEMENT — the Matrix homeserver drill",
+    height: 957625,
+    title: "THE TREASURY RESCUE DRILL",
+    bullets: [
+      "RTFM 003 shipped — Treasury Rescue: the BTCPay damage-control playbook, written from the admiral's live drill (locked himself out on purpose, then found the treasury reading 0 with confirmed sats on the chain)",
+      "Phase A: back into a locked panel via SSH — btcpay-admin.sh reset-server-policy → rescue account → set-user-admin, plus the prevention kit (second admin, SMTP, recovery codes off-box)",
+      "Phase B: the sats-not-moving diagnosis ladder — mempool.space → getblockchaininfo (blocks vs headers) → lightning getinfo → rescan LAST; the sats were never gone, the node was mid-book",
+      "Phase C: the standing sync runbook — docker logs, df -h (the lifetime-VPS silent killer), restart sequence smallest-hammer-first, reindex only when the logs say so, and the ten-minute monthly drill box",
+      "SCAR ops todos opened (docs/ops-todos.md): DR debrief + playbook adoption, and lightning sync on the VPS with the block height reported back — commands verified against docs.btcpayserver.org",
     ],
   },
   {

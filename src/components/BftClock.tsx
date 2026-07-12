@@ -68,7 +68,7 @@ export default function BftClock() {
        menu; persistent on every page. The btc-orange ring is the mempool
        filling toward the next block; it pulses when the block breaks. */
     <div
-      className={`fixed right-3 top-[70px] z-40 select-none rounded-lg sm:top-[78px] ${
+      className={`fixed right-3 top-[88px] z-40 select-none rounded-lg sm:top-[104px] ${
         breaking ? "block-break" : ""
       }`}
       style={{
