@@ -61,11 +61,11 @@ export default function OperatorGate({ configured }: { configured: boolean }) {
   }
 
   return (
-    <main className="flex min-h-screen flex-col bg-void">
+    <main className="flex min-h-screen flex-col console-ground">
       <div className="flex flex-1 items-center justify-center px-6 py-16">
-        <div className="w-full max-w-md border-2 border-edge bg-panel p-8 text-center">
-          <p className="mb-3 font-pixel text-[10px] uppercase tracking-widest text-white/40">
-            FRENS.EARTH ▸ ADMIN SIDE
+        <div className="console-card w-full max-w-md p-8 text-center" data-accent="cyan">
+          <p className="lcars-eyebrow mb-4 justify-center" data-accent="cyan">
+            ADMIN SIDE · OPERATORS
           </p>
           <h1 className="mb-4 font-arcade text-3xl text-cyan glow-cyan">TRUST, VERIFIED</h1>
           <p className="mb-6 font-body text-sm text-white/70">
@@ -73,13 +73,21 @@ export default function OperatorGate({ configured }: { configured: boolean }) {
             operator key and step through — we don&apos;t ask who you are, we verify it.
           </p>
           {configured ? (
-            <button onClick={verify} disabled={busy} className="button w-full">
+            <button
+              onClick={verify}
+              disabled={busy}
+              className="btn-pill btn-pill--solid w-full"
+              data-accent="cyan"
+            >
               {busy ? "READING YOUR SIGNATURE…" : "▶ VERIFY OPERATOR KEY"}
             </button>
           ) : (
-            <p className="border-2 border-coin/60 bg-coin/5 p-4 font-pixel text-[10px] uppercase leading-relaxed text-coin">
+            <p
+              className="console-card p-4 font-pixel text-[10px] uppercase leading-relaxed text-cyan"
+              data-accent="cyan"
+            >
               NO OPERATOR KEYS CONFIGURED — SET{" "}
-              <span className="text-cyan">OPERATOR_NPUBS</span> IN THE DEPLOYMENT ENV
+              <span className="text-white/80">OPERATOR_NPUBS</span> IN THE DEPLOYMENT ENV
               (COMMA-SEPARATED NPUBS), THEN RELOAD
             </p>
           )}

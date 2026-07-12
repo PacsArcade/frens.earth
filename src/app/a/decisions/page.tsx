@@ -25,7 +25,7 @@ export default async function AdminDecisionsPage() {
     return <OperatorGate configured={operatorsConfigured()} />;
   }
   return (
-    <main className="min-h-screen bg-void">
+    <main className="min-h-screen console-ground">
       <AdminNav current="decisions" />
       <DecisionsPanel />
     </main>

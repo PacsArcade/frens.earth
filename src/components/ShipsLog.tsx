@@ -6,15 +6,15 @@ import { bftDateTime } from "@/lib/bb/bft";
 export default function ShipsLog() {
   return (
     <div className="mx-auto mt-10 max-w-3xl px-6 pb-16">
-      <p className="mb-3 font-pixel text-[10px] uppercase tracking-widest text-white/40">
-        SCAR ▸ SHIP&apos;S LOG — WHAT THE CREW SHIPPED
+      <p className="lcars-eyebrow mb-3" data-accent="neon">
+        SHIP&apos;S LOG · WHAT THE CREW SHIPPED
       </p>
       <div className="space-y-3">
         {SHIP_LOG.map((e) => (
-          <div key={e.height} className="border-2 border-edge bg-panel p-4">
+          <div key={e.height} className="console-card p-4" data-accent="neon">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
               <p className="font-pixel text-xs text-cyan">{e.title}</p>
-              <p className="font-mono text-[10px] text-white/40">
+              <p className="font-mono text-[10px] tabular-nums text-white/40">
                 ▣ {e.height.toLocaleString()} · {bftDateTime(e.height)}
               </p>
             </div>

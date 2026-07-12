@@ -104,12 +104,12 @@ export default function DecisionsPanel() {
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-10">
-      <p className="mb-2 font-pixel text-[10px] uppercase tracking-widest text-white/40">
-        OPERATOR CONSOLE ▸ DECISIONS — NUMBER ONE RECOMMENDS, YOU RECORD
+      <p className="lcars-eyebrow mb-3" data-accent="pink">
+        DECISIONS · NUMBER ONE RECOMMENDS, YOU RECORD
       </p>
-      <h1 className="mb-3 font-arcade text-4xl text-cyan glow-cyan">DECISIONS ROOM</h1>
-      <p className="mb-8 font-mono text-[11px] text-white/50">
-        THE PENDING RULINGS — EACH ONE A CARD, EACH ONE ONE CLICK FROM DONE
+      <h1 className="mb-3 font-arcade text-4xl text-cyan glow-cyan">DECISION BOARD</h1>
+      <p className="mb-8 font-body text-sm text-white/55">
+        The pending rulings — each one a card, each one one click from done.
       </p>
 
       {err && <p className="mb-4 font-pixel text-[10px] uppercase text-ghost">{err}</p>}
@@ -123,7 +123,7 @@ export default function DecisionsPanel() {
       {!decisions ? (
         <p className="font-body text-sm text-white/50">Reading the board…</p>
       ) : open.length === 0 ? (
-        <p className="border-2 border-edge bg-panel p-4 font-body text-sm text-white/60">
+        <p className="console-card p-4 font-body text-sm text-white/60">
           The board is clear — no decisions waiting. 🌱
         </p>
       ) : (
@@ -131,7 +131,7 @@ export default function DecisionsPanel() {
           {open.map((d) => {
             const picked = picks[d.id];
             return (
-              <div key={d.id} className="border-2 border-edge bg-panel p-5">
+              <div key={d.id} className="console-card p-5" data-accent="pink">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <span className="font-mono text-[10px] uppercase text-white/30">{d.id}</span>
                   {d.source && (
@@ -151,7 +151,8 @@ export default function DecisionsPanel() {
                       <button
                         key={o.key}
                         onClick={() => setPicks((p) => ({ ...p, [d.id]: o.key }))}
-                        className={`block w-full border-2 p-3 text-left transition-colors ${
+                        aria-pressed={isPicked}
+                        className={`block w-full rounded-lg border-2 p-3 text-left transition-colors ${
                           isPicked
                             ? "border-cyan bg-cyan/5"
                             : "border-edge hover:border-cyan/50"
@@ -168,7 +169,7 @@ export default function DecisionsPanel() {
                             {o.label}
                           </span>
                           {isRec && (
-                            <span className="border border-neon px-1.5 py-0.5 font-pixel text-[8px] uppercase tracking-widest text-neon">
+                            <span className="pill" data-accent="neon">
                               ✦ RECOMMENDED
                             </span>
                           )}
@@ -195,14 +196,15 @@ export default function DecisionsPanel() {
                     onChange={(e) => setNotes((p) => ({ ...p, [d.id]: e.target.value }))}
                     rows={2}
                     placeholder="why you called it this way (optional)"
-                    className="mt-1 w-full border-2 border-edge bg-void px-3 py-2 font-mono text-xs text-white/85 placeholder:text-white/25 focus:border-cyan focus:outline-none"
+                    className="mt-1 w-full rounded-lg border-2 border-edge bg-void px-3 py-2 font-mono text-xs text-white/85 placeholder:text-white/25 focus:border-cyan focus:outline-none"
                   />
                 </label>
 
                 <button
                   onClick={() => record(d.id)}
                   disabled={!picked || saving === d.id}
-                  className="mt-3 border-2 border-neon px-4 py-2 font-pixel text-[10px] uppercase text-neon hover:glow-neon disabled:opacity-40"
+                  data-accent="neon"
+                  className="btn-pill btn-pill--solid mt-3"
                 >
                   {saving === d.id ? "RECORDING…" : "✍ RECORD MY CHOICE"}
                 </button>
@@ -221,7 +223,7 @@ export default function DecisionsPanel() {
             {decided.map((d) => {
               const chosen = d.options.find((o) => o.key === d.choice);
               return (
-                <div key={d.id} className="border-2 border-edge bg-panel p-4">
+                <div key={d.id} className="console-card p-4">
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
                     <span className="font-mono text-[10px] uppercase text-white/30">{d.id}</span>
                     <span className="font-mono text-[10px] text-neon">

@@ -26,7 +26,7 @@ export default async function AdminTicketsPage() {
     return <OperatorGate configured={operatorsConfigured()} />;
   }
   return (
-    <main className="min-h-screen bg-void">
+    <main className="min-h-screen console-ground">
       <AdminNav current="scar" />
       <div className="pt-6">
         <MergeQueue />

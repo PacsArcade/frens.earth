@@ -419,3 +419,195 @@ footer {
 }
 
 } /* end @layer base */
+
+/* ==========================================================================
+   OPERATOR CONSOLE — the bridge language: LCARS structure × rounded-box feel.
+   One shared skin for every /a room — an LCARS "elbow" rail up top, rounded
+   green-night cards with an accent-glow selected state, pill chips + pill
+   buttons, and colour-blocked section eyebrows. Nocturnal forest palette;
+   the semantic law holds (coin = money, neon = live/open, cyan = verify,
+   ghost = danger, pink = flair). Each element picks its meaning-colour with
+   data-accent -> --acc, so the same classes recolour per room/status.
+   ========================================================================== */
+
+:root {
+  /* a green-biased neutral edge + a soft leaf accent for un-accented cards */
+  --console-edge: #2b3a2b;
+  --acc: #4e8f57;
+  --font-console: ui-monospace, "SFMono-Regular", Menlo, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+}
+
+/* the accent bus — one attribute recolours border-glow, pills, tabs, bars.
+   Unlayered on purpose so it wins over the component defaults below. */
+[data-accent="coin"]  { --acc: var(--color-coin); }
+[data-accent="neon"]  { --acc: var(--color-neon); }
+[data-accent="cyan"]  { --acc: var(--color-cyan); }
+[data-accent="pink"]  { --acc: var(--color-pink); }
+[data-accent="ghost"] { --acc: var(--color-ghost); }
+
+@layer components {
+
+  /* ground — a nocturnal forest bloom over the CRT void */
+  .console-ground {
+    background:
+      radial-gradient(1000px 600px at 50% -10%, #16241c, transparent 60%),
+      var(--color-void);
+  }
+
+  /* card / panel — top-lit green gradient, soft edge, rounded, hover lift */
+  .console-card {
+    background: linear-gradient(180deg, #1a2419, #10160f);
+    border: 1.5px solid var(--console-edge);
+    border-radius: 12px;
+    transition: transform .16s ease, border-color .2s ease, box-shadow .2s ease;
+  }
+  a.console-card:hover,
+  .console-card--hover:hover {
+    transform: translateY(-2px);
+    border-color: color-mix(in srgb, var(--acc) 55%, var(--console-edge));
+    box-shadow: 0 12px 28px -20px var(--acc);
+  }
+  /* selected / active — accent ring + throw */
+  .console-card--active,
+  .console-card[aria-current="page"] {
+    border-color: var(--acc);
+    box-shadow: 0 0 0 1px var(--acc), 0 10px 26px -14px var(--acc);
+  }
+
+  /* pill chip — mono, uppercase, meaning by colour */
+  .pill {
+    display: inline-flex; align-items: center; gap: .4em;
+    border-radius: 999px;
+    padding: .32em .72em;
+    font-family: var(--font-console);
+    font-size: 10px; line-height: 1;
+    letter-spacing: .16em; text-transform: uppercase;
+    font-variant-numeric: tabular-nums;
+    border: 1.5px solid color-mix(in srgb, var(--acc) 60%, transparent);
+    color: var(--acc);
+    background: color-mix(in srgb, var(--acc) 12%, transparent);
+    white-space: nowrap;
+  }
+  .pill--solid { background: var(--acc); color: var(--color-void); border-color: var(--acc); }
+  .pill--muted {
+    color: #9fb39a; border-color: var(--console-edge);
+    background: color-mix(in srgb, #9fb39a 8%, transparent);
+  }
+
+  /* pill / rounded-rect button — chunky LCARS control, 44px touch target */
+  .btn-pill {
+    display: inline-flex; align-items: center; justify-content: center; gap: .5em;
+    min-height: 44px; padding: 0 16px;
+    border-radius: 999px;
+    border: 1.5px solid var(--acc);
+    color: var(--acc);
+    background: color-mix(in srgb, var(--acc) 10%, transparent);
+    font-family: var(--font-pixel);
+    font-size: 9px; line-height: 1.35; letter-spacing: .06em; text-transform: uppercase;
+    text-align: center; cursor: pointer;
+    transition: transform .12s ease, box-shadow .2s ease, background-color .2s ease;
+  }
+  .btn-pill:hover:not(:disabled) {
+    transform: translateY(-1px);
+    background: color-mix(in srgb, var(--acc) 18%, transparent);
+    box-shadow: 0 8px 20px -14px var(--acc);
+  }
+  .btn-pill:active:not(:disabled) { transform: translateY(0); }
+  .btn-pill:disabled { opacity: .4; cursor: not-allowed; }
+  .btn-pill--solid { background: var(--acc); color: var(--color-void); }
+  .btn-pill--solid:hover:not(:disabled) { background: color-mix(in srgb, var(--acc) 88%, #fff); }
+  .btn-pill--muted {
+    border-color: var(--console-edge); color: #9fb39a;
+    background: color-mix(in srgb, #9fb39a 6%, transparent);
+  }
+  .btn-pill--muted:hover:not(:disabled) {
+    border-color: #4a5f47; color: #cfe0c9;
+    background: color-mix(in srgb, #9fb39a 12%, transparent); box-shadow: none;
+  }
+
+  /* LCARS rail — the bridge nav across every /a room */
+  .lcars-rail { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .lcars-cap {
+    display: inline-flex; align-items: center; gap: .5em;
+    min-height: 44px; padding: 0 18px;
+    border-radius: 22px 8px 8px 22px;
+    background: linear-gradient(180deg, #223318, #131d0d);
+    border: 1.5px solid color-mix(in srgb, var(--color-neon) 55%, var(--console-edge));
+    color: var(--color-neon);
+    font-family: var(--font-pixel);
+    font-size: 9px; letter-spacing: .08em; text-transform: uppercase;
+    transition: border-color .2s ease, box-shadow .2s ease;
+  }
+  .lcars-cap:hover {
+    border-color: var(--color-neon);
+    box-shadow: 0 0 0 1px var(--color-neon), 0 10px 24px -16px var(--color-neon);
+  }
+  .lcars-tabs { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+  .lcars-tab {
+    display: inline-flex; align-items: center; gap: .45em;
+    min-height: 44px; padding: 0 15px;
+    border-radius: 999px;
+    border: 1.5px solid color-mix(in srgb, var(--acc) 38%, var(--console-edge));
+    background: color-mix(in srgb, var(--acc) 7%, #0b110a);
+    color: color-mix(in srgb, var(--acc) 82%, #dfe8db);
+    font-family: var(--font-pixel);
+    font-size: 9px; letter-spacing: .05em; text-transform: uppercase;
+    transition: transform .12s ease, border-color .2s ease, background-color .2s ease,
+      box-shadow .2s ease, color .2s ease;
+  }
+  .lcars-tab:hover {
+    transform: translateY(-1px);
+    border-color: var(--acc);
+    background: color-mix(in srgb, var(--acc) 15%, #0b110a);
+  }
+  .lcars-tab[aria-current="page"] {
+    background: var(--acc); color: var(--color-void); border-color: var(--acc);
+    box-shadow: 0 0 0 1px var(--acc), 0 8px 22px -12px var(--acc);
+  }
+  .lcars-readout {
+    margin-left: auto;
+    display: inline-flex; align-items: center; gap: 8px; padding-left: 4px;
+    font-family: var(--font-console);
+    font-size: 10px; letter-spacing: .18em; text-transform: uppercase;
+    font-variant-numeric: tabular-nums;
+    color: #7f9578;
+  }
+  .lcars-readout__seg {
+    padding: 5px 9px; border-radius: 6px;
+    background: color-mix(in srgb, var(--color-neon) 10%, #0b110a);
+    color: color-mix(in srgb, var(--color-neon) 80%, #dfe8db);
+  }
+
+  /* LCARS section eyebrow — a rounded, segmented colour bar + mono label */
+  .lcars-eyebrow {
+    display: flex; align-items: center; gap: 10px;
+    font-family: var(--font-pixel);
+    font-size: 10px; letter-spacing: .16em; text-transform: uppercase;
+    line-height: 1.4;
+    color: color-mix(in srgb, var(--acc) 70%, #b9c7b3);
+  }
+  .lcars-eyebrow::before {
+    content: ""; flex: none;
+    width: 52px; height: 12px; border-radius: 6px;
+    background: linear-gradient(90deg, var(--acc) 0 62%, transparent 62% 72%, var(--acc) 72% 100%);
+  }
+
+  /* focus-visible for every console control */
+  .btn-pill:focus-visible,
+  .lcars-tab:focus-visible,
+  .lcars-cap:focus-visible,
+  .console-card:focus-visible {
+    outline: 2px solid var(--color-cyan);
+    outline-offset: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .console-card, a.console-card:hover, .console-card--hover:hover,
+  .btn-pill, .btn-pill:hover:not(:disabled),
+  .lcars-tab, .lcars-tab:hover, .lcars-cap {
+    transform: none;
+    transition: border-color .2s ease, box-shadow .2s ease, background-color .2s ease;
+  }
+}
