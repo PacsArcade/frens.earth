@@ -33,6 +33,13 @@ export const CONSOLE_ROOMS: ConsoleRoom[] = [
     accent: "border-coin/50 text-coin",
   },
   {
+    key: "decisions",
+    href: "/a/decisions",
+    label: "DECISIONS",
+    blurb: "pending rulings as action cards — Number One recommends, you record",
+    accent: "border-pink/50 text-pink",
+  },
+  {
     key: "spaces",
     href: "/a/spaces",
     label: "SPACES NODE",

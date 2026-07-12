@@ -14,6 +14,16 @@ export interface ShipLogEntry {
 
 export const SHIP_LOG: ShipLogEntry[] = [
   {
+    height: 957728,
+    title: "THE BRIEFINGS GROW A BUTTON",
+    bullets: [
+      "The admiral's ask, actioned (0018.04.16 a₿: the briefings are good data but 'i wish it was actionable — i want to be prompted with the actions, and some recommendations, all from the web GUI'). New DECISIONS room at /a/decisions: the pending rulings surface as ACTION CARDS — the question big, the context line, the options as selectable chips, and one click to record. No more reading a briefing and wondering what to do with it",
+      "Number One recommends on every card: the recommended option wears a ✦ RECOMMENDED badge in neon with a plain-words why, so the call comes with a reason attached. Ten rulings seeded (THE DESK's name, the arrow law, the satoshi mark, the BFT README front door, the historian's name, the flagship format, ranks & access, onecocreation, the media-page money gold, the beat-index canon) — each carrying its recommendation, committed as defaults so the board stands up with zero infra",
+      "lib/decisions is the ship's-log pattern turned interactive: SEED_DECISIONS are committed (the board IS the record), and a recorded choice is the only thing that hits a store — dual-driver like tickets (Vercel Blob in prod, data/decisions.json in dev, gitignored). recordDecision validates the choice against the decision's own options and block-stamps it; listDecisions merges the recorded rulings over the seeds. Operator-cookie-gated both ways at /api/admin/decisions",
+      "Decided rulings collapse into a BFT-stamped list (the block IS the timestamp); honest empty state when the board's clear ('no decisions waiting 🌱'). Registered on the console manifest, so the deck card + bridge rail picked it up with no re-code — the module pattern holding",
+    ],
+  },
+  {
     height: 957661,
     title: "COPY A ₿ WITHOUT LEAVING HOME",
     bullets: [
