@@ -35,12 +35,14 @@ export default function BftClock() {
       });
       /* the ring fills like the mempool fills (Pac): live vsize against one
          block's worth (~1 MvB). Full ring = the next block is packed.
-         Tick tock, it all comes back to the block. */
-      fetch("https://mempool.space/api/mempool", { cache: "no-store" })
+         Tick tock, it all comes back to the block. Reads through the fleet's
+         own door — /api/chain/tip, the admiral's configured node — not
+         mempool.space directly (sovereignty fix, 2026-07-11). */
+      fetch("/api/chain/tip", { cache: "no-store" })
         .then((r) => (r.ok ? r.json() : null))
-        .then((m) => {
-          if (alive && m && typeof m.vsize === "number") {
-            setFill(Math.max(0.02, Math.min(1, m.vsize / 1_000_000)));
+        .then((d) => {
+          if (alive && d?.ok && typeof d.mempoolVsize === "number") {
+            setFill(Math.max(0.02, Math.min(1, d.mempoolVsize / 1_000_000)));
           }
         })
         .catch(() => {

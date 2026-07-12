@@ -131,9 +131,13 @@ export function deriveTraits(bornBlock: number, name: string): BuddyTraits {
 }
 
 /**
- * Best-effort current block height, "tied to bitcoin": fetch the real chain tip
- * from mempool.space, falling back to a genesis-anchored estimate (~10 min/block)
- * if the network is unavailable. Cached briefly so a page doesn't hammer the API.
+ * Best-effort current block height, "tied to bitcoin". Sovereignty fix (the
+ * admiral, 2026-07-11): read the tip from the fleet's OWN door — the same-origin
+ * /api/chain/tip proxy, which reads the admiral's configured mempool node (its
+ * own instance when pointed, the public mempool.space only as a fallback). If
+ * the proxy is unreachable (e.g. server-side render, offline), fall back to a
+ * direct mempool.space read, then to a genesis-anchored estimate (~10 min/block).
+ * Cached briefly so a page doesn't hammer anything.
  */
 let _tipCache: { height: number; at: number } | null = null;
 
@@ -151,6 +155,23 @@ export interface BlockInfo {
 export async function currentBlockInfo(): Promise<BlockInfo> {
   const now = Date.now();
   if (_tipCache && now - _tipCache.at < 60_000) return { height: _tipCache.height, estimated: false };
+
+  // the fleet's own door first — /api/chain/tip reads the configured node
+  try {
+    const res = await fetch("/api/chain/tip", { cache: "no-store" });
+    if (res.ok) {
+      const d = await res.json();
+      if (d?.ok && Number.isFinite(d.height) && d.height > 0) {
+        _tipCache = { height: d.height, at: now };
+        return { height: d.height, estimated: false };
+      }
+    }
+  } catch {
+    /* proxy unreachable (SSR / offline) → try the direct read below */
+  }
+
+  // fallback: direct mempool.space read (relative fetch can't resolve
+  // server-side, and the proxy may be down) — keeps the clock ticking
   try {
     const res = await fetch("https://mempool.space/api/blocks/tip/height", { cache: "no-store" });
     if (res.ok) {

@@ -40,6 +40,22 @@ only, honest states, the record is the drill. Owner: the admiral + crew.*
    - **done when**: `blocks == headers`, lightning height matches, balance
      honest, height logged
 
+3. **Self-host mempool.space on the VPS — stop phoning a third party**
+   Opened ▣ 957,660 · 0018.04.15 a₿, from the admiral's sovereignty fix. The
+   fleet now reads the block tip + mempool fill through a CONFIGURABLE chain
+   node (`mempoolUrl`, GUI-editable at `/a/mempool`), with the public
+   mempool.space only as the fallback. The node itself is the last piece:
+   - [ ] stand up mempool.space on the VPS against our own bitcoind (the
+         mempool/mempool Docker stack → REST at `/api/blocks/tip/height` and
+         `/api/mempool`, the shape the fleet already reads)
+   - [ ] skin it in Pac's Arcade branding (the mempool frontend is a config +
+         theme fork — same "wear your own name" drill as orbee/Element)
+   - [ ] point `mempoolUrl` at it from `/a/mempool` (POINT · SAVE · TEST) and
+         confirm the panel reads REACHABLE with a real tip — the fleet stops
+         phoning a third party
+   - **done when**: `/a/mempool` shows YOUR NODE — SAVED HERE, the tip matches
+     the chain, and the BftClock + /bb read through it (source ≠ `default`)
+
 ## Drill log
 
 | stamp (▣ height · BFT) | drill | result |
