@@ -16,6 +16,12 @@ export default function EarthFooter() {
         </a>{" "}
         · A 501(C)(3) NON-PROFIT
       </p>
+      {/* Discoverable, not loud: glyphs + brand assets + a press blurb, all on-site. */}
+      <p className="mt-3 font-pixel text-[10px] leading-relaxed text-white/30">
+        <a href="/media" className="hover:text-cyan hover:glow-cyan">
+          MEDIA / PRESS
+        </a>
+      </p>
     </footer>
   );
 }
