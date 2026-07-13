@@ -15,7 +15,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "reset:registry": "node scripts/reset-registry.mjs"
+    "reset:registry": "node scripts/reset-registry.mjs",
+    "sync:briefs": "node scripts/sync-briefs.mjs"
   },
   "dependencies": {
     "@pacsarcade/arcade-ui": "https://github.com/PacsArcade/arcade-ui/archive/6a316acd46dee7dff19634746cc91abf4ed9cda0.tar.gz",

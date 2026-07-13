@@ -25,7 +25,7 @@ export const CONSOLE_SITE = {
 };
 
 /**
- * The console is SCAR — four tabs, collapsed from the old eight rooms. The
+ * The console is SCAR — five tabs, collapsed from the old eight rooms. The
  * land page (/a) is ACTION ITEMS. Accents honour the house colour law (gold =
  * money ONLY, so no coin here): pink = your action, neon = live/test, cyan =
  * systems. Adding a tab is still one entry; AdminNav + the tabs render from
@@ -60,5 +60,13 @@ export const CONSOLE_ROOMS: ConsoleRoom[] = [
     label: "DRESSING ROOM",
     blurb: "brand cartridges + the cert foundry shelf — preview candidate looks",
     accent: "border-pink/50 text-pink",
+  },
+  {
+    key: "briefs",
+    href: "/a/briefs",
+    label: "BRIEFS LIBRARY",
+    blurb: "the design briefs as reviewable tickets — read, comment, sign off (private)",
+    // cyan = systems/reference (the library surface); gold = money only (Pac's house law)
+    accent: "border-cyan/50 text-cyan",
   },
 ];

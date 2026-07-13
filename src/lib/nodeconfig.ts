@@ -33,6 +33,12 @@ export interface NodeConfig {
       admiral never has to touch deployment env (Pac, 2026-07-11). */
   githubToken: string;
   githubRepo: string;
+  /** The PRIVATE briefs repo the library pulls from (captains-only). Not a
+      secret (just owner/name + branch) — the SAME githubToken above reads it
+      (needs Contents:read on it). The brief CONTENT never lands in this public
+      repo; the pull writes it straight into the dual-driver briefs store. */
+  briefsRepo: string;
+  briefsBranch: string;
   /** Chain-data node — the mempool.space REST API the fleet reads block tip +
       mempool fill from. Sovereignty fix (the admiral, 2026-07-11): don't
       hardcode a third party. Point this at Pac's Arcade's OWN self-hosted
@@ -54,6 +60,8 @@ const EMPTY: NodeConfig = {
   chatUrl: "",
   githubToken: "",
   githubRepo: "",
+  briefsRepo: "",
+  briefsBranch: "",
   mempoolUrl: "",
   deployHook: "",
   ceremony: { certTemplate: "bft-auto", welcomeMessage: "" },
@@ -169,5 +177,17 @@ export async function effectiveGithub(): Promise<{ repo: string; token: string }
   return {
     repo: c.githubRepo || process.env.GITHUB_REPO?.trim() || "PacsArcade/frens.earth",
     token: c.githubToken || process.env.GITHUB_TOKEN?.trim() || "",
+  };
+}
+
+/** The private briefs repo the library pulls from — stored config first, env
+    bootstrap second, the house default last. The token comes from
+    effectiveGithub() (the same connected PAT the merge queue uses); this only
+    names WHERE to read. A fresh fork points it at its own captains-only repo. */
+export async function effectiveBriefsRepo(): Promise<{ repo: string; branch: string }> {
+  const c = await readNodeConfig();
+  return {
+    repo: c.briefsRepo || process.env.BRIEFS_REPO?.trim() || "PacsArcade/frens-briefs",
+    branch: c.briefsBranch || process.env.BRIEFS_BRANCH?.trim() || "main",
   };
 }
