@@ -18,6 +18,8 @@ function masked(c: NodeConfig) {
     githubTokenSet: !!c.githubToken || !!process.env.GITHUB_TOKEN?.trim(),
     briefsRepo: c.briefsRepo, // owner/name, not a secret — no masking
     briefsBranch: c.briefsBranch,
+    sharedBriefsRepo: c.sharedBriefsRepo, // owner/name, not a secret — no masking
+    sharedBriefsBranch: c.sharedBriefsBranch,
     mempoolUrl: c.mempoolUrl, // a URL, not a secret — no masking
     ceremony: c.ceremony,
     envFallback: {
@@ -56,6 +58,8 @@ export async function PUT(request: Request) {
   if (typeof body.githubRepo === "string") patch.githubRepo = body.githubRepo.trim();
   if (typeof body.briefsRepo === "string") patch.briefsRepo = body.briefsRepo.trim();
   if (typeof body.briefsBranch === "string") patch.briefsBranch = body.briefsBranch.trim();
+  if (typeof body.sharedBriefsRepo === "string") patch.sharedBriefsRepo = body.sharedBriefsRepo.trim();
+  if (typeof body.sharedBriefsBranch === "string") patch.sharedBriefsBranch = body.sharedBriefsBranch.trim();
   if (typeof body.mempoolUrl === "string") patch.mempoolUrl = body.mempoolUrl.trim();
   if (body.ceremony && typeof body.ceremony === "object") {
     patch.ceremony = {

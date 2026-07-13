@@ -33,12 +33,19 @@ export interface NodeConfig {
       admiral never has to touch deployment env (Pac, 2026-07-11). */
   githubToken: string;
   githubRepo: string;
-  /** The PRIVATE briefs repo the library pulls from (captains-only). Not a
-      secret (just owner/name + branch) — the SAME githubToken above reads it
-      (needs Contents:read on it). The brief CONTENT never lands in this public
-      repo; the pull writes it straight into the dual-driver briefs store. */
+  /** The PRIVATE briefs repo the library pulls from (captains-only) — the
+      "personal" tier. Not a secret (just owner/name + branch) — the SAME
+      githubToken above reads it (needs Contents:read on it). The brief CONTENT
+      never lands in this public repo; the pull writes it straight into the
+      dual-driver briefs store. */
   briefsRepo: string;
   briefsBranch: string;
+  /** The SHARED (public) briefs repo — the "shared" tier. Pulled via the public
+      GitHub API with NO token (captains need no key for these). Just owner/name
+      + branch. Honest empty/not-found state until this repo exists. The content
+      still lands only in the gitignored/blob store, never in this public repo. */
+  sharedBriefsRepo: string;
+  sharedBriefsBranch: string;
   /** Chain-data node — the mempool.space REST API the fleet reads block tip +
       mempool fill from. Sovereignty fix (the admiral, 2026-07-11): don't
       hardcode a third party. Point this at Pac's Arcade's OWN self-hosted
@@ -62,6 +69,8 @@ const EMPTY: NodeConfig = {
   githubRepo: "",
   briefsRepo: "",
   briefsBranch: "",
+  sharedBriefsRepo: "",
+  sharedBriefsBranch: "",
   mempoolUrl: "",
   deployHook: "",
   ceremony: { certTemplate: "bft-auto", welcomeMessage: "" },
@@ -189,5 +198,17 @@ export async function effectiveBriefsRepo(): Promise<{ repo: string; branch: str
   return {
     repo: c.briefsRepo || process.env.BRIEFS_REPO?.trim() || "PacsArcade/frens-briefs",
     branch: c.briefsBranch || process.env.BRIEFS_BRANCH?.trim() || "main",
+  };
+}
+
+/** The SHARED (public) briefs repo the library pulls from — stored config
+    first, env bootstrap second, the house default last. Pulled with NO token
+    (public read), so a captain needs no key for these. A fresh fork points it
+    at its own public briefs repo; unset falls through to frens-briefs-public. */
+export async function effectiveSharedBriefsRepo(): Promise<{ repo: string; branch: string }> {
+  const c = await readNodeConfig();
+  return {
+    repo: c.sharedBriefsRepo || process.env.SHARED_BRIEFS_REPO?.trim() || "PacsArcade/frens-briefs-public",
+    branch: c.sharedBriefsBranch || process.env.SHARED_BRIEFS_BRANCH?.trim() || "main",
   };
 }

@@ -64,6 +64,10 @@ next-env.d.ts
 
 # briefs library — INTERNAL strategy, NEVER committed to this PUBLIC repo. Brief
 # content lives only in the dual-driver store: gitignored local data (dev) /
-# Vercel Blob (prod), pulled from the private captains-only repo. Reviews too.
+# Vercel Blob (prod), pulled from the repos. Reviews too. Both tiers: the
+# personal (private repo) store AND the shared (public repo) store — neither
+# tier's content is ever tracked by this public repo.
 /data/briefs/
 /data/brief-reviews.json
+/data/briefs-shared/
+/data/brief-reviews-shared.json
