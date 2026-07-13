@@ -22,6 +22,9 @@ export interface DecisionOption {
   key: string;
   label: string;
   note?: string;
+  /** an asset to view before voting — opens in a new tab (the admiral can't
+      vote on an asset they can't see). */
+  link?: string;
 }
 
 export type DecisionStatus = "open" | "decided";
@@ -129,8 +132,18 @@ export const SEED_DECISIONS: Decision[] = [
     context: "The landing needs a shape — hero, ceremony, or both.",
     source: "the flagship page",
     options: [
-      { key: "dark-earth", label: "Dark Earth", note: "the atmospheric hero" },
-      { key: "registration-ceremony", label: "Registration Ceremony", note: "claim-your-tag as the act" },
+      {
+        key: "dark-earth",
+        label: "Dark Earth",
+        note: "the atmospheric hero",
+        link: "https://claude.ai/code/artifact/4bf037db-6c64-4d88-b8a8-6cae98b9427b",
+      },
+      {
+        key: "registration-ceremony",
+        label: "Registration Ceremony",
+        note: "claim-your-tag as the act",
+        link: "https://claude.ai/code/artifact/b3113041-fa0a-4c61-b571-6de0222ba586",
+      },
       { key: "hybrid", label: "Hybrid", note: "hero on top, ceremony below" },
     ],
     recommendation: "hybrid",
@@ -150,20 +163,6 @@ export const SEED_DECISIONS: Decision[] = [
     recommendation: "session",
     recommendationWhy:
       "A dedicated session — per the admiral's own note. Ranks touch every gate; map them whole rather than sketch them between other work.",
-    status: "open",
-  },
-  {
-    id: "onecocreation",
-    question: "How do we handle onecocreation?",
-    context: "The onecocreation brand — is there a real domain, or do we build one?",
-    source: "onecocreation brand",
-    options: [
-      { key: "from-scratch", label: "From-scratch brand-kit build", note: "make the identity ourselves" },
-      { key: "confirm-domain", label: "Confirm a real domain the admiral owns", note: "point at an existing property first" },
-    ],
-    recommendation: "from-scratch",
-    recommendationWhy:
-      "Flag first: the plural onecocreations.com doesn't resolve, and the singular is an unrelated business. No domain to inherit — a from-scratch brand kit is the honest path.",
     status: "open",
   },
   {

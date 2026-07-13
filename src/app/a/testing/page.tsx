@@ -3,25 +3,26 @@ import { headers } from "next/headers";
 import OperatorGate from "@/components/OperatorGate";
 import AdminNav from "@/components/AdminNav";
 import MergeQueue from "@/components/MergeQueue";
-import DecisionsPanel from "@/components/DecisionsPanel";
+import TicketsPanel from "@/components/TicketsPanel";
+import ShipsLog from "@/components/ShipsLog";
 import { operatorFromCookieHeader, operatorsConfigured } from "@/lib/operator-auth";
 import { CONSOLE_SITE } from "@/lib/console";
 
 /**
- * ACTION ITEMS — SCAR's landing tab and the admiral's signature desk. Two
- * stacks, both one signature from done: the APPROVALS queue (open PRs waiting
- * to merge, plus the ConnectGithub setup) up top, the DECISION BOARD below.
- * Everything here needs the admiral's key; the node/connection rooms live one
- * tab over. Same key-is-the-operator gate as every /a tab.
+ * BUG TESTING — the crew's side of SCAR, after a signature lands. The IN FLIGHT
+ * section (signed → deployed → test-now, with FEEDBACK / SUBMIT A BUG / CLOSE
+ * OUT) up top, the DUTY ROSTER (frens' tickets — claim/work/resolve) in the
+ * middle, and the SHIP'S LOG of what shipped below. Same key-is-the-operator
+ * gate as every /a tab.
  */
 export const metadata: Metadata = {
-  title: "Action items — frens.earth admin",
+  title: "Bug testing — frens.earth admin",
   robots: { index: false, follow: false },
 };
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminActionItemsPage() {
+export default async function AdminTestingPage() {
   const cookie = (await headers()).get("cookie");
   const operator = operatorFromCookieHeader(cookie);
   if (!operator) {
@@ -29,19 +30,19 @@ export default async function AdminActionItemsPage() {
   }
   return (
     <main className="min-h-screen console-ground">
-      <AdminNav current="action" />
+      <AdminNav current="testing" />
       <div className="mx-auto max-w-3xl px-6 pb-4 pt-10">
-        <p className="lcars-eyebrow mb-3" data-accent="pink">
+        <p className="lcars-eyebrow mb-3" data-accent="neon">
           OPERATOR CONSOLE · {CONSOLE_SITE.domain.toUpperCase()}
         </p>
-        <h1 className="mb-3 font-arcade text-4xl text-cyan glow-cyan">ACTION ITEMS</h1>
+        <h1 className="mb-3 font-arcade text-4xl text-cyan glow-cyan">BUG TESTING</h1>
         <p className="font-body text-sm text-white/55">
-          Everything that needs your signature — the approvals queue up top, the decision board
-          below.
+          Signed &amp; shipped — test it live, work the board, and read what the crew shipped.
         </p>
       </div>
-      <MergeQueue mode="approvals" />
-      <DecisionsPanel />
+      <MergeQueue mode="testing" />
+      <TicketsPanel mode="crew" />
+      <ShipsLog />
     </main>
   );
 }

@@ -2,14 +2,14 @@ import Link from "next/link";
 import { CONSOLE_ROOMS, CONSOLE_SITE } from "@/lib/console";
 
 /**
- * The bridge rail — one LCARS-style row on every /a room: the way BACK TO THE
- * SITE as the rounded "elbow" cap first (the door the deck was missing, Pac
- * 2026-07-11), then the deck, then every room from the console manifest as a
- * colour-coded pill tab. Modular by construction: rooms and site identity come
- * from src/lib/console.ts, so templated sites (pacsarcade-org, onecocreation)
- * reconfigure instead of re-code. Each tab wears its room's own accent — the
- * accent name is read straight from the manifest's Tailwind class, so no new
- * data field is needed.
+ * The SCAR rail — one LCARS-style row on every /a tab: the way BACK TO THE SITE
+ * as the rounded "elbow" cap first (the door the console was missing, Pac
+ * 2026-07-11), then the four tabs from the console manifest as colour-coded
+ * pill tabs. The land page (/a) IS the first tab (ACTION ITEMS), so there's no
+ * separate deck. Modular by construction: tabs and site identity come from
+ * src/lib/console.ts, so templated sites reconfigure instead of re-code. Each
+ * tab wears its own accent — read straight from the manifest's Tailwind class,
+ * so no new data field is needed.
  */
 
 type Accent = "coin" | "neon" | "cyan" | "pink" | "ghost";
@@ -20,16 +20,13 @@ function accentOf(cls: string): Accent {
   return (m?.[1] as Accent) ?? "cyan";
 }
 
-export default function AdminNav({ current }: { current: "deck" | string }) {
-  const tabs: { key: string; href: string; label: string; accent: Accent }[] = [
-    { key: "deck", href: "/a", label: "⚓ DECK", accent: "cyan" },
-    ...CONSOLE_ROOMS.map((r) => ({
-      key: r.key,
-      href: r.href,
-      label: r.label,
-      accent: accentOf(r.accent),
-    })),
-  ];
+export default function AdminNav({ current }: { current: string }) {
+  const tabs = CONSOLE_ROOMS.map((r) => ({
+    key: r.key,
+    href: r.href,
+    label: r.label,
+    accent: accentOf(r.accent),
+  }));
   const total = tabs.length;
   const here = tabs.findIndex((t) => t.key === current);
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -53,9 +50,9 @@ export default function AdminNav({ current }: { current: "deck" | string }) {
           </Link>
         ))}
       </div>
-      {/* numeric/label block — which room, of how many (LCARS readout) */}
+      {/* numeric/label block — which tab, of how many (LCARS readout) */}
       <p className="lcars-readout" aria-hidden>
-        <span>BRIDGE</span>
+        <span>SCAR</span>
         <span className="lcars-readout__seg">
           {pad(here < 0 ? 0 : here + 1)} / {pad(total)}
         </span>

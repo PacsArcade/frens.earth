@@ -16,6 +16,7 @@ interface DecisionOption {
   key: string;
   label: string;
   note?: string;
+  link?: string; // an asset to preview in a new tab before voting
 }
 interface Decision {
   id: string;
@@ -148,41 +149,56 @@ export default function DecisionsPanel() {
                     const isRec = o.key === d.recommendation;
                     const isPicked = picked === o.key;
                     return (
-                      <button
-                        key={o.key}
-                        onClick={() => setPicks((p) => ({ ...p, [d.id]: o.key }))}
-                        aria-pressed={isPicked}
-                        className={`block w-full rounded-lg border-2 p-3 text-left transition-colors ${
-                          isPicked
-                            ? "border-cyan bg-cyan/5"
-                            : "border-edge hover:border-cyan/50"
-                        }`}
-                      >
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span
-                            aria-hidden
-                            className={`font-mono text-sm ${isPicked ? "text-cyan" : "text-white/40"}`}
-                          >
-                            {isPicked ? "◉" : "○"}
-                          </span>
-                          <span className={`font-body text-sm ${isPicked ? "text-cyan" : "text-white/85"}`}>
-                            {o.label}
-                          </span>
-                          {isRec && (
-                            <span className="pill" data-accent="neon">
-                              ✦ RECOMMENDED
+                      <div key={o.key} className="relative">
+                        <button
+                          onClick={() => setPicks((p) => ({ ...p, [d.id]: o.key }))}
+                          aria-pressed={isPicked}
+                          className={`block w-full rounded-lg border-2 p-3 text-left transition-colors ${
+                            isPicked
+                              ? "border-cyan bg-cyan/5"
+                              : "border-edge hover:border-cyan/50"
+                          } ${o.link ? "pr-24" : ""}`}
+                        >
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span
+                              aria-hidden
+                              className={`font-mono text-sm ${isPicked ? "text-cyan" : "text-white/40"}`}
+                            >
+                              {isPicked ? "◉" : "○"}
                             </span>
+                            <span className={`font-body text-sm ${isPicked ? "text-cyan" : "text-white/85"}`}>
+                              {o.label}
+                            </span>
+                            {isRec && (
+                              <span className="pill" data-accent="neon">
+                                ✦ RECOMMENDED
+                              </span>
+                            )}
+                          </div>
+                          {o.note && (
+                            <p className="mt-1 pl-6 font-mono text-[11px] text-white/45">{o.note}</p>
                           )}
-                        </div>
-                        {o.note && (
-                          <p className="mt-1 pl-6 font-mono text-[11px] text-white/45">{o.note}</p>
+                          {isRec && (
+                            <p className="mt-2 pl-6 font-body text-xs leading-relaxed text-neon/80">
+                              {d.recommendationWhy}
+                            </p>
+                          )}
+                        </button>
+                        {/* preview the asset before voting — a sibling of the
+                            button (never nested in it), so the click opens the
+                            asset instead of selecting the option. */}
+                        {o.link && (
+                          <a
+                            href={o.link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="absolute right-3 top-3 inline-flex min-h-11 items-center font-mono text-[11px] text-cyan underline decoration-cyan/40 underline-offset-2 hover:decoration-cyan focus-visible:rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan"
+                          >
+                            ▸ SEE IT
+                          </a>
                         )}
-                        {isRec && (
-                          <p className="mt-2 pl-6 font-body text-xs leading-relaxed text-neon/80">
-                            {d.recommendationWhy}
-                          </p>
-                        )}
-                      </button>
+                      </div>
                     );
                   })}
                 </div>

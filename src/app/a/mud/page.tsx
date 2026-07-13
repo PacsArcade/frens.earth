@@ -1,31 +1,9 @@
-import type { Metadata } from "next";
-import { headers } from "next/headers";
-import OperatorGate from "@/components/OperatorGate";
-import MudPanel from "@/components/MudPanel";
-import AdminNav from "@/components/AdminNav";
-import { operatorFromCookieHeader, operatorsConfigured } from "@/lib/operator-auth";
+import { redirect } from "next/navigation";
 
 /**
- * Admin connections — connect this deployment's own P.O.K.E. MUD node. Same
- * key-is-the-operator gate as the rest of /a.
+ * The MUD node link now lives as a section on CONNECTIONS
+ * (/a/connections#mud). This old room redirects so old links don't 404.
  */
-export const metadata: Metadata = {
-  title: "MUD node — frens.earth admin",
-  robots: { index: false, follow: false },
-};
-
-export const dynamic = "force-dynamic";
-
-export default async function AdminMudPage() {
-  const cookie = (await headers()).get("cookie");
-  const operator = operatorFromCookieHeader(cookie);
-  if (!operator) {
-    return <OperatorGate configured={operatorsConfigured()} />;
-  }
-  return (
-    <main className="min-h-screen console-ground">
-      <AdminNav current="mud" />
-      <MudPanel />
-    </main>
-  );
+export default function MudRedirect() {
+  redirect("/a/connections");
 }
