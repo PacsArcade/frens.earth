@@ -40,6 +40,14 @@ export interface NodeConfig {
       dual-driver briefs store. */
   briefsRepo: string;
   briefsBranch: string;
+  /** The PERSONAL briefs token — a DEDICATED, briefs-scoped key with its own
+      place to enter it (the admiral kept hunting for one). Write-only: set via
+      the nodes PUT, masked-by-omission from the GET, like githubToken/deployHook.
+      The personal pull PREFERS this; if unset it falls back to the shared
+      merge-queue githubToken, so nothing breaks for anyone already on that. Its
+      own 90-day renewal, independent of the merge token. Fine-grained PAT with
+      Contents:read on the briefs repo. */
+  briefsToken: string;
   /** The SHARED (public) briefs repo — the "shared" tier. Pulled via the public
       GitHub API with NO token (captains need no key for these). Just owner/name
       + branch. Honest empty/not-found state until this repo exists. The content
@@ -69,6 +77,7 @@ const EMPTY: NodeConfig = {
   githubRepo: "",
   briefsRepo: "",
   briefsBranch: "",
+  briefsToken: "",
   sharedBriefsRepo: "",
   sharedBriefsBranch: "",
   mempoolUrl: "",
@@ -190,15 +199,33 @@ export async function effectiveGithub(): Promise<{ repo: string; token: string }
 }
 
 /** The private briefs repo the library pulls from — stored config first, env
-    bootstrap second, the house default last. The token comes from
-    effectiveGithub() (the same connected PAT the merge queue uses); this only
-    names WHERE to read. A fresh fork points it at its own captains-only repo. */
+    bootstrap second, the house default last. This only names WHERE to read; the
+    token comes from effectiveBriefsToken(). A fresh fork points it at its own
+    captains-only repo. */
 export async function effectiveBriefsRepo(): Promise<{ repo: string; branch: string }> {
   const c = await readNodeConfig();
   return {
     repo: c.briefsRepo || process.env.BRIEFS_REPO?.trim() || "PacsArcade/frens-briefs",
     branch: c.briefsBranch || process.env.BRIEFS_BRANCH?.trim() || "main",
   };
+}
+
+/** The token the PERSONAL briefs pull authenticates with. PREFERS the dedicated
+    briefs token (stored config first, env bootstrap second) so there's an
+    obvious, briefs-scoped place to enter a key with its own 90-day renewal; if
+    that's unset it FALLS BACK to the shared merge-queue GitHub PAT, so nothing
+    breaks for anyone already pulling on the shared token. `source` tells which
+    key answered (or `none` when neither is connected). */
+export async function effectiveBriefsToken(): Promise<{
+  token: string;
+  source: "briefs" | "github" | "none";
+}> {
+  const c = await readNodeConfig();
+  const briefs = c.briefsToken || process.env.BRIEFS_TOKEN?.trim() || "";
+  if (briefs) return { token: briefs, source: "briefs" };
+  const github = c.githubToken || process.env.GITHUB_TOKEN?.trim() || "";
+  if (github) return { token: github, source: "github" };
+  return { token: "", source: "none" };
 }
 
 /** The SHARED (public) briefs repo the library pulls from — stored config

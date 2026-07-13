@@ -8,10 +8,11 @@ import { useCallback, useEffect, useState, type ReactNode } from "react";
  * connections. Same POINT · SAVE rail as the node panels; honest fallbacks.
  *
  *   • SHARED   — a PUBLIC repo, pulled with NO token (public read).
- *   • PERSONAL — the PRIVATE captains-only repo, pulled with the console's
- *                connected GitHub PAT. The token itself lives in the shared
- *                Connect-GitHub box in the Merge Queue — we link to it, never
- *                duplicate it.
+ *   • PERSONAL — the PRIVATE captains-only repo. It has its OWN dedicated,
+ *                write-only briefs token field here (an obvious place to paste a
+ *                briefs-scoped key, with its own 90-day renewal). If that's
+ *                unset the pull falls back to the shared Merge-Queue GitHub PAT,
+ *                which we link to — never duplicate.
  *
  * The ⟳ PULL action stays on the Briefs page; this card is just the repo/branch
  * editors + honest state. Brief CONTENT never lands in this public repo either
@@ -23,6 +24,7 @@ interface NodesConfig {
   briefsBranch: string;
   sharedBriefsRepo: string;
   sharedBriefsBranch: string;
+  briefsTokenSet: boolean;
   githubTokenSet: boolean;
 }
 
@@ -89,20 +91,23 @@ export default function BriefsConnectPanel() {
           branch={config?.briefsBranch ?? ""}
           fields={{ repo: "briefsRepo", branch: "briefsBranch" }}
           onSaved={load}
-          note="Read with the console's connected GitHub PAT (needs Contents:read on it) — the SAME key the merge queue uses."
+          note="Read with the dedicated briefs token below if set, else the merge queue's connected PAT (needs Contents:read on this repo either way)."
           extra={
-            <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-edge pt-3 font-mono text-[11px]">
-              <span className="text-white/40">GITHUB TOKEN</span>
-              {config?.githubTokenSet ? (
-                <span className="text-neon">✓ CONNECTED</span>
-              ) : (
-                <span className="text-ghost">NOT CONNECTED</span>
-              )}
-              <a href="/a" className="text-cyan underline hover:text-white">
-                {config?.githubTokenSet
-                  ? "manage the key in the merge queue →"
-                  : "connect the GitHub PAT in the merge queue →"}
-              </a>
+            <div className="mt-3 space-y-3 border-t border-edge pt-3">
+              <BriefsTokenField tokenSet={config?.briefsTokenSet ?? false} onSaved={load} />
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-edge pt-3 font-mono text-[11px]">
+                <span className="text-white/40">FALLBACK · MERGE-QUEUE PAT</span>
+                {config?.githubTokenSet ? (
+                  <span className="text-neon">✓ CONNECTED</span>
+                ) : (
+                  <span className="text-ghost">NOT CONNECTED</span>
+                )}
+                <a href="/a" className="text-cyan underline hover:text-white">
+                  {config?.githubTokenSet
+                    ? "manage the key in the merge queue →"
+                    : "connect the GitHub PAT in the merge queue →"}
+                </a>
+              </div>
             </div>
           }
         />
@@ -215,6 +220,79 @@ function SourceBox({
         . {note}
       </p>
       {extra}
+      {err && <p className="mt-2 font-pixel text-[9px] uppercase text-ghost">{err}</p>}
+    </div>
+  );
+}
+
+/** The PERSONAL briefs token — its OWN dedicated place to enter a briefs-scoped
+    key (the admiral kept hunting for one). Write-only, mirroring the merge
+    token / deploy hook: we POST it and never read it back, so the UI only ever
+    knows SET / NOT SET — the value is never echoed. Same POINT · SAVE rail as
+    the repo boxes; no hardcoded hex. */
+function BriefsTokenField({ tokenSet, onSaved }: { tokenSet: boolean; onSaved: () => void }) {
+  const [token, setToken] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function save() {
+    setErr(null);
+    if (!token.trim()) {
+      setErr("paste a token first");
+      return;
+    }
+    setSaving(true);
+    try {
+      const res = await fetch("/api/admin/nodes", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ briefsToken: token.trim() }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.ok) {
+        setErr(data?.reason ?? "couldn't save — try again");
+        return;
+      }
+      setToken(""); // never keep the secret in state after it's stored
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+      onSaved();
+    } catch {
+      setErr("save hiccuped — try again");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div>
+      <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[11px]">
+        <span className="text-white/40">PERSONAL BRIEFS TOKEN</span>
+        {tokenSet ? <span className="text-neon">SET ✓</span> : <span className="text-ghost">NOT SET</span>}
+      </div>
+      <div className="flex flex-wrap items-end gap-2">
+        <label className="min-w-0 flex-1">
+          <span className="font-pixel text-[9px] uppercase text-white/40">
+            {tokenSet ? "PASTE TO REPLACE" : "PASTE TO SET"}
+          </span>
+          <input
+            value={token}
+            onChange={(e) => setToken(e.target.value)}
+            type="password"
+            placeholder="github_pat_…"
+            disabled={saving}
+            className="mt-1 w-full rounded-lg border-2 border-edge bg-void px-3 py-2 font-mono text-xs text-cyan placeholder:text-white/25 focus:border-cyan focus:outline-none disabled:opacity-50"
+          />
+        </label>
+        <button onClick={save} disabled={saving} className="button disabled:opacity-50">
+          {saving ? "SAVING…" : saved ? "✓ SAVED" : "POINT · SAVE"}
+        </button>
+      </div>
+      <p className="mt-2 font-body text-xs text-white/50">
+        Fine-grained PAT with <span className="font-mono text-white/70">frens-briefs</span> → Contents:
+        read. Stored write-only — never shown again. Empty falls back to the merge-queue PAT below.
+      </p>
       {err && <p className="mt-2 font-pixel text-[9px] uppercase text-ghost">{err}</p>}
     </div>
   );

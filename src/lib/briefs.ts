@@ -4,7 +4,7 @@ import { put, get, list } from "@vercel/blob";
 import { verifyEvent } from "nostr-tools";
 import { blobStoreEnabled } from "./registry";
 import { isOperatorHex } from "./operator-auth";
-import { effectiveGithub, effectiveBriefsRepo, effectiveSharedBriefsRepo } from "./nodeconfig";
+import { effectiveBriefsToken, effectiveBriefsRepo, effectiveSharedBriefsRepo } from "./nodeconfig";
 import { currentBlockInfo } from "./bb/bft";
 
 /**
@@ -20,9 +20,10 @@ import { currentBlockInfo } from "./bb/bft";
  * ── TWO TIERS ────────────────────────────────────────────────────────────────
  * Every brief carries a `tier`:
  *   • PERSONAL — PULLED from a private, captains-only GitHub repo (briefsRepo in
- *     the node config, default PacsArcade/frens-briefs) using the operator's
- *     connected PAT — the SAME fine-grained token the merge queue uses, which
- *     needs Contents:read on that repo.
+ *     the node config, default PacsArcade/frens-briefs) using the DEDICATED
+ *     briefs token if set (its own briefs-scoped key, its own renewal), else the
+ *     merge queue's connected PAT — a fine-grained token needing Contents:read on
+ *     that repo either way.
  *   • SHARED — PULLED from a PUBLIC GitHub repo (sharedBriefsRepo, default
  *     PacsArcade/frens-briefs-public) via the public API with NO token, so
  *     captains need no key for these. Honest empty/not-found state until it
@@ -537,10 +538,12 @@ async function pullTier(
   return { ok: true, tier, repo, branch, count: slugs.length, slugs };
 }
 
-/** The PERSONAL tier — the private captains-only repo, read with the console's
-    connected PAT (Contents:read). Honest `connect-github` when no token. */
+/** The PERSONAL tier — the private captains-only repo. Reads with the DEDICATED
+    briefs token if one is set (its own briefs-scoped key), else falls back to the
+    console's connected merge-queue PAT (Contents:read either way). Honest
+    `connect-github` when NEITHER is connected. */
 export async function pullPersonalBriefs(): Promise<PullResult> {
-  const [{ token }, { repo, branch }] = await Promise.all([effectiveGithub(), effectiveBriefsRepo()]);
+  const [{ token }, { repo, branch }] = await Promise.all([effectiveBriefsToken(), effectiveBriefsRepo()]);
   if (!token) {
     return {
       ok: false,
@@ -549,7 +552,7 @@ export async function pullPersonalBriefs(): Promise<PullResult> {
       repo,
       branch,
       detail:
-        "no GitHub token connected — connect the console's PAT (needs Contents:read on the briefs repo) in the merge queue",
+        "no briefs token connected — paste a dedicated briefs token in Connections → Briefs, or connect the merge-queue PAT (needs Contents:read on the briefs repo)",
     };
   }
   return pullTier("personal", repo, branch, token);
