@@ -6,6 +6,7 @@ import {
   listAuthorizations,
   authorizeMerge,
   closeAuthorization,
+  markShipped,
   mergeExecutionEnabled,
   postNote,
   tokenExpiration,
@@ -69,7 +70,7 @@ export async function POST(request: Request) {
   if (!operatorFromCookieHeader(request.headers.get("cookie"))) {
     return Response.json({ ok: false, reason: "operator sign-in required" }, { status: 401 });
   }
-  let body: { event?: unknown; close?: unknown; note?: unknown };
+  let body: { event?: unknown; close?: unknown; note?: unknown; ship?: unknown };
   try {
     body = await request.json();
   } catch {
@@ -78,6 +79,13 @@ export async function POST(request: Request) {
   /* the close-out — cookie-gated (low stakes: it only ends the watch) */
   if (typeof body.close === "number") {
     return Response.json({ ok: await closeAuthorization(body.close) });
+  }
+  /* ▲ SHIP landed — stamp these merged records shipped so the card stays put
+     (merge ≠ live) until the deploy's build stamp carries it to Bug Testing.
+     Cookie-gated: the signed PACS-DEPLOY it rides on is verified on /deploy. */
+  if (Array.isArray(body.ship)) {
+    const prs = body.ship.filter((n): n is number => typeof n === "number");
+    return Response.json({ ok: await markShipped(prs) });
   }
   /* a signed review note — verified inside (same ladder as the merge
      authorization), recorded, and posted to GitHub when a token is on */
