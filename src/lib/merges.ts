@@ -142,6 +142,8 @@ export interface MergeAuth {
   closed?: boolean; // the change stays on the admiral's queue until closed
   kind?: "note"; // absent = merge authorization (records predating notes stay valid)
   note?: string; // the note body, exactly as signed (kind "note" entries only)
+  shipped?: boolean; // the operator has ▲ SHIPped this merge — merge ≠ live until this
+  shippedAt?: string; // when ▲ SHIP fired (ISO), for ordering/audit
 }
 
 /** The admiral's close-out — the signature OPENS a change; only the close
@@ -152,6 +154,29 @@ export async function closeAuthorization(pr: number): Promise<boolean> {
   for (const e of log) {
     if (e.pr === pr && !e.closed && e.kind !== "note") {
       e.closed = true;
+      hit = true;
+    }
+  }
+  if (hit) await writeLog(log);
+  return hit;
+}
+
+/** ▲ SHIP — mark the given merged changes as shipped. The operator's one deploy
+    ships the current main (every merged-pending change together), so we stamp
+    each un-shipped merged record `shipped:true` here. This is what keeps a
+    merged card on Action Items until it's explicitly shipped — merge ≠ live —
+    and then, once the new build's stamp overtakes the merge time, it crosses to
+    Bug Testing. Recorded, not fragile: an unrelated redeploy can no longer yank
+    a not-yet-shipped card off the board. */
+export async function markShipped(prs: number[]): Promise<boolean> {
+  const want = new Set(prs);
+  const log = await readLog();
+  const at = new Date().toISOString();
+  let hit = false;
+  for (const e of log) {
+    if (e.kind !== "note" && !e.closed && e.merged && want.has(e.pr) && !e.shipped) {
+      e.shipped = true;
+      e.shippedAt = at;
       hit = true;
     }
   }
@@ -244,6 +269,7 @@ export async function authorizeMerge(event: {
     sig: event.sig,
     at: new Date().toISOString(),
     merged: false,
+    shipped: false, // merge ≠ live: the record is kept, un-shipped, so the card stays
   };
 
   const gh = await ghContext();

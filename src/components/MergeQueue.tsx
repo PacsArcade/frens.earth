@@ -47,6 +47,7 @@ interface MergeAuth {
   closed?: boolean;
   kind?: "note"; // absent = merge authorization
   note?: string; // the note body, exactly as signed
+  shipped?: boolean; // ▲ SHIPped — merge ≠ live, so the card stays until this
 }
 interface PrFile {
   file: string;
@@ -98,12 +99,15 @@ function linkifyBrief(text: string): ReactNode[] {
     verifies = cyan, everything downstream = live/neon), the rest hollow. Ties
     the whole card to the one journey a change takes. */
 const STAGES = ["MERGE", "SHIP", "LIVE", "TEST"] as const;
-function StageStrip({ current }: { current: number }) {
+function StageStrip({ current, busy }: { current: number; busy?: boolean }) {
   return (
     <div className="mb-2 flex flex-wrap items-center gap-x-1.5 gap-y-1 font-mono text-[9px] uppercase tracking-widest">
       {STAGES.map((s, i) => {
         const state = i < current ? "done" : i === current ? "active" : "pending";
-        const mark = state === "done" ? "✓" : state === "active" ? "●" : "○";
+        // the active stage can be mid-flight (a merge/deploy in progress) — a
+        // pulsing ◐ + trailing … reads as "working" without a new colour token.
+        const working = busy && state === "active";
+        const mark = state === "done" ? "✓" : working ? "◐" : state === "active" ? "●" : "○";
         const tone =
           state === "pending"
             ? "text-white/25"
@@ -115,8 +119,9 @@ function StageStrip({ current }: { current: number }) {
         return (
           <span key={s} className="flex items-center gap-1.5">
             {i > 0 && <span className="text-white/20" aria-hidden>→</span>}
-            <span className={tone}>
+            <span className={`${tone}${working ? " animate-pulse" : ""}`}>
               {mark} {s}
+              {working ? "…" : ""}
             </span>
           </span>
         );
@@ -131,6 +136,10 @@ export default function MergeQueue({ mode }: { mode?: "approvals" | "testing" })
   const [canExecute, setCanExecute] = useState(false);
   const [setup, setSetup] = useState<string | null>(null);
   const [busyPr, setBusyPr] = useState<number | null>(null);
+  /* optimistic MERGING — the PRs whose merge the operator just authorized. The
+     card flips to a MERGING… indicator the instant they sign, before the API
+     answers, and holds it until load() carries the card into the ship stage. */
+  const [merging, setMerging] = useState<Set<number>>(new Set());
   const [note, setNote] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
@@ -257,6 +266,14 @@ export default function MergeQueue({ mode }: { mode?: "approvals" | "testing" })
   const bakedBuiltAt = process.env.NEXT_PUBLIC_BUILD_AT ?? "";
   const builtAt = serverBuiltAt || bakedBuiltAt;
   const isLive = (x: MergeAuth) => !!builtAt && x.at < builtAt;
+  /* merge ≠ live: a change only leaves Action Items once the operator has
+     explicitly ▲ SHIPped it. `shipped` is the persisted flag; records that
+     predate it fall back to the old build-stamp check so already-deployed
+     changes stay in Bug Testing. A NOT-yet-shipped merge stays on the ship
+     stage no matter what the build stamp says — an unrelated redeploy can't
+     yank it off the board anymore. */
+  const isShipped = (x: MergeAuth) => x.shipped === true || (x.shipped === undefined && isLive(x));
+  const deployedLive = (x: MergeAuth) => isShipped(x) && isLive(x);
 
   const latestByPr = new Map<number, MergeAuth>();
   for (const x of auths) if (!x.closed && x.kind !== "note") latestByPr.set(x.pr, x);
@@ -264,17 +281,23 @@ export default function MergeQueue({ mode }: { mode?: "approvals" | "testing" })
     (x) => x.merged && !(prs ?? []).some((p) => p.number === x.pr),
   );
 
-  /* the placement rule — not-live merged → Action Items (ship stage), live
-     merged → Bug Testing (test stage). A card the session just watched go live
-     lingers on Action Items with a LIVE ✓ until the next load carries it over. */
-  const shipStage = inFlight.filter((x) => !isLive(x) || wentLive.has(x.pr));
-  const testStage = inFlight.filter((x) => isLive(x));
+  /* the placement rule — merged-but-not-(shipped-and-live) → Action Items (ship
+     stage: SHIP lit, or DEPLOYING while the build catches up); shipped + live →
+     Bug Testing (test stage). A card the session just watched go live lingers on
+     Action Items with a LIVE ✓ until the next load carries it over. */
+  const shipStage = inFlight.filter((x) => !deployedLive(x) || wentLive.has(x.pr));
+  const testStage = inFlight.filter((x) => deployedLive(x));
+  /* a shipped change whose build hasn't overtaken it yet — keep the live-watch
+     polling even across a reload (deploying is session-only; shipped persists). */
+  const awaitingLive = inFlight.some((x) => x.shipped === true && !isLive(x));
 
-  /* while a ship is in flight, poll the queue (~every 12s, capped ~2.5 min) so
-     the server build stamp — and with it MERGED → LIVE — can update without a
-     manual reload. Don't hammer; stop the moment deploying clears. */
+  /* poll the queue (~every 12s, capped ~2.5 min per run) while a ship is in
+     flight — this session (`deploying`) OR a persisted shipped-but-not-live
+     record (`awaitingLive`, so the watch resumes after a reload) — so the
+     server build stamp, and with it MERGED → LIVE, updates without a manual
+     reload. Don't hammer; stop the moment there's nothing left to watch. */
   useEffect(() => {
-    if (!deploying) return;
+    if (!deploying && !awaitingLive) return;
     let ticks = 0;
     const iv = setInterval(() => {
       ticks += 1;
@@ -285,7 +308,7 @@ export default function MergeQueue({ mode }: { mode?: "approvals" | "testing" })
       }
     }, 12000);
     return () => clearInterval(iv);
-  }, [deploying, load]);
+  }, [deploying, awaitingLive, load]);
 
   /* detect the crossing: for each change this session shipped, once the running
      build post-dates its merge, mark it LIVE ✓ and end the deploy watch. */
@@ -344,6 +367,15 @@ export default function MergeQueue({ mode }: { mode?: "approvals" | "testing" })
       setBusyPr(null);
       return;
     }
+    /* authorized — flip the card to MERGING… now, before the API answers, so the
+       merge never looks like it vanished mid-flight. */
+    const clearMerging = () =>
+      setMerging((prev) => {
+        const next = new Set(prev);
+        next.delete(pr.number);
+        return next;
+      });
+    setMerging((prev) => new Set(prev).add(pr.number));
     try {
       const res = await fetch("/api/admin/merges", {
         method: "POST",
@@ -353,12 +385,17 @@ export default function MergeQueue({ mode }: { mode?: "approvals" | "testing" })
       const data = await res.json().catch(() => null);
       if (!res.ok || !data?.ok) {
         setErr(data?.reason ?? `the server hiccuped (HTTP ${res.status}) — your signature was fine`);
+        clearMerging();
         return;
       }
       setNote(`PR #${data.pr}: ${data.note}`);
-      load();
+      /* let load() carry the card from the open list into the ship stage, then
+         drop the optimistic flag — the retained merged record holds it now. */
+      await load();
+      clearMerging();
     } catch {
       setErr("couldn't reach the server — check your connection and try again");
+      clearMerging();
     } finally {
       setBusyPr(null);
     }
@@ -403,8 +440,18 @@ export default function MergeQueue({ mode }: { mode?: "approvals" | "testing" })
         return;
       }
       setNote("▲ shipping all merged changes to production — watching for LIVE…");
-      setShippedThisSession(new Set(shipStage.map((x) => x.pr)));
+      const shippedPrs = shipStage.map((x) => x.pr);
+      setShippedThisSession(new Set(shippedPrs));
       setDeploying(true);
+      /* stamp the records shipped so the cards stay put (merge ≠ live) and
+         survive a reload until the build stamp carries them to Bug Testing. */
+      fetch("/api/admin/merges", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ship: shippedPrs }),
+      })
+        .then(() => load())
+        .catch(() => {});
     } catch {
       setErr("couldn't reach the server — check your connection and try again");
     } finally {
@@ -554,8 +601,9 @@ export default function MergeQueue({ mode }: { mode?: "approvals" | "testing" })
   }
 
   /** ② SHIP control on a ship-stage card. No hook wired → point at Connections;
-      wired → the lit, signing SHIP (or its deploying / live successors). */
-  function shipControl(justLive: boolean) {
+      wired → the lit, signing SHIP (or its deploying / live successors). A card
+      whose record is already `shipped` shows DEPLOYING even after a reload. */
+  function shipControl(x: MergeAuth, justLive: boolean) {
     if (justLive) {
       return (
         <span className="btn-pill btn-pill--solid" data-accent="neon" aria-disabled>
@@ -570,7 +618,7 @@ export default function MergeQueue({ mode }: { mode?: "approvals" | "testing" })
         </a>
       );
     }
-    if (deploying) {
+    if (isShipped(x) || deploying) {
       return (
         <button disabled className="btn-pill btn-pill--solid" data-accent="neon">
           ▲ DEPLOYING…
@@ -589,12 +637,15 @@ export default function MergeQueue({ mode }: { mode?: "approvals" | "testing" })
     );
   }
 
-  /** A merged change on the SHIP stage (Action Items): MERGE ✓ done, SHIP lit. */
+  /** A merged change on the SHIP stage (Action Items): MERGE ✓ done, SHIP lit.
+      Merge ≠ live — it holds here until the operator ▲ SHIPs it and the build
+      goes live, at which point it crosses to Bug Testing. */
   function shipStageCard(x: MergeAuth) {
     const justLive = wentLive.has(x.pr);
+    const shipping = isShipped(x) || deploying; // shipped & waiting for the build
     return (
       <div key={x.pr} className="console-card p-4" data-accent="neon">
-        <StageStrip current={justLive ? 3 : deploying ? 2 : 1} />
+        <StageStrip current={justLive ? 3 : shipping ? 2 : 1} busy={shipping && !justLive} />
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="min-w-0">
             <p className="font-mono text-xs tabular-nums text-white/40">
@@ -603,9 +654,9 @@ export default function MergeQueue({ mode }: { mode?: "approvals" | "testing" })
             <p className={`mt-1 font-pixel text-[10px] uppercase ${justLive ? "text-neon" : "text-cyan"}`}>
               {justLive
                 ? "◉ LIVE ✓ — now in Bug Testing"
-                : deploying
-                  ? "▲ deploying… — ships all merged changes to production"
-                  : "◌ merged — not live yet · ship it"}
+                : shipping
+                  ? "▲ shipping… — deploying to production, waiting to go live"
+                  : "◌ merged — not live yet · ready to ship"}
             </p>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2">
@@ -618,7 +669,7 @@ export default function MergeQueue({ mode }: { mode?: "approvals" | "testing" })
             <span className="btn-pill btn-pill--muted" data-accent="neon" aria-disabled>
               ① ✓ MERGED
             </span>
-            {shipControl(justLive)}
+            {shipControl(x, justLive)}
           </div>
         </div>
         {justLive ? (
@@ -716,9 +767,10 @@ export default function MergeQueue({ mode }: { mode?: "approvals" | "testing" })
           {prs.map((pr) => {
             const a = authFor(pr);
             const merged = !!a?.merged;
+            const isMerging = merging.has(pr.number); // optimistic, pre-API
             return (
               <div key={pr.number} className="console-card p-4" data-accent="cyan">
-                <StageStrip current={merged ? 1 : 0} />
+                <StageStrip current={merged ? 1 : 0} busy={isMerging && !merged} />
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="min-w-0">
                     <p className="font-mono text-xs tabular-nums text-white/40">
@@ -752,17 +804,19 @@ export default function MergeQueue({ mode }: { mode?: "approvals" | "testing" })
                     </a>
                     <button
                       onClick={() => authorize(pr)}
-                      disabled={busyPr === pr.number}
+                      disabled={busyPr === pr.number || isMerging}
                       className="btn-pill btn-pill--solid"
                       data-accent="cyan"
                     >
-                      {busyPr === pr.number
-                        ? "SIGNING…"
-                        : merged
-                          ? "① ✓ MERGED"
-                          : canExecute
-                            ? "① ✍ AUTHORIZE & MERGE"
-                            : "① ✍ AUTHORIZE"}
+                      {isMerging
+                        ? "① ◐ MERGING…"
+                        : busyPr === pr.number
+                          ? "SIGNING…"
+                          : merged
+                            ? "① ✓ MERGED"
+                            : canExecute
+                              ? "① ✍ AUTHORIZE & MERGE"
+                              : "① ✍ AUTHORIZE"}
                     </button>
                     {/* ② SHIP — present but locked until the merge lands */}
                     <button
@@ -775,8 +829,10 @@ export default function MergeQueue({ mode }: { mode?: "approvals" | "testing" })
                     </button>
                   </div>
                 </div>
-                <p className="mt-2 font-mono text-[10px] text-white/40">
-                  ② ▲ SHIP unlocks the moment this merges — merge ≠ live until you ship.
+                <p className={`mt-2 font-mono text-[10px] ${isMerging ? "text-cyan animate-pulse" : "text-white/40"}`}>
+                  {isMerging
+                    ? "◐ merging… — the card stays right here, then ② ▲ SHIP lights up."
+                    : "② ▲ SHIP unlocks the moment this merges — merge ≠ live until you ship."}
                 </p>
                 {changes[pr.number] === "loading" && (
                   <p className="mt-2 font-mono text-[10px] text-white/40">reading the changes…</p>
