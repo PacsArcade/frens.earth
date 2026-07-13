@@ -27,7 +27,7 @@ export interface DecisionOption {
   link?: string;
 }
 
-export type DecisionStatus = "open" | "decided";
+export type DecisionStatus = "open" | "revise" | "decided";
 
 export interface Decision {
   id: string;
@@ -38,8 +38,9 @@ export interface Decision {
   recommendationWhy: string;
   status: DecisionStatus;
   choice?: string; // optionKey the admiral recorded
-  note?: string; // the admiral's note at record time
+  note?: string; // the admiral's note at record time (or what-to-change on a revise)
   at?: number; // block height at record — BFT-stamped in the UI
+  revise?: boolean; // sent back for rework — a note with no choice
   source?: string; // where the ruling surfaced (topic / briefing)
 }
 
@@ -198,8 +199,9 @@ export const SEED_DECISIONS: Decision[] = [
 
 interface Ruling {
   id: string;
-  choice: string;
+  choice?: string; // absent on a revise (a note with no pick)
   note?: string;
+  revise?: boolean; // sent back for rework — carries a note + at, no choice
   at: number; // block height at record time
 }
 interface Board {
@@ -296,18 +298,24 @@ async function writeRuling(ruling: Ruling): Promise<void> {
 }
 
 /** The full board: the committed seeds, with any recorded ruling merged on top.
-    Open decisions come first, then the decided ones (most-recent block first). */
+    A ruling with a note but NO choice is a REVISE (sent back for rework); one
+    with a choice is DECIDED. Order: open first, then revise (awaiting rework),
+    then decided — each of the latter two most-recent block first. */
 export async function listDecisions(): Promise<Decision[]> {
   const ruled = new Map((await readRulings()).map((r) => [r.id, r]));
   const merged = SEED_DECISIONS.map((d) => {
     const r = ruled.get(d.id);
     if (!r) return { ...d };
+    if (r.revise && !r.choice) {
+      return { ...d, status: "revise" as const, revise: true, note: r.note, at: r.at };
+    }
     return { ...d, status: "decided" as const, choice: r.choice, note: r.note, at: r.at };
   });
+  const rank = { open: 0, revise: 1, decided: 2 } as const;
   return merged.sort((a, b) => {
-    if (a.status !== b.status) return a.status === "open" ? -1 : 1;
-    if (a.status === "decided") return (b.at ?? 0) - (a.at ?? 0);
-    return 0;
+    if (a.status !== b.status) return rank[a.status] - rank[b.status];
+    if (a.status === "open") return 0;
+    return (b.at ?? 0) - (a.at ?? 0); // revise + decided: newest block first
   });
 }
 
@@ -333,5 +341,30 @@ export async function recordDecision(
   return {
     ok: true,
     decision: { ...seed, status: "decided", choice, note: trimmed, at: height },
+  };
+}
+
+/**
+ * Send a decision back for another pass: a note with NO choice — "none of
+ * these, here's what to change." Writes a revise ruling ({ revise: true, note,
+ * at }, no choice) via the SAME per-ruling store, so it supersedes any prior
+ * ruling and the decision comes back around for a fresh decision. The note is
+ * required (it's the whole point — it tells Number One what to rework). The
+ * operator gate lives in the API route.
+ */
+export async function recordRevise(
+  id: string,
+  note: string,
+): Promise<{ ok: true; decision: Decision } | { ok: false; reason: string }> {
+  const seed = SEED_DECISIONS.find((d) => d.id === id);
+  if (!seed) return { ok: false, reason: "no such decision on the board" };
+  const trimmed = (note ?? "").trim().slice(0, 2000);
+  if (!trimmed) return { ok: false, reason: "a send-back needs a note — say what to change" };
+  const { height } = await currentBlockInfo();
+  const ruling: Ruling = { id, revise: true, note: trimmed, at: height };
+  await writeRuling(ruling);
+  return {
+    ok: true,
+    decision: { ...seed, status: "revise", revise: true, note: trimmed, at: height },
   };
 }

@@ -25,10 +25,11 @@ interface Decision {
   options: DecisionOption[];
   recommendation: string;
   recommendationWhy: string;
-  status: "open" | "decided";
+  status: "open" | "revise" | "decided";
   choice?: string;
   note?: string;
   at?: number;
+  revise?: boolean;
   source?: string;
 }
 
@@ -39,6 +40,7 @@ export default function DecisionsPanel() {
   const [picks, setPicks] = useState<Record<string, string>>({});
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState<string | null>(null);
+  const [savingKind, setSavingKind] = useState<"record" | "revise" | null>(null);
 
   const load = useCallback(async () => {
     setErr(null);
@@ -70,6 +72,7 @@ export default function DecisionsPanel() {
     setErr(null);
     setOk(null);
     setSaving(id);
+    setSavingKind("record");
     try {
       const res = await fetch("/api/admin/decisions", {
         method: "POST",
@@ -97,10 +100,56 @@ export default function DecisionsPanel() {
       setErr("couldn't reach the server — check your connection and try again");
     } finally {
       setSaving(null);
+      setSavingKind(null);
+    }
+  }
+
+  /* Send back for another pass: a note with NO pick — "none of these, here's
+     what to change." Goes back for review and comes back around as a fresh
+     decision. The note is required; the option pick is not. */
+  async function sendBack(id: string) {
+    const note = (notes[id] ?? "").trim();
+    if (!note) {
+      setErr("write a note first — tell Number One what to change");
+      return;
+    }
+    setErr(null);
+    setOk(null);
+    setSaving(id);
+    setSavingKind("revise");
+    try {
+      const res = await fetch("/api/admin/decisions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, revise: true, note }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.ok) {
+        setErr(data?.reason ?? `the server hiccuped (HTTP ${res.status}) — try again`);
+        return;
+      }
+      setOk(`sent back — ${data.decision.id}`);
+      setPicks((p) => {
+        const n = { ...p };
+        delete n[id];
+        return n;
+      });
+      setNotes((p) => {
+        const n = { ...p };
+        delete n[id];
+        return n;
+      });
+      load();
+    } catch {
+      setErr("couldn't reach the server — check your connection and try again");
+    } finally {
+      setSaving(null);
+      setSavingKind(null);
     }
   }
 
   const open = (decisions ?? []).filter((d) => d.status === "open");
+  const revise = (decisions ?? []).filter((d) => d.status === "revise");
   const decided = (decisions ?? []).filter((d) => d.status === "decided");
 
   return (
@@ -131,6 +180,7 @@ export default function DecisionsPanel() {
         <div className="space-y-4">
           {open.map((d) => {
             const picked = picks[d.id];
+            const hasNote = (notes[d.id] ?? "").trim().length > 0;
             return (
               <div key={d.id} className="console-card p-5" data-accent="pink">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -216,17 +266,71 @@ export default function DecisionsPanel() {
                   />
                 </label>
 
-                <button
-                  onClick={() => record(d.id)}
-                  disabled={!picked || saving === d.id}
-                  data-accent="neon"
-                  className="btn-pill btn-pill--solid mt-3"
-                >
-                  {saving === d.id ? "RECORDING…" : "✍ RECORD MY CHOICE"}
-                </button>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <button
+                    onClick={() => record(d.id)}
+                    disabled={!picked || saving === d.id}
+                    data-accent="neon"
+                    className="btn-pill btn-pill--solid"
+                  >
+                    {saving === d.id && savingKind === "record"
+                      ? "RECORDING…"
+                      : "✍ RECORD MY CHOICE"}
+                  </button>
+                  {/* send back for another pass — a note with NO pick. Reads as
+                      secondary to RECORD: cyan outline, not the neon solid.
+                      Enabled the moment the note has text; no option required. */}
+                  <button
+                    onClick={() => sendBack(d.id)}
+                    disabled={!hasNote || saving === d.id}
+                    data-accent="cyan"
+                    className="btn-pill"
+                  >
+                    {saving === d.id && savingKind === "revise"
+                      ? "SENDING BACK…"
+                      : "↩ SEND BACK FOR ANOTHER PASS"}
+                  </button>
+                </div>
+                {!hasNote && (
+                  <p className="mt-2 font-mono text-[11px] text-white/40">
+                    write a note first — tell Number One what to change
+                  </p>
+                )}
               </div>
             );
           })}
+        </div>
+      )}
+
+      {revise.length > 0 && (
+        <div className="mt-10">
+          <p
+            className="mb-3 font-pixel text-[10px] uppercase tracking-widest text-cyan/80"
+            data-accent="cyan"
+          >
+            ↩ SENT BACK · NUMBER ONE IS REWORKING THESE · {revise.length}
+          </p>
+          <div className="space-y-2">
+            {revise.map((d) => (
+              <div key={d.id} className="console-card p-4" data-accent="cyan">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <span className="font-mono text-[10px] uppercase text-white/30">{d.id}</span>
+                  <span className="font-mono text-[10px] text-cyan">
+                    ↩ {d.at ? bftDateTime(d.at) : "sent back"}
+                  </span>
+                </div>
+                <p className="mt-1 font-body text-sm text-white/80">{d.question}</p>
+                {d.note && (
+                  <p className="mt-2 font-mono text-[11px] leading-relaxed text-cyan/85">
+                    ▸ {d.note}
+                  </p>
+                )}
+                <p className="mt-2 font-pixel text-[9px] uppercase text-white/35">
+                  awaiting rework — comes back for another decision
+                </p>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
