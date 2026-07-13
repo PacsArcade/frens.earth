@@ -48,7 +48,7 @@ export default async function AdminActionItemsPage() {
           SHIP · SIGN TO DEPLOY THE CURRENT MAIN TO PRODUCTION — MERGE ≠ LIVE UNTIL YOU SHIP
         </p>
       </div>
-      <DeployPanel />
+      <DeployPanel mode="ship" />
     </main>
   );
 }

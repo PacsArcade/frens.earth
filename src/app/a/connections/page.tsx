@@ -6,6 +6,7 @@ import SpacesPanel from "@/components/SpacesPanel";
 import ChatPanel from "@/components/ChatPanel";
 import MudPanel from "@/components/MudPanel";
 import MempoolPanel from "@/components/MempoolPanel";
+import DeployPanel from "@/components/DeployPanel";
 import { operatorFromCookieHeader, operatorsConfigured } from "@/lib/operator-auth";
 import { CONSOLE_SITE } from "@/lib/console";
 import { SPACE_NAME } from "@/lib/identity-config";
@@ -29,6 +30,7 @@ const SECTIONS: { id: string; label: string }[] = [
   { id: "chat", label: "CHAT" },
   { id: "mud", label: "MUD" },
   { id: "chain", label: "CHAIN" },
+  { id: "deploy", label: "SHIP HOOK" },
   { id: "torrents", label: "TORRENTS" },
 ];
 
@@ -79,6 +81,10 @@ export default async function AdminConnectionsPage() {
 
       <section id="chain" className="scroll-mt-6 border-t-2 border-edge/60">
         <MempoolPanel />
+      </section>
+
+      <section id="deploy" className="scroll-mt-6 border-t-2 border-edge/60">
+        <DeployPanel mode="connect" />
       </section>
 
       <section id="torrents" className="scroll-mt-6 border-t-2 border-edge/60">
