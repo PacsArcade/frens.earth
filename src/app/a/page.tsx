@@ -4,6 +4,7 @@ import OperatorGate from "@/components/OperatorGate";
 import AdminNav from "@/components/AdminNav";
 import MergeQueue from "@/components/MergeQueue";
 import DecisionsPanel from "@/components/DecisionsPanel";
+import DeployPanel from "@/components/DeployPanel";
 import { operatorFromCookieHeader, operatorsConfigured } from "@/lib/operator-auth";
 import { CONSOLE_SITE } from "@/lib/console";
 
@@ -42,6 +43,12 @@ export default async function AdminActionItemsPage() {
       </div>
       <MergeQueue mode="approvals" />
       <DecisionsPanel />
+      <div className="mx-auto max-w-3xl px-6 pb-2">
+        <p className="lcars-eyebrow mb-2" data-accent="neon">
+          SHIP · SIGN TO DEPLOY THE CURRENT MAIN TO PRODUCTION — MERGE ≠ LIVE UNTIL YOU SHIP
+        </p>
+      </div>
+      <DeployPanel />
     </main>
   );
 }
