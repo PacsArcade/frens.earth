@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import Notice from "@/components/Notice";
 
 /**
@@ -47,6 +47,37 @@ function parseExpiry(s: string | null): Date | null {
   if (!s) return null;
   const d = new Date(s.replace(" UTC", "Z").replace(" ", "T"));
   return isNaN(d.getTime()) ? null : d;
+}
+
+/** Render a PR brief with clickable links — markdown `[label](url)` and bare
+    https URLs become NEW-TAB links, so the admiral can open the doc / RTFM item
+    to review, then come back and sign off. Everything else stays plain text
+    (the container keeps whitespace-pre-wrap, so line breaks survive). */
+function linkifyBrief(text: string): ReactNode[] {
+  const out: ReactNode[] = [];
+  const re = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)|(https?:\/\/[^\s)]+)/g;
+  let last = 0;
+  let key = 0;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text)) !== null) {
+    if (m.index > last) out.push(text.slice(last, m.index));
+    const href = (m[2] ?? m[3]) as string;
+    const label = (m[1] ?? m[3]) as string;
+    out.push(
+      <a
+        key={key++}
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="break-words text-cyan underline underline-offset-2 hover:text-white"
+      >
+        {label}
+      </a>,
+    );
+    last = re.lastIndex;
+  }
+  if (last < text.length) out.push(text.slice(last));
+  return out;
 }
 
 export default function MergeQueue() {
@@ -344,7 +375,7 @@ export default function MergeQueue() {
                       #{pr.number} · {pr.branch} · {pr.headSha.slice(0, 7)}
                       {pr.draft && <span className="pill pill--muted ml-2">DRAFT</span>}
                     </p>
-                    <p className="mt-1 font-body text-sm text-white/90">{pr.title}</p>
+                    <p className="mt-1 font-body text-base text-white/90">{pr.title}</p>
                   </div>
                   <div className="flex flex-wrap items-center justify-end gap-2">
                     <button
@@ -402,15 +433,22 @@ export default function MergeQueue() {
                         const tone =
                           letter === "A" ? "text-neon" : letter === "D" ? "text-ghost" : "text-cyan";
                         return (
-                          <div key={f.file} className="flex items-center gap-2 py-0.5 font-mono text-[11px]">
+                          <a
+                            key={f.file}
+                            href={`${pr.url.split("/pull/")[0]}/blob/${pr.headSha}/${f.file}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="open this file on GitHub to review"
+                            className="flex items-center gap-2 rounded py-0.5 font-mono text-[12px] hover:bg-white/5"
+                          >
                             <span className={`w-3 flex-none text-center font-bold ${tone}`}>{letter}</span>
                             <span className="min-w-0 flex-1 truncate">
-                              <span className="text-white/85">{base}</span>
+                              <span className="text-white/85 underline-offset-2 hover:underline">{base}</span>
                               {dir && <span className="ml-2 text-white/35">{dir}</span>}
                             </span>
                             <span className="flex-none text-neon">+{f.additions}</span>
                             <span className="flex-none text-ghost">−{f.deletions}</span>
-                          </div>
+                          </a>
                         );
                       })
                     )}
@@ -527,12 +565,14 @@ export default function MergeQueue() {
                     /* the change's own words — what the admiral tests */
                     <div className="mt-3 border-t border-edge pt-2">
                       {(briefs[x.pr] as { title: string }).title && (
-                        <p className="mb-1 font-body text-sm text-white/90">
+                        <p className="mb-1 font-body text-base text-white/90">
                           {(briefs[x.pr] as { title: string }).title}
                         </p>
                       )}
-                      <p className="whitespace-pre-wrap font-mono text-[11px] leading-relaxed text-white/65">
-                        {(briefs[x.pr] as { body: string }).body || "the proposal carried no brief — test what the title promises, and say so in feedback"}
+                      <p className="whitespace-pre-wrap break-words font-mono text-sm leading-relaxed text-white/80">
+                        {(briefs[x.pr] as { body: string }).body
+                          ? linkifyBrief((briefs[x.pr] as { body: string }).body)
+                          : "the proposal carried no brief — test what the title promises, and say so in feedback"}
                       </p>
                     </div>
                   )}
