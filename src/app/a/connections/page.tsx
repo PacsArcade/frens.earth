@@ -6,6 +6,7 @@ import SpacesPanel from "@/components/SpacesPanel";
 import ChatPanel from "@/components/ChatPanel";
 import MudPanel from "@/components/MudPanel";
 import MempoolPanel from "@/components/MempoolPanel";
+import DeployPanel from "@/components/DeployPanel";
 import { operatorFromCookieHeader, operatorsConfigured } from "@/lib/operator-auth";
 import { CONSOLE_SITE } from "@/lib/console";
 import { SPACE_NAME } from "@/lib/identity-config";
@@ -29,6 +30,7 @@ const SECTIONS: { id: string; label: string }[] = [
   { id: "chat", label: "CHAT" },
   { id: "mud", label: "MUD" },
   { id: "chain", label: "CHAIN" },
+  { id: "deploy", label: "SHIP" },
   { id: "torrents", label: "TORRENTS" },
 ];
 
@@ -79,6 +81,22 @@ export default async function AdminConnectionsPage() {
 
       <section id="chain" className="scroll-mt-6 border-t-2 border-edge/60">
         <MempoolPanel />
+      </section>
+
+      {/* SHIP — the deploy hook: the door from merged `main` to production. The
+          per-card ▲ SHIP on Action Items fires this same hook; connect it once
+          here (stored write-only). A merge is never live until a ship. */}
+      <section id="deploy" className="scroll-mt-6 border-t-2 border-edge/60">
+        <div className="mx-auto max-w-3xl px-6 pt-10">
+          <p className="mb-2 font-pixel text-[10px] uppercase tracking-widest text-white/40">
+            OPERATOR CONSOLE · {CONSOLE_SITE.domain.toUpperCase()}
+          </p>
+          <h2 className="mb-3 font-arcade text-4xl text-cyan glow-cyan">SHIP</h2>
+          <p className="mb-2 font-mono text-[11px] text-white/50">
+            THE DOOR TO PRODUCTION · CONNECT — SIGN — DEPLOY
+          </p>
+        </div>
+        <DeployPanel />
       </section>
 
       <section id="torrents" className="scroll-mt-6 border-t-2 border-edge/60">

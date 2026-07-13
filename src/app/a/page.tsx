@@ -4,16 +4,17 @@ import OperatorGate from "@/components/OperatorGate";
 import AdminNav from "@/components/AdminNav";
 import MergeQueue from "@/components/MergeQueue";
 import DecisionsPanel from "@/components/DecisionsPanel";
-import DeployPanel from "@/components/DeployPanel";
 import { operatorFromCookieHeader, operatorsConfigured } from "@/lib/operator-auth";
 import { CONSOLE_SITE } from "@/lib/console";
 
 /**
- * ACTION ITEMS — SCAR's landing tab and the admiral's signature desk. Two
- * stacks, both one signature from done: the APPROVALS queue (open PRs waiting
- * to merge, plus the ConnectGithub setup) up top, the DECISION BOARD below.
- * Everything here needs the admiral's key; the node/connection rooms live one
- * tab over. Same key-is-the-operator gate as every /a tab.
+ * ACTION ITEMS — SCAR's landing tab and the admiral's signature desk. The
+ * APPROVALS queue up top carries the merge → ship stages on one card: open PRs
+ * waiting to merge (① AUTHORIZE & MERGE, ② SHIP locked), then merged-but-not-yet-
+ * live changes (① MERGE ✓, ② SHIP lit — sign to deploy). A change only crosses
+ * to Bug Testing once it's LIVE. The DECISION BOARD sits below. Everything here
+ * needs the admiral's key; the node/connection rooms (and the deploy-hook setup)
+ * live one tab over. Same key-is-the-operator gate as every /a tab.
  */
 export const metadata: Metadata = {
   title: "Action items — frens.earth admin",
@@ -37,18 +38,12 @@ export default async function AdminActionItemsPage() {
         </p>
         <h1 className="mb-3 font-arcade text-4xl text-cyan glow-cyan">ACTION ITEMS</h1>
         <p className="font-body text-sm text-white/55">
-          Everything that needs your signature — the approvals queue up top, the decision board
-          below.
+          Everything that needs your signature — merge a proposal, then ship it live from the same
+          card. The decision board sits below.
         </p>
       </div>
       <MergeQueue mode="approvals" />
       <DecisionsPanel />
-      <div className="mx-auto max-w-3xl px-6 pb-2">
-        <p className="lcars-eyebrow mb-2" data-accent="neon">
-          SHIP · SIGN TO DEPLOY THE CURRENT MAIN TO PRODUCTION — MERGE ≠ LIVE UNTIL YOU SHIP
-        </p>
-      </div>
-      <DeployPanel />
     </main>
   );
 }

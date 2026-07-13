@@ -15,11 +15,18 @@ import Notice from "@/components/Notice";
  * it, and — token connected — posts it onto the PR's GitHub conversation
  * with a footer citing the signature.
  *
- * ONE PANEL, TWO LANES (the SCAR four-tab split): `mode` picks which lane
- * renders — "approvals" = the waiting-to-merge queue + the ConnectGithub setup
- * (Action Items tab); "testing" = only the IN FLIGHT section (Bug Testing tab).
- * Omitted = both, today's behaviour. Either way the same `/api/admin/merges`
- * fetch backs it, and every signing/authorize/close-out/note path is untouched.
+ * ONE PANEL, THE FULL LIFECYCLE (merge → ship → live → test): `mode` picks
+ * which stages render.
+ *   • "approvals" (Action Items) — open PRs (① AUTHORIZE & MERGE active, ②
+ *     SHIP locked) PLUS merged-but-NOT-live changes (① MERGE ✓, ② SHIP lit).
+ *     A card's SHIP signs `PACS-DEPLOY` and fires the deploy hook, then polls
+ *     the server build stamp to flip the card MERGED → LIVE.
+ *   • "testing" (Bug Testing) — ONLY merged + LIVE changes (the "◉ DEPLOYED —
+ *     TEST NOW" card, SUBMIT A BUG / CLOSE OUT), unchanged.
+ * The live/not-live split is the existing build-stamp compare: a merge whose
+ * timestamp predates the running build is live; a not-live merge is a ship
+ * stage on Action Items, a live merge is a test stage on Bug Testing.
+ * Every signing/authorize/close-out/note path is untouched.
  */
 
 interface OpenPr {
@@ -86,6 +93,38 @@ function linkifyBrief(text: string): ReactNode[] {
   return out;
 }
 
+/** The lifecycle strip — MERGE → SHIP → LIVE → TEST, with completed stages
+    checked (neon), the current stage filled (its own semantic colour: MERGE
+    verifies = cyan, everything downstream = live/neon), the rest hollow. Ties
+    the whole card to the one journey a change takes. */
+const STAGES = ["MERGE", "SHIP", "LIVE", "TEST"] as const;
+function StageStrip({ current }: { current: number }) {
+  return (
+    <div className="mb-2 flex flex-wrap items-center gap-x-1.5 gap-y-1 font-mono text-[9px] uppercase tracking-widest">
+      {STAGES.map((s, i) => {
+        const state = i < current ? "done" : i === current ? "active" : "pending";
+        const mark = state === "done" ? "✓" : state === "active" ? "●" : "○";
+        const tone =
+          state === "pending"
+            ? "text-white/25"
+            : state === "done"
+              ? "text-neon"
+              : i === 0
+                ? "text-cyan"
+                : "text-neon";
+        return (
+          <span key={s} className="flex items-center gap-1.5">
+            {i > 0 && <span className="text-white/20" aria-hidden>→</span>}
+            <span className={tone}>
+              {mark} {s}
+            </span>
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function MergeQueue({ mode }: { mode?: "approvals" | "testing" }) {
   const [prs, setPrs] = useState<OpenPr[] | null>(null);
   const [auths, setAuths] = useState<MergeAuth[]>([]);
@@ -98,6 +137,18 @@ export default function MergeQueue({ mode }: { mode?: "approvals" | "testing" })
   const [changes, setChanges] = useState<Record<number, PrFile[] | "loading">>({});
   const [drafts, setDrafts] = useState<Record<number, string>>({});
   const [noteBusy, setNoteBusy] = useState<number | null>(null);
+
+  /* SHIP — the deploy stage, folded onto the merge card. `serverBuiltAt` is the
+     build stamp the API reports per-request (it moves when the new deploy is
+     live, which the baked bundle stamp can't); `deploying` is a ship in flight
+     (all merged-pending cards ride one deploy); `wentLive` marks the cards this
+     session watched cross MERGED → LIVE so we can show the ✓ before they leave. */
+  const [deployConfigured, setDeployConfigured] = useState<boolean | null>(null);
+  const [serverBuiltAt, setServerBuiltAt] = useState<string | null>(null);
+  const [shipBusy, setShipBusy] = useState(false);
+  const [deploying, setDeploying] = useState(false);
+  const [wentLive, setWentLive] = useState<Set<number>>(new Set());
+  const [shippedThisSession, setShippedThisSession] = useState<Set<number>>(new Set());
 
   const load = useCallback(async () => {
     setErr(null);
@@ -113,6 +164,7 @@ export default function MergeQueue({ mode }: { mode?: "approvals" | "testing" })
       setCanExecute(data.canExecute);
       setSetup(data.setup ?? null);
       setExpiresAt(data.tokenExpiresAt ?? null);
+      if (typeof data.builtAt === "string") setServerBuiltAt(data.builtAt);
     } catch {
       setErr("couldn't reach the app — try again");
     }
@@ -178,16 +230,82 @@ export default function MergeQueue({ mode }: { mode?: "approvals" | "testing" })
     load();
   }, [load]);
 
+  /* SHIP lives only on Action Items — learn whether the deploy hook is wired so
+     a lit SHIP either ships or points to Connections to connect one. */
+  useEffect(() => {
+    if (mode === "testing") return;
+    (async () => {
+      try {
+        const res = await fetch("/api/admin/deploy");
+        if (res.status === 401) {
+          setDeployConfigured(false);
+          return;
+        }
+        const d = await res.json().catch(() => null);
+        setDeployConfigured(!!d?.configured);
+      } catch {
+        setDeployConfigured(null);
+      }
+    })();
+  }, [mode]);
+
   /* IN FLIGHT — the admiral's rule: a signature OPENS a change; it stays on
      the queue through deploy → test → bug-or-close, and only the close-out
-     clears it. "Deployed?" is answered honestly: this build's stamp vs the
-     signature's timestamp (a new build IS the deploy on this ship). */
-  const builtAt = process.env.NEXT_PUBLIC_BUILD_AT ?? "";
+     clears it. "Deployed?" is answered honestly: the running build's stamp vs
+     the signature's timestamp (a new build IS the deploy on this ship). We
+     prefer the server-reported stamp (moves after a ship) over the baked one. */
+  const bakedBuiltAt = process.env.NEXT_PUBLIC_BUILD_AT ?? "";
+  const builtAt = serverBuiltAt || bakedBuiltAt;
+  const isLive = (x: MergeAuth) => !!builtAt && x.at < builtAt;
+
   const latestByPr = new Map<number, MergeAuth>();
   for (const x of auths) if (!x.closed && x.kind !== "note") latestByPr.set(x.pr, x);
   const inFlight = [...latestByPr.values()].filter(
     (x) => x.merged && !(prs ?? []).some((p) => p.number === x.pr),
   );
+
+  /* the placement rule — not-live merged → Action Items (ship stage), live
+     merged → Bug Testing (test stage). A card the session just watched go live
+     lingers on Action Items with a LIVE ✓ until the next load carries it over. */
+  const shipStage = inFlight.filter((x) => !isLive(x) || wentLive.has(x.pr));
+  const testStage = inFlight.filter((x) => isLive(x));
+
+  /* while a ship is in flight, poll the queue (~every 12s, capped ~2.5 min) so
+     the server build stamp — and with it MERGED → LIVE — can update without a
+     manual reload. Don't hammer; stop the moment deploying clears. */
+  useEffect(() => {
+    if (!deploying) return;
+    let ticks = 0;
+    const iv = setInterval(() => {
+      ticks += 1;
+      load();
+      if (ticks >= 12) {
+        clearInterval(iv);
+        setDeploying(false);
+      }
+    }, 12000);
+    return () => clearInterval(iv);
+  }, [deploying, load]);
+
+  /* detect the crossing: for each change this session shipped, once the running
+     build post-dates its merge, mark it LIVE ✓ and end the deploy watch. */
+  useEffect(() => {
+    if (shippedThisSession.size === 0 || !builtAt) return;
+    const newlyLive: number[] = [];
+    let allLive = true;
+    for (const pr of shippedThisSession) {
+      const a = latestByPr.get(pr);
+      const live = !!a && a.merged && a.at < builtAt;
+      if (live && !wentLive.has(pr)) newlyLive.push(pr);
+      if (!live) allLive = false;
+    }
+    if (newlyLive.length > 0) {
+      setWentLive((prev) => new Set([...prev, ...newlyLive]));
+    }
+    if (allLive) setDeploying(false);
+    // latestByPr is derived from auths; builtAt from serverBuiltAt — both listed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auths, builtAt, shippedThisSession]);
 
   async function closeOut(pr: number) {
     setErr(null);
@@ -243,6 +361,54 @@ export default function MergeQueue({ mode }: { mode?: "approvals" | "testing" })
       setErr("couldn't reach the server — check your connection and try again");
     } finally {
       setBusyPr(null);
+    }
+  }
+
+  /** ② ▲ SHIP — the deploy stage, on the card. Reuses the exact PACS-DEPLOY
+      flow (sign `PACS-DEPLOY-<ts>`, POST `{ event }`, the server verifies +
+      fires the Vercel hook) — the same ladder DeployPanel uses, no duplicate
+      signing logic. One ship deploys the current `main`, which carries EVERY
+      merged-pending change; they all advance to Bug Testing when it goes live.
+      Then the deploy watch polls the build stamp until MERGED → LIVE. */
+  async function shipAll() {
+    setErr(null);
+    setNote(null);
+    if (!window.nostr?.signEvent) {
+      setErr("no signer extension found — your signature is the authorization");
+      return;
+    }
+    setShipBusy(true);
+    let event;
+    try {
+      event = await window.nostr.signEvent({
+        kind: 22242,
+        created_at: Math.floor(Date.now() / 1000),
+        tags: [],
+        content: `PACS-DEPLOY-${Date.now()}`,
+      });
+    } catch {
+      setErr("signing was declined — nothing shipped");
+      setShipBusy(false);
+      return;
+    }
+    try {
+      const res = await fetch("/api/admin/deploy", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ event }),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.ok) {
+        setErr(data?.reason ?? `the server hiccuped (HTTP ${res.status}) — your signature was fine`);
+        return;
+      }
+      setNote("▲ shipping all merged changes to production — watching for LIVE…");
+      setShippedThisSession(new Set(shipStage.map((x) => x.pr)));
+      setDeploying(true);
+    } catch {
+      setErr("couldn't reach the server — check your connection and try again");
+    } finally {
+      setShipBusy(false);
     }
   }
 
@@ -336,7 +502,179 @@ export default function MergeQueue({ mode }: { mode?: "approvals" | "testing" })
 
   const authFor = (pr: OpenPr) =>
     auths.filter((a) => a.pr === pr.number && a.kind !== "note").at(-1);
-  const notesFor = (pr: OpenPr) => auths.filter((a) => a.pr === pr.number && a.kind === "note");
+  const notesFor = (pr: number) => auths.filter((a) => a.pr === pr && a.kind === "note");
+
+  /** The change's own brief expando — shared by ship + test stage cards. */
+  function briefBlock(pr: number) {
+    return (
+      <>
+        {briefs[pr] === "loading" && (
+          <p className="mt-2 font-mono text-[10px] text-white/40">reading the brief…</p>
+        )}
+        {briefs[pr] && briefs[pr] !== "loading" && (
+          <div className="mt-3 border-t border-edge pt-2">
+            {(briefs[pr] as { title: string }).title && (
+              <p className="mb-1 font-body text-base text-white/90">
+                {(briefs[pr] as { title: string }).title}
+              </p>
+            )}
+            <p className="whitespace-pre-wrap break-words font-mono text-sm leading-relaxed text-white/80">
+              {(briefs[pr] as { body: string }).body
+                ? linkifyBrief((briefs[pr] as { body: string }).body)
+                : "the proposal carried no brief — test what the title promises, and say so in feedback"}
+            </p>
+          </div>
+        )}
+      </>
+    );
+  }
+
+  /** The signed-feedback expando — shared by ship + test stage cards. */
+  function feedbackBlock(pr: number) {
+    if (!(pr in drafts)) return null;
+    return (
+      <div className="mt-3 border-t border-edge pt-3">
+        <textarea
+          value={drafts[pr]}
+          onChange={(e) => setDrafts((p) => ({ ...p, [pr]: e.target.value }))}
+          rows={3}
+          placeholder="what you saw, what you'd change — your key signs these exact words"
+          className="w-full rounded-lg border-2 border-edge bg-void px-3 py-2 font-mono text-xs text-white/85 placeholder:text-white/25 focus:border-pink focus:outline-none"
+        />
+        <button
+          onClick={() => signAndPostNote(pr)}
+          disabled={noteBusy === pr}
+          data-accent="pink"
+          className="btn-pill mt-2"
+        >
+          {noteBusy === pr ? "SIGNING…" : "✍ SIGN & POST FEEDBACK"}
+        </button>
+      </div>
+    );
+  }
+
+  /** ② SHIP control on a ship-stage card. No hook wired → point at Connections;
+      wired → the lit, signing SHIP (or its deploying / live successors). */
+  function shipControl(justLive: boolean) {
+    if (justLive) {
+      return (
+        <span className="btn-pill btn-pill--solid" data-accent="neon" aria-disabled>
+          ◉ LIVE ✓
+        </span>
+      );
+    }
+    if (deployConfigured === false) {
+      return (
+        <a href="/a/connections#deploy" className="btn-pill" data-accent="neon">
+          ② ▲ CONNECT A DEPLOY HOOK →
+        </a>
+      );
+    }
+    if (deploying) {
+      return (
+        <button disabled className="btn-pill btn-pill--solid" data-accent="neon">
+          ▲ DEPLOYING…
+        </button>
+      );
+    }
+    return (
+      <button
+        onClick={shipAll}
+        disabled={shipBusy}
+        data-accent="neon"
+        className="btn-pill btn-pill--solid ship-lit"
+      >
+        {shipBusy ? "SIGNING…" : "② ▲ SHIP"}
+      </button>
+    );
+  }
+
+  /** A merged change on the SHIP stage (Action Items): MERGE ✓ done, SHIP lit. */
+  function shipStageCard(x: MergeAuth) {
+    const justLive = wentLive.has(x.pr);
+    return (
+      <div key={x.pr} className="console-card p-4" data-accent="neon">
+        <StageStrip current={justLive ? 3 : deploying ? 2 : 1} />
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="font-mono text-xs tabular-nums text-white/40">
+              #{x.pr} · signed by {x.by.slice(0, 8)}…
+            </p>
+            <p className={`mt-1 font-pixel text-[10px] uppercase ${justLive ? "text-neon" : "text-cyan"}`}>
+              {justLive
+                ? "◉ LIVE ✓ — now in Bug Testing"
+                : deploying
+                  ? "▲ deploying… — ships all merged changes to production"
+                  : "◌ merged — not live yet · ship it"}
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <button onClick={() => toggleBrief(x.pr)} className="btn-pill" data-accent="cyan">
+              {briefs[x.pr] ? "▾" : "▸"} WHAT SHIPS
+            </button>
+            <button onClick={() => toggleNote(x.pr)} className="btn-pill" data-accent="pink">
+              ✎ NOTE
+            </button>
+            <span className="btn-pill btn-pill--muted" data-accent="neon" aria-disabled>
+              ① ✓ MERGED
+            </span>
+            {shipControl(justLive)}
+          </div>
+        </div>
+        {justLive ? (
+          <p className="mt-2 font-mono text-[10px] text-neon">
+            it&apos;s live — <a href="/a/testing" className="underline underline-offset-2 hover:text-white">test it in Bug Testing →</a>
+          </p>
+        ) : (
+          <p className="mt-2 font-mono text-[10px] text-white/40">
+            one ▲ SHIP deploys the current main — every merged-pending change goes live together.
+          </p>
+        )}
+        {briefBlock(x.pr)}
+        {feedbackBlock(x.pr)}
+      </div>
+    );
+  }
+
+  /** A merged + LIVE change on the TEST stage (Bug Testing) — unchanged. */
+  function testStageCard(x: MergeAuth) {
+    return (
+      <div key={x.pr} className="console-card p-4" data-accent="neon">
+        <StageStrip current={3} />
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="font-mono text-xs tabular-nums text-white/40">
+              #{x.pr} · signed by {x.by.slice(0, 8)}…
+            </p>
+            <p className="mt-1 font-pixel text-[10px] uppercase text-neon">
+              ◉ DEPLOYED — TEST NOW, ADMIRAL
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <button onClick={() => toggleBrief(x.pr)} className="btn-pill" data-accent="cyan">
+              {briefs[x.pr] ? "▾" : "▸"} WHAT TO TEST
+            </button>
+            <button onClick={() => toggleNote(x.pr)} className="btn-pill" data-accent="pink">
+              ✎ FEEDBACK
+            </button>
+            <a href={`/support?pr=${x.pr}`} className="btn-pill" data-accent="ghost">
+              🐛 SUBMIT A BUG
+            </a>
+            <button
+              onClick={() => closeOut(x.pr)}
+              title="verified — end the watch"
+              className="btn-pill btn-pill--solid"
+              data-accent="neon"
+            >
+              ✓ CLOSE OUT
+            </button>
+          </div>
+        </div>
+        {briefBlock(x.pr)}
+        {feedbackBlock(x.pr)}
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto mb-10 max-w-3xl px-6">
@@ -369,16 +707,18 @@ export default function MergeQueue({ mode }: { mode?: "approvals" | "testing" })
         <ConnectGithub onConnected={load} />
       ) : setup ? (
         <Notice id="github-reach">{setup}</Notice>
-      ) : prs.length === 0 ? (
+      ) : prs.length === 0 && shipStage.length === 0 ? (
         <p className="console-card p-4 font-body text-sm text-white/60">
-          Nothing waiting to merge — the board is clean. 🌱
+          Nothing waiting to merge or ship — the board is clean. 🌱
         </p>
       ) : (
         <div className="space-y-2">
           {prs.map((pr) => {
             const a = authFor(pr);
+            const merged = !!a?.merged;
             return (
               <div key={pr.number} className="console-card p-4" data-accent="cyan">
+                <StageStrip current={merged ? 1 : 0} />
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="min-w-0">
                     <p className="font-mono text-xs tabular-nums text-white/40">
@@ -418,12 +758,26 @@ export default function MergeQueue({ mode }: { mode?: "approvals" | "testing" })
                     >
                       {busyPr === pr.number
                         ? "SIGNING…"
-                        : canExecute
-                          ? "✍ AUTHORIZE & MERGE"
-                          : "✍ AUTHORIZE"}
+                        : merged
+                          ? "① ✓ MERGED"
+                          : canExecute
+                            ? "① ✍ AUTHORIZE & MERGE"
+                            : "① ✍ AUTHORIZE"}
+                    </button>
+                    {/* ② SHIP — present but locked until the merge lands */}
+                    <button
+                      disabled
+                      title="ships after merge"
+                      className="btn-pill"
+                      data-accent="neon"
+                    >
+                      ② ▲ SHIP
                     </button>
                   </div>
                 </div>
+                <p className="mt-2 font-mono text-[10px] text-white/40">
+                  ② ▲ SHIP unlocks the moment this merges — merge ≠ live until you ship.
+                </p>
                 {changes[pr.number] === "loading" && (
                   <p className="mt-2 font-mono text-[10px] text-white/40">reading the changes…</p>
                 )}
@@ -492,9 +846,9 @@ export default function MergeQueue({ mode }: { mode?: "approvals" | "testing" })
                         {noteBusy === pr.number ? "SIGNING…" : "✍ SIGN & POST"}
                       </button>
                     </div>
-                    {notesFor(pr).length > 0 && (
+                    {notesFor(pr.number).length > 0 && (
                       <div className="mt-2 space-y-1 border-t border-edge/50 pt-2">
-                        {notesFor(pr).map((n, i) => (
+                        {notesFor(pr.number).map((n, i) => (
                           <p key={i} className="font-mono text-[10px] text-white/40">
                             ✎ <span className="whitespace-pre-wrap text-white/70">{n.note}</span>{" "}
                             — {n.by.slice(0, 8)}… · {n.mergeNote}
@@ -514,109 +868,31 @@ export default function MergeQueue({ mode }: { mode?: "approvals" | "testing" })
           })}
         </div>
       ))}
-      {mode !== "approvals" && inFlight.length > 0 && (
+
+      {/* SHIP STAGE — merged, not live yet: MERGE ✓, SHIP lit (Action Items) */}
+      {mode !== "testing" && shipStage.length > 0 && (
         <div className="mt-8">
           <p className="lcars-eyebrow mb-3" data-accent="neon">
-            IN FLIGHT · SIGNED; YOURS UNTIL YOU CLOSE IT OUT
+            READY TO SHIP · MERGED — NOT LIVE YET
           </p>
-          <div className="space-y-2">
-            {inFlight.map((x) => {
-              const live = !!builtAt && x.at < builtAt;
-              return (
-                <div key={x.pr} className="console-card p-4" data-accent="neon">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="font-mono text-xs tabular-nums text-white/40">
-                        #{x.pr} · signed by {x.by.slice(0, 8)}…
-                      </p>
-                      <p className={`mt-1 font-pixel text-[10px] uppercase ${live ? "text-neon" : "text-cyan"}`}>
-                        {live
-                          ? "◉ DEPLOYED — TEST NOW, ADMIRAL"
-                          : "◌ MERGED — DEPLOY PENDING (Number One is shipping)"}
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap items-center justify-end gap-2">
-                      <button
-                        onClick={() => toggleBrief(x.pr)}
-                        className="btn-pill"
-                        data-accent="cyan"
-                      >
-                        {briefs[x.pr] ? "▾" : "▸"} WHAT TO TEST
-                      </button>
-                      <button
-                        onClick={() => toggleNote(x.pr)}
-                        className="btn-pill"
-                        data-accent="pink"
-                      >
-                        ✎ FEEDBACK
-                      </button>
-                      <a
-                        href={`/support?pr=${x.pr}`}
-                        className="btn-pill"
-                        data-accent="ghost"
-                      >
-                        🐛 SUBMIT A BUG
-                      </a>
-                      <button
-                        onClick={() => closeOut(x.pr)}
-                        disabled={!live}
-                        title={live ? "verified — end the watch" : "test it live first, then close"}
-                        className="btn-pill btn-pill--solid"
-                        data-accent="neon"
-                      >
-                        ✓ CLOSE OUT
-                      </button>
-                    </div>
-                  </div>
-                  {briefs[x.pr] === "loading" && (
-                    <p className="mt-2 font-mono text-[10px] text-white/40">reading the brief…</p>
-                  )}
-                  {briefs[x.pr] && briefs[x.pr] !== "loading" && (
-                    /* the change's own words — what the admiral tests */
-                    <div className="mt-3 border-t border-edge pt-2">
-                      {(briefs[x.pr] as { title: string }).title && (
-                        <p className="mb-1 font-body text-base text-white/90">
-                          {(briefs[x.pr] as { title: string }).title}
-                        </p>
-                      )}
-                      <p className="whitespace-pre-wrap break-words font-mono text-sm leading-relaxed text-white/80">
-                        {(briefs[x.pr] as { body: string }).body
-                          ? linkifyBrief((briefs[x.pr] as { body: string }).body)
-                          : "the proposal carried no brief — test what the title promises, and say so in feedback"}
-                      </p>
-                    </div>
-                  )}
-                  {x.pr in drafts && (
-                    /* the admiral's feedback — signed words, straight onto the PR */
-                    <div className="mt-3 border-t border-edge pt-3">
-                      <textarea
-                        value={drafts[x.pr]}
-                        onChange={(e) => setDrafts((p) => ({ ...p, [x.pr]: e.target.value }))}
-                        rows={3}
-                        placeholder="what you saw, what you'd change — your key signs these exact words"
-                        className="w-full rounded-lg border-2 border-edge bg-void px-3 py-2 font-mono text-xs text-white/85 placeholder:text-white/25 focus:border-pink focus:outline-none"
-                      />
-                      <button
-                        onClick={() => signAndPostNote(x.pr)}
-                        disabled={noteBusy === x.pr}
-                        data-accent="pink"
-                        className="btn-pill mt-2"
-                      >
-                        {noteBusy === x.pr ? "SIGNING…" : "✍ SIGN & POST FEEDBACK"}
-                      </button>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+          <div className="space-y-2">{shipStage.map((x) => shipStageCard(x))}</div>
         </div>
       )}
-      {mode === "testing" && inFlight.length === 0 && (
+
+      {/* TEST STAGE — merged + LIVE: the deployed, test-it-now cards (Bug Testing) */}
+      {mode !== "approvals" && testStage.length > 0 && (
+        <div className="mt-8">
+          <p className="lcars-eyebrow mb-3" data-accent="neon">
+            IN FLIGHT · DEPLOYED — YOURS UNTIL YOU CLOSE IT OUT
+          </p>
+          <div className="space-y-2">{testStage.map((x) => testStageCard(x))}</div>
+        </div>
+      )}
+      {mode === "testing" && testStage.length === 0 && (
         <p className="console-card p-4 font-body text-sm text-white/60" data-accent="neon">
           {!prs
             ? "Reading the queue…"
-            : "Nothing in flight — every signed change has been tested and closed out. 🌱"}
+            : "Nothing deployed to test — merged changes appear here once they go live. 🌱"}
         </p>
       )}
       {mode !== "testing" && !canExecute && prs && prs.length > 0 && (
