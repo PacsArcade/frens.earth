@@ -6,6 +6,7 @@ import SpacesPanel from "@/components/SpacesPanel";
 import ChatPanel from "@/components/ChatPanel";
 import MudPanel from "@/components/MudPanel";
 import MempoolPanel from "@/components/MempoolPanel";
+import BriefsConnectPanel from "@/components/BriefsConnectPanel";
 import DeployPanel from "@/components/DeployPanel";
 import { operatorFromCookieHeader, operatorsConfigured } from "@/lib/operator-auth";
 import { CONSOLE_SITE } from "@/lib/console";
@@ -30,6 +31,7 @@ const SECTIONS: { id: string; label: string }[] = [
   { id: "chat", label: "CHAT" },
   { id: "mud", label: "MUD" },
   { id: "chain", label: "CHAIN" },
+  { id: "briefs", label: "BRIEFS" },
   { id: "deploy", label: "SHIP" },
   { id: "torrents", label: "TORRENTS" },
 ];
@@ -81,6 +83,13 @@ export default async function AdminConnectionsPage() {
 
       <section id="chain" className="scroll-mt-6 border-t-2 border-edge/60">
         <MempoolPanel />
+      </section>
+
+      {/* BRIEFS — the two sources the briefs library pulls from (shared public +
+          personal private). The repo/branch editors were consolidated here from
+          the Briefs page; the ⟳ PULL action stays on /a/briefs. */}
+      <section id="briefs" className="scroll-mt-6 border-t-2 border-edge/60">
+        <BriefsConnectPanel />
       </section>
 
       {/* SHIP — the deploy hook: the door from merged `main` to production. The

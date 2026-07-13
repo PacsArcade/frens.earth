@@ -5,33 +5,48 @@ import Markdown from "@/components/Markdown";
 import { bftDateTime } from "@/lib/bb/bft";
 
 /**
- * The Briefs library — the design briefs as reviewable tickets. The list is
- * Duty-Roster style ticket cards (colour rail, status chip, title, one-line
- * summary); selecting one opens the reader (markdown-rendered) with a comment
+ * The Briefs library — the design briefs as reviewable tickets, in TWO TIERS:
+ *   • SHARED   — pulled from a PUBLIC repo via the GitHub API with no token.
+ *   • PERSONAL — pulled from the PRIVATE captains-only repo with the console's
+ *                connected PAT.
+ * Every card carries a tier chip and the list has a SHARED · PERSONAL filter
+ * (Duty-Roster style). The list is ticket cards (colour rail, status chip, tier
+ * chip, title, one-line summary); selecting one opens the reader with a comment
  * box and the two review gestures: ✍ SIGN OFF (neon) and ↩ SEND BACK (cyan).
- * Each gesture signs `PACS-BRIEF-<slug>-<ts>-<action>` with the operator key —
- * the console's signed-action model — and POSTs it to the gated API.
+ * Each gesture signs `PACS-BRIEF-<tier>-<slug>-<ts>-<action>` with the operator
+ * key — the console's signed-action model — and POSTs it to the gated API.
  *
- * ⟳ PULL BRIEFS fetches the private captains-only repo's *.md into the store
- * using the console's connected GitHub token. Content lives only in the store,
- * never in this public repo. Types are inlined: the store is server-only.
+ * ⟳ PULL BRIEFS pulls BOTH sources at once with honest per-source status. The
+ * repo/branch editors now live in the Connections tab (⚙ link below); only the
+ * PULL action and the sources readout stay here. Content lives only in the
+ * store, never in this public repo. Types are inlined: the store is server-only.
  */
 
 type BriefStatus = "unreviewed" | "revise" | "signed";
+type BriefTier = "shared" | "personal";
 interface Brief {
   slug: string;
   title: string;
   body: string;
   source?: string;
+  tier: BriefTier;
   status: BriefStatus;
   comment?: string;
   at?: number;
   sig?: string;
 }
-interface Source {
-  repo: string;
-  branch: string;
-  tokenSet: boolean;
+interface Sources {
+  shared: { repo: string; branch: string };
+  personal: { repo: string; branch: string; tokenSet: boolean };
+}
+interface PullResult {
+  ok: boolean;
+  tier: BriefTier;
+  reason?: string;
+  detail?: string;
+  repo?: string;
+  branch?: string;
+  count?: number;
 }
 
 type Accent = "pink" | "cyan" | "neon";
@@ -45,6 +60,19 @@ const STATUS_LABEL: Record<BriefStatus, string> = {
   revise: "SENT BACK",
   signed: "SIGNED OFF",
 };
+const TIER_LABEL: Record<BriefTier, string> = { shared: "SHARED", personal: "PERSONAL" };
+const TIER_ACCENT: Record<BriefTier, Accent> = { shared: "cyan", personal: "pink" };
+
+type TierFilter = "all" | BriefTier;
+const TIER_FILTERS: { v: TierFilter; label: string }[] = [
+  { v: "all", label: "ALL" },
+  { v: "shared", label: "SHARED" },
+  { v: "personal", label: "PERSONAL" },
+];
+
+/** Compound key — a shared and personal brief may share a slug, so the tier is
+    part of every identity (selection, drafts, React key). */
+const keyOf = (b: Brief) => `${b.tier}/${b.slug}`;
 
 /** First meaningful line of the body → a one-line card summary. */
 function summarize(body: string): string {
@@ -68,15 +96,13 @@ function summarize(body: string): string {
 
 export default function BriefsPanel() {
   const [briefs, setBriefs] = useState<Brief[] | null>(null);
-  const [source, setSource] = useState<Source | null>(null);
+  const [sources, setSources] = useState<Sources | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
+  const [filter, setFilter] = useState<TierFilter>("all");
   const [drafts, setDrafts] = useState<Record<string, string>>({});
-  const [busy, setBusy] = useState<"signoff" | "sendback" | "pull" | "savesource" | null>(null);
+  const [busy, setBusy] = useState<"signoff" | "sendback" | "pull" | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [ok, setOk] = useState<string | null>(null);
-  const [editSource, setEditSource] = useState(false);
-  const [repoInput, setRepoInput] = useState("");
-  const [branchInput, setBranchInput] = useState("");
 
   const load = useCallback(async () => {
     setErr(null);
@@ -90,7 +116,7 @@ export default function BriefsPanel() {
       const data = await res.json();
       if (data.ok) {
         setBriefs(data.briefs);
-        setSource(data.source ?? null);
+        setSources(data.sources ?? null);
       } else setErr(data.reason ?? "couldn't read the library");
     } catch {
       setErr("couldn't reach the app — try again");
@@ -101,6 +127,7 @@ export default function BriefsPanel() {
     load();
   }, [load]);
 
+  /** ⟳ pull BOTH tiers at once — honest per-source status back in one line. */
   async function pull() {
     setErr(null);
     setOk(null);
@@ -112,17 +139,19 @@ export default function BriefsPanel() {
         body: JSON.stringify({ pull: true }),
       });
       const data = await res.json().catch(() => null);
-      if (!res.ok || !data?.ok) {
-        // honest states — mirror the merge queue's "not connected" box
-        setErr(
-          data?.detail ??
-            (data?.reason === "connect-github"
-              ? "no GitHub token connected — connect the console's PAT (Contents:read on the briefs repo) in the merge queue"
-              : data?.reason ?? `couldn't pull (HTTP ${res.status})`),
-        );
+      if (!data || (!data.shared && !data.personal)) {
+        setErr(data?.reason ?? `couldn't pull (HTTP ${res.status})`);
         return;
       }
-      setOk(`pulled ${data.count} brief${data.count === 1 ? "" : "s"} from ${data.repo}@${data.branch}`);
+      const line = (r: PullResult) =>
+        r.ok
+          ? `${TIER_LABEL[r.tier]}: pulled ${r.count} from ${r.repo}@${r.branch}`
+          : `${TIER_LABEL[r.tier]}: ${r.detail ?? r.reason ?? "couldn't pull"}`;
+      const results = [data.shared, data.personal].filter(Boolean) as PullResult[];
+      const good = results.filter((r) => r.ok).map(line);
+      const bad = results.filter((r) => !r.ok).map(line);
+      setOk(good.length ? good.join("  ·  ") : null);
+      setErr(bad.length ? bad.join("  ·  ") : null);
       load();
     } catch {
       setErr("couldn't reach the server — check your connection and try again");
@@ -131,35 +160,9 @@ export default function BriefsPanel() {
     }
   }
 
-  async function saveSource() {
-    const repo = repoInput.trim();
-    const branch = branchInput.trim();
-    setErr(null);
-    setOk(null);
-    setBusy("savesource");
-    try {
-      const res = await fetch("/api/admin/nodes", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ briefsRepo: repo, briefsBranch: branch }),
-      });
-      const data = await res.json().catch(() => null);
-      if (!res.ok || !data?.ok) {
-        setErr(data?.reason ?? `couldn't save the source (HTTP ${res.status})`);
-        return;
-      }
-      setOk("briefs source updated");
-      setEditSource(false);
-      load();
-    } catch {
-      setErr("couldn't reach the server — try again");
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  async function review(slug: string, action: "signoff" | "sendback") {
-    const comment = (drafts[slug] ?? "").trim();
+  async function review(b: Brief, action: "signoff" | "sendback") {
+    const k = keyOf(b);
+    const comment = (drafts[k] ?? "").trim();
     if (action === "sendback" && !comment) {
       setErr("write a comment first — say what to change");
       return;
@@ -177,7 +180,7 @@ export default function BriefsPanel() {
         kind: 22242,
         created_at: Math.floor(Date.now() / 1000),
         tags: [],
-        content: `PACS-BRIEF-${slug}-${Date.now()}-${action}${comment ? `\n${comment}` : ""}`,
+        content: `PACS-BRIEF-${b.tier}-${b.slug}-${Date.now()}-${action}${comment ? `\n${comment}` : ""}`,
       });
     } catch {
       setErr("signing was declined — nothing sent");
@@ -195,10 +198,10 @@ export default function BriefsPanel() {
         setErr(data?.reason ?? `the server hiccuped (HTTP ${res.status}) — your signature was fine`);
         return;
       }
-      setOk(action === "signoff" ? `signed off — ${slug}` : `sent back — ${slug}`);
+      setOk(action === "signoff" ? `signed off — ${b.slug}` : `sent back — ${b.slug}`);
       setDrafts((p) => {
         const n = { ...p };
-        delete n[slug];
+        delete n[k];
         return n;
       });
       load();
@@ -209,11 +212,12 @@ export default function BriefsPanel() {
     }
   }
 
-  const selectedBrief = selected ? (briefs ?? []).find((b) => b.slug === selected) ?? null : null;
+  const selectedBrief = selected ? (briefs ?? []).find((b) => keyOf(b) === selected) ?? null : null;
 
   // ── the reader ─────────────────────────────────────────────────────────────
   if (selectedBrief) {
     const b = selectedBrief;
+    const k = keyOf(b);
     const accent = ACCENT[b.status];
     return (
       <div className="mx-auto max-w-3xl px-6 py-10">
@@ -227,6 +231,9 @@ export default function BriefsPanel() {
         <div className="console-card p-6" data-accent={accent}>
           <div className="flex flex-wrap items-center gap-2">
             <span className="pill">{STATUS_LABEL[b.status]}</span>
+            <span className="pill pill--muted" data-accent={TIER_ACCENT[b.tier]}>
+              {TIER_LABEL[b.tier]}
+            </span>
             {b.source && (
               <span className="font-mono text-[10px] uppercase text-white/30">{b.source}</span>
             )}
@@ -258,8 +265,8 @@ export default function BriefsPanel() {
                 COMMENT — RIDES THE SIGNATURE (REQUIRED TO SEND BACK)
               </span>
               <textarea
-                value={drafts[b.slug] ?? ""}
-                onChange={(e) => setDrafts((p) => ({ ...p, [b.slug]: e.target.value }))}
+                value={drafts[k] ?? ""}
+                onChange={(e) => setDrafts((p) => ({ ...p, [k]: e.target.value }))}
                 rows={3}
                 placeholder="what you think — or what to change on a send-back"
                 className="mt-1 w-full rounded-lg border-2 border-edge bg-void px-3 py-2 font-mono text-xs text-white/85 placeholder:text-white/25 focus:border-cyan focus:outline-none"
@@ -267,7 +274,7 @@ export default function BriefsPanel() {
             </label>
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <button
-                onClick={() => review(b.slug, "signoff")}
+                onClick={() => review(b, "signoff")}
                 disabled={busy === "signoff" || busy === "sendback"}
                 data-accent="neon"
                 className="btn-pill btn-pill--solid"
@@ -275,8 +282,8 @@ export default function BriefsPanel() {
                 {busy === "signoff" ? "SIGNING…" : "✍ SIGN OFF"}
               </button>
               <button
-                onClick={() => review(b.slug, "sendback")}
-                disabled={busy === "signoff" || busy === "sendback" || !(drafts[b.slug] ?? "").trim()}
+                onClick={() => review(b, "sendback")}
+                disabled={busy === "signoff" || busy === "sendback" || !(drafts[k] ?? "").trim()}
                 data-accent="cyan"
                 className="btn-pill"
               >
@@ -284,7 +291,7 @@ export default function BriefsPanel() {
               </button>
             </div>
             <p className="mt-2 font-mono text-[11px] text-white/40">
-              your key signs the review — PACS-BRIEF-{b.slug}-…
+              your key signs the review — PACS-BRIEF-{b.tier}-{b.slug}-…
             </p>
           </div>
         </div>
@@ -293,17 +300,20 @@ export default function BriefsPanel() {
   }
 
   // ── the library list ───────────────────────────────────────────────────────
-  const unreviewed = (briefs ?? []).filter((b) => b.status === "unreviewed");
-  const revise = (briefs ?? []).filter((b) => b.status === "revise");
-  const signed = (briefs ?? []).filter((b) => b.status === "signed");
+  const all = briefs ?? [];
+  const shown = all.filter((b) => filter === "all" || b.tier === filter);
+  const unreviewed = shown.filter((b) => b.status === "unreviewed");
+  const revise = shown.filter((b) => b.status === "revise");
+  const signed = shown.filter((b) => b.status === "signed");
+  const tierCount = (t: TierFilter) => (t === "all" ? all.length : all.filter((b) => b.tier === t).length);
 
   function card(b: Brief) {
     const accent = ACCENT[b.status];
     return (
       <button
-        key={b.slug}
+        key={keyOf(b)}
         onClick={() => {
-          setSelected(b.slug);
+          setSelected(keyOf(b));
           setErr(null);
           setOk(null);
         }}
@@ -314,6 +324,9 @@ export default function BriefsPanel() {
         <span className="min-w-0 flex-1 p-4">
           <span className="flex flex-wrap items-center gap-2">
             <span className="pill">{STATUS_LABEL[b.status]}</span>
+            <span className="pill pill--muted" data-accent={TIER_ACCENT[b.tier]}>
+              {TIER_LABEL[b.tier]}
+            </span>
             {b.source && (
               <span className="truncate font-mono text-[10px] uppercase text-white/30">{b.source}</span>
             )}
@@ -340,77 +353,50 @@ export default function BriefsPanel() {
       <h1 className="mb-3 font-arcade text-4xl text-cyan glow-cyan">BRIEFS</h1>
       <p className="mb-6 font-body text-sm text-white/55">
         The design briefs as reviewable tickets — read the brief, leave a comment, sign it off or send
-        it back. Content stays private: it lives in the store, never in the repo.
+        it back. Two tiers: <span className="text-cyan">SHARED</span> (a public source) and{" "}
+        <span className="text-pink">PERSONAL</span> (your private captains-only source). Content stays
+        private either way: it lives in the store, never in the repo.
       </p>
 
-      {/* source + pull — the private captains-only repo, and the button that
-          pulls it into the store using the console's connected GitHub token */}
+      {/* sources readout + the ⟳ pull. The repo/branch editors now live in the
+          Connections tab — this is just the readout, the pull, and the link. */}
       <div className="console-card mb-6 p-4" data-accent="cyan">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="min-w-0">
-            <p className="font-pixel text-[9px] uppercase text-white/40">SOURCE · PRIVATE REPO</p>
-            <p className="mt-1 truncate font-mono text-xs text-white/75">
-              {source ? `${source.repo}@${source.branch}` : "…"}
-              {source && !source.tokenSet && (
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0 space-y-1.5">
+            <p className="font-pixel text-[9px] uppercase text-white/40">SOURCES · TWO TIERS</p>
+            <p className="truncate font-mono text-xs text-white/75">
+              <span className="text-cyan">SHARED</span> ·{" "}
+              {sources ? `${sources.shared.repo}@${sources.shared.branch}` : "…"}
+              <span className="ml-2 text-white/30">PUBLIC — NO TOKEN</span>
+            </p>
+            <p className="truncate font-mono text-xs text-white/75">
+              <span className="text-pink">PERSONAL</span> ·{" "}
+              {sources ? `${sources.personal.repo}@${sources.personal.branch}` : "…"}
+              {sources && !sources.personal.tokenSet && (
                 <span className="ml-2 text-ghost">· NO TOKEN CONNECTED</span>
               )}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <button
-              onClick={() => {
-                setEditSource((v) => !v);
-                setRepoInput(source?.repo ?? "");
-                setBranchInput(source?.branch ?? "");
-              }}
-              className="btn-pill btn-pill--muted"
-            >
-              {editSource ? "CANCEL" : "✎ SOURCE"}
-            </button>
-            <button
-              onClick={pull}
-              disabled={busy === "pull"}
+            <a
+              href="/a/connections#briefs"
               data-accent="cyan"
-              className="btn-pill"
+              className="btn-pill btn-pill--muted inline-flex min-h-11 items-center"
             >
+              ⚙ SET UP IN CONNECTIONS →
+            </a>
+            <button onClick={pull} disabled={busy === "pull"} data-accent="cyan" className="btn-pill">
               {busy === "pull" ? "PULLING…" : "⟳ PULL BRIEFS"}
             </button>
           </div>
         </div>
-
-        {editSource && (
-          <div className="mt-3 flex flex-wrap items-end gap-2 border-t border-edge pt-3">
-            <label className="min-w-0 flex-1">
-              <span className="font-pixel text-[9px] uppercase text-white/40">REPO (owner/name)</span>
-              <input
-                value={repoInput}
-                onChange={(e) => setRepoInput(e.target.value)}
-                placeholder="PacsArcade/frens-briefs"
-                className="mt-1 w-full rounded-lg border-2 border-edge bg-void px-3 py-2 font-mono text-xs text-white/85 placeholder:text-white/25 focus:border-cyan focus:outline-none"
-              />
-            </label>
-            <label className="w-28">
-              <span className="font-pixel text-[9px] uppercase text-white/40">BRANCH</span>
-              <input
-                value={branchInput}
-                onChange={(e) => setBranchInput(e.target.value)}
-                placeholder="main"
-                className="mt-1 w-full rounded-lg border-2 border-edge bg-void px-3 py-2 font-mono text-xs text-white/85 placeholder:text-white/25 focus:border-cyan focus:outline-none"
-              />
-            </label>
-            <button
-              onClick={saveSource}
-              disabled={busy === "savesource"}
-              data-accent="cyan"
-              className="btn-pill btn-pill--solid"
-            >
-              {busy === "savesource" ? "SAVING…" : "SAVE"}
-            </button>
-          </div>
-        )}
-        <p className="mt-2 font-mono text-[11px] text-white/40">
-          the pull reads *.md via the GitHub API with the console&apos;s connected PAT (Contents:read on
-          this repo) — the same key the merge queue uses. Content flows repo → store, never into git.
+        <p className="mt-3 font-mono text-[11px] text-white/40">
+          ⟳ pulls BOTH sources — shared via the public GitHub API (no key), personal via the console&apos;s
+          connected PAT (Contents:read). Point the repos in{" "}
+          <a href="/a/connections#briefs" className="text-cyan underline hover:text-white">
+            Connections
+          </a>
+          ; content flows repo → store, never into git.
         </p>
       </div>
 
@@ -421,37 +407,68 @@ export default function BriefsPanel() {
         <p className="font-body text-sm text-white/50">Reading the library…</p>
       ) : briefs.length === 0 ? (
         <div className="console-card p-5 font-body text-sm text-white/60" data-accent="cyan">
-          The library is empty. Hit <span className="text-cyan">⟳ PULL BRIEFS</span> to load them from
-          the private repo (or run <span className="font-mono text-white/70">npm run sync:briefs</span>{" "}
-          locally). Nothing here ever touches the public repo. 🌱
+          The library is empty. Hit <span className="text-cyan">⟳ PULL BRIEFS</span> to load both tiers
+          — the shared public source and your private one (or run{" "}
+          <span className="font-mono text-white/70">npm run sync:briefs</span> locally for personal).
+          Nothing here ever touches the public repo. 🌱
         </div>
       ) : (
-        <div className="space-y-8">
-          {unreviewed.length > 0 && (
-            <section>
-              <p className="mb-3 font-pixel text-[10px] uppercase tracking-widest text-pink/80" data-accent="pink">
-                NEEDS YOUR REVIEW · {unreviewed.length}
-              </p>
-              <div className="space-y-3">{unreviewed.map(card)}</div>
-            </section>
+        <>
+          {/* tier filter — Duty-Roster style segmented chips */}
+          <div className="mb-5 flex flex-wrap gap-2">
+            {TIER_FILTERS.map((f) => (
+              <button
+                key={f.v}
+                onClick={() => setFilter(f.v)}
+                data-accent="cyan"
+                className={`btn-pill ${filter === f.v ? "btn-pill--solid" : "btn-pill--muted"}`}
+                aria-pressed={filter === f.v}
+              >
+                {f.label} · {tierCount(f.v)}
+              </button>
+            ))}
+          </div>
+
+          {shown.length === 0 ? (
+            <div className="console-card p-5 font-body text-sm text-white/60" data-accent="cyan">
+              No {filter} briefs yet. Hit <span className="text-cyan">⟳ PULL BRIEFS</span> or check the
+              source in <a href="/a/connections#briefs" className="text-cyan underline">Connections</a>.
+            </div>
+          ) : (
+            <div className="space-y-8">
+              {unreviewed.length > 0 && (
+                <section>
+                  <p
+                    className="mb-3 font-pixel text-[10px] uppercase tracking-widest text-pink/80"
+                    data-accent="pink"
+                  >
+                    NEEDS YOUR REVIEW · {unreviewed.length}
+                  </p>
+                  <div className="space-y-3">{unreviewed.map(card)}</div>
+                </section>
+              )}
+              {revise.length > 0 && (
+                <section>
+                  <p
+                    className="mb-3 font-pixel text-[10px] uppercase tracking-widest text-cyan/80"
+                    data-accent="cyan"
+                  >
+                    ↩ SENT BACK · {revise.length}
+                  </p>
+                  <div className="space-y-3">{revise.map(card)}</div>
+                </section>
+              )}
+              {signed.length > 0 && (
+                <section>
+                  <p className="mb-3 font-pixel text-[10px] uppercase tracking-widest text-white/40">
+                    ✓ SIGNED OFF · {signed.length}
+                  </p>
+                  <div className="space-y-3">{signed.map(card)}</div>
+                </section>
+              )}
+            </div>
           )}
-          {revise.length > 0 && (
-            <section>
-              <p className="mb-3 font-pixel text-[10px] uppercase tracking-widest text-cyan/80" data-accent="cyan">
-                ↩ SENT BACK · {revise.length}
-              </p>
-              <div className="space-y-3">{revise.map(card)}</div>
-            </section>
-          )}
-          {signed.length > 0 && (
-            <section>
-              <p className="mb-3 font-pixel text-[10px] uppercase tracking-widest text-white/40">
-                ✓ SIGNED OFF · {signed.length}
-              </p>
-              <div className="space-y-3">{signed.map(card)}</div>
-            </section>
-          )}
-        </div>
+        </>
       )}
     </div>
   );

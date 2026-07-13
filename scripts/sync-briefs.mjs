@@ -111,7 +111,9 @@ for (const file of files) {
   if (!slug) continue;
   const raw = readFileSync(join(briefsDir, file), "utf8");
   const { title, body } = parseBrief(raw, basename(file));
-  const record = { slug, title, body, source: file };
+  // local sibling folder = the PERSONAL (private) tier — the shared tier is
+  // pulled from a public repo via the console, never synced from a local dir.
+  const record = { slug, title, body, source: file, tier: "personal" };
   const json = JSON.stringify(record, null, 2);
   if (useBlob) {
     await put(`briefs/content/${slug}.json`, json, {

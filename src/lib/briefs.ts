@@ -4,7 +4,7 @@ import { put, get, list } from "@vercel/blob";
 import { verifyEvent } from "nostr-tools";
 import { blobStoreEnabled } from "./registry";
 import { isOperatorHex } from "./operator-auth";
-import { effectiveGithub, effectiveBriefsRepo } from "./nodeconfig";
+import { effectiveGithub, effectiveBriefsRepo, effectiveSharedBriefsRepo } from "./nodeconfig";
 import { currentBlockInfo } from "./bb/bft";
 
 /**
@@ -17,13 +17,20 @@ import { currentBlockInfo } from "./bb/bft";
  * the pattern decisions/merges/registry use for their records. The committed
  * code here is the reader + the store + the puller; it carries ZERO content.
  *
- * ── SOURCE ──────────────────────────────────────────────────────────────────
- * Content is PULLED from a private, captains-only GitHub repo (briefsRepo in
- * the node config, default PacsArcade/frens-briefs) using the operator's
- * connected PAT — the SAME fine-grained token the merge queue uses, which needs
- * Contents:read on that repo. The pull writes each `*.md` straight into the
- * store above. `scripts/sync-briefs.mjs` is a secondary dev convenience that
- * does the same from a local sibling folder.
+ * ── TWO TIERS ────────────────────────────────────────────────────────────────
+ * Every brief carries a `tier`:
+ *   • PERSONAL — PULLED from a private, captains-only GitHub repo (briefsRepo in
+ *     the node config, default PacsArcade/frens-briefs) using the operator's
+ *     connected PAT — the SAME fine-grained token the merge queue uses, which
+ *     needs Contents:read on that repo.
+ *   • SHARED — PULLED from a PUBLIC GitHub repo (sharedBriefsRepo, default
+ *     PacsArcade/frens-briefs-public) via the public API with NO token, so
+ *     captains need no key for these. Honest empty/not-found state until it
+ *     exists.
+ * The two tiers live in separate store prefixes so their slugs never collide.
+ * `scripts/sync-briefs.mjs` is a secondary dev convenience that writes the
+ * personal tier from a local sibling folder. Content flows repo → store, NEVER
+ * into this public repo — for EITHER tier.
  *
  * ── REVIEWS ─────────────────────────────────────────────────────────────────
  * Each brief carries at most one review record — a sign-off or a send-back,
@@ -34,17 +41,24 @@ import { currentBlockInfo } from "./bb/bft";
  * Writes are operator-gated in the API route AND signature-verified here.
  */
 
+/** SHARED = the public source (frens-briefs-public); PERSONAL = the private
+    captains-only source (frens-briefs). Stored per brief; the store PREFIX a
+    brief lives under is authoritative for its tier. */
+export type BriefTier = "shared" | "personal";
+
 export interface BriefContent {
   slug: string;
   title: string;
   body: string; // markdown
   source?: string; // where it came from (filename / repo path)
+  tier: BriefTier; // which source this came from
 }
 
 export type BriefStatus = "unreviewed" | "revise" | "signed";
 
 export interface BriefReview {
   slug: string;
+  tier: BriefTier; // the tier its brief lives in — reviews key on (tier, slug)
   status: "signed" | "revise"; // signed off, or sent back for another pass
   comment?: string;
   at: number; // block height at record — the block IS the record
@@ -61,26 +75,34 @@ export interface Brief extends BriefContent {
   sig?: string;
 }
 
-// ── storage paths ───────────────────────────────────────────────────────────
+// ── storage paths (tier-namespaced) ─────────────────────────────────────────
 // Content: one doc per brief. Reviews: one record per brief (never a shared
 // doc — see the decisions store for why eventually-consistent blob reads make a
-// read-modify-write of a shared doc clobber concurrent writes).
-const CONTENT_BLOB_DIR = "briefs/content/";
-const REVIEW_BLOB_DIR = "briefs/reviews/";
-const contentBlobPath = (slug: string) => `${CONTENT_BLOB_DIR}${slug}.json`;
-const reviewBlobPath = (slug: string) => `${REVIEW_BLOB_DIR}${slug}.json`;
+// read-modify-write of a shared doc clobber concurrent writes). PERSONAL keeps
+// v1's flat paths (zero migration); SHARED lives under its own prefix, so a
+// same-named brief in both tiers never overwrites the other.
+const CONTENT_BLOB_DIR: Record<BriefTier, string> = {
+  personal: "briefs/content/",
+  shared: "briefs/shared/",
+};
+const REVIEW_BLOB_DIR: Record<BriefTier, string> = {
+  personal: "briefs/reviews/",
+  shared: "briefs/shared-reviews/",
+};
+const contentBlobPath = (tier: BriefTier, slug: string) => `${CONTENT_BLOB_DIR[tier]}${slug}.json`;
+const reviewBlobPath = (tier: BriefTier, slug: string) => `${REVIEW_BLOB_DIR[tier]}${slug}.json`;
 
-/** Local dev store — GITIGNORED (see .gitignore). Content is one file per
-    brief under data/briefs/; reviews are a single data/brief-reviews.json (one
-    dev process → no clobber). */
-function contentDir(): string {
-  return path.join(process.cwd(), "data", "briefs");
+/** Local dev store — GITIGNORED (see .gitignore). Content is one file per brief
+    under data/briefs/ (personal) or data/briefs-shared/ (shared); reviews are a
+    single JSON per tier (one dev process → no clobber). */
+function contentDir(tier: BriefTier): string {
+  return path.join(process.cwd(), "data", tier === "shared" ? "briefs-shared" : "briefs");
 }
-function contentFilePath(slug: string): string {
-  return path.join(contentDir(), `${slug}.json`);
+function contentFilePath(tier: BriefTier, slug: string): string {
+  return path.join(contentDir(tier), `${slug}.json`);
 }
-function reviewsFilePath(): string {
-  return path.join(process.cwd(), "data", "brief-reviews.json");
+function reviewsFilePath(tier: BriefTier): string {
+  return path.join(process.cwd(), "data", tier === "shared" ? "brief-reviews-shared.json" : "brief-reviews.json");
 }
 
 async function readBlobText(pathname: string): Promise<string | null> {
@@ -133,20 +155,23 @@ export function parseBrief(markdown: string, filename: string): { title: string;
   return { title, body };
 }
 
-// ── content store (dual driver) ─────────────────────────────────────────────
+// ── content store (dual driver, tier-namespaced) ────────────────────────────
 
-export async function listBriefContents(): Promise<BriefContent[]> {
+/** Every brief in ONE tier's store. The store prefix is authoritative for the
+    tier, so we stamp it on read (a legacy v1 doc with no `tier` field still
+    classifies correctly by where it lives). */
+async function listContentsForTier(tier: BriefTier): Promise<BriefContent[]> {
   if (blobStoreEnabled()) {
     const out: BriefContent[] = [];
     let cursor: string | undefined;
     do {
-      const page = await list({ prefix: CONTENT_BLOB_DIR, cursor });
+      const page = await list({ prefix: CONTENT_BLOB_DIR[tier], cursor });
       const texts = await Promise.all(page.blobs.map((b) => readBlobText(b.pathname)));
       for (const t of texts) {
         if (!t) continue;
         try {
           const c = JSON.parse(t) as BriefContent;
-          if (c?.slug) out.push(c);
+          if (c?.slug) out.push({ ...c, tier });
         } catch {
           /* skip a malformed doc rather than break the library */
         }
@@ -156,14 +181,14 @@ export async function listBriefContents(): Promise<BriefContent[]> {
     return out;
   }
   try {
-    const dir = contentDir();
+    const dir = contentDir(tier);
     const files = await fs.readdir(dir);
     const out: BriefContent[] = [];
     for (const f of files) {
       if (!f.endsWith(".json")) continue;
       try {
         const c = JSON.parse(await fs.readFile(path.join(dir, f), "utf8")) as BriefContent;
-        if (c?.slug) out.push(c);
+        if (c?.slug) out.push({ ...c, tier });
       } catch {
         /* skip a malformed doc */
       }
@@ -174,30 +199,39 @@ export async function listBriefContents(): Promise<BriefContent[]> {
   }
 }
 
-export async function getBriefContent(slug: string): Promise<BriefContent | null> {
+/** Both tiers, merged — shared + personal. */
+export async function listBriefContents(): Promise<BriefContent[]> {
+  const [personal, shared] = await Promise.all([
+    listContentsForTier("personal"),
+    listContentsForTier("shared"),
+  ]);
+  return [...personal, ...shared];
+}
+
+export async function getBriefContent(tier: BriefTier, slug: string): Promise<BriefContent | null> {
   if (blobStoreEnabled()) {
-    const t = await readBlobText(contentBlobPath(slug));
+    const t = await readBlobText(contentBlobPath(tier, slug));
     if (!t) return null;
     try {
-      return JSON.parse(t) as BriefContent;
+      return { ...(JSON.parse(t) as BriefContent), tier };
     } catch {
       return null;
     }
   }
   try {
-    return JSON.parse(await fs.readFile(contentFilePath(slug), "utf8")) as BriefContent;
+    return { ...(JSON.parse(await fs.readFile(contentFilePath(tier, slug), "utf8")) as BriefContent), tier };
   } catch {
     return null;
   }
 }
 
-/** Write one brief into the store — used by the repo puller and the dev sync
-    script's blob path. The content lands in Blob (prod) or the gitignored
-    data/briefs/ dir (dev); it is NEVER committed to this public repo. */
+/** Write one brief into its tier's store — used by the repo pullers and the dev
+    sync script's blob path. The content lands in Blob (prod) or the gitignored
+    data/briefs[-shared]/ dir (dev); it is NEVER committed to this public repo. */
 export async function putBriefContent(brief: BriefContent): Promise<void> {
   const body = JSON.stringify(brief, null, 2);
   if (blobStoreEnabled()) {
-    await put(contentBlobPath(brief.slug), body, {
+    await put(contentBlobPath(brief.tier, brief.slug), body, {
       access: "public",
       addRandomSuffix: false,
       allowOverwrite: true,
@@ -205,27 +239,27 @@ export async function putBriefContent(brief: BriefContent): Promise<void> {
     });
     return;
   }
-  const p = contentFilePath(brief.slug);
+  const p = contentFilePath(brief.tier, brief.slug);
   await fs.mkdir(path.dirname(p), { recursive: true });
   const tmp = p + ".tmp";
   await fs.writeFile(tmp, body, "utf8");
   await fs.rename(tmp, p);
 }
 
-// ── review store (dual driver, per-item) ────────────────────────────────────
+// ── review store (dual driver, per-item, tier-namespaced) ───────────────────
 
-async function readReviews(): Promise<BriefReview[]> {
+async function readReviewsForTier(tier: BriefTier): Promise<BriefReview[]> {
   if (blobStoreEnabled()) {
     const bySlug = new Map<string, BriefReview>();
     let cursor: string | undefined;
     do {
-      const page = await list({ prefix: REVIEW_BLOB_DIR, cursor });
+      const page = await list({ prefix: REVIEW_BLOB_DIR[tier], cursor });
       const texts = await Promise.all(page.blobs.map((b) => readBlobText(b.pathname)));
       for (const t of texts) {
         if (!t) continue;
         try {
           const r = JSON.parse(t) as BriefReview;
-          if (r?.slug) bySlug.set(r.slug, r);
+          if (r?.slug) bySlug.set(r.slug, { ...r, tier });
         } catch {
           /* skip a malformed review */
         }
@@ -235,16 +269,26 @@ async function readReviews(): Promise<BriefReview[]> {
     return [...bySlug.values()];
   }
   try {
-    return (JSON.parse(await fs.readFile(reviewsFilePath(), "utf8")) as { reviews: BriefReview[] })
-      .reviews ?? [];
+    const reviews =
+      (JSON.parse(await fs.readFile(reviewsFilePath(tier), "utf8")) as { reviews: BriefReview[] }).reviews ?? [];
+    return reviews.map((r) => ({ ...r, tier }));
   } catch {
     return [];
   }
 }
 
+/** Every review, both tiers. */
+async function readReviews(): Promise<BriefReview[]> {
+  const [personal, shared] = await Promise.all([
+    readReviewsForTier("personal"),
+    readReviewsForTier("shared"),
+  ]);
+  return [...personal, ...shared];
+}
+
 async function writeReview(review: BriefReview): Promise<void> {
   if (blobStoreEnabled()) {
-    await put(reviewBlobPath(review.slug), JSON.stringify(review), {
+    await put(reviewBlobPath(review.tier, review.slug), JSON.stringify(review), {
       access: "public",
       addRandomSuffix: false,
       allowOverwrite: true,
@@ -253,7 +297,7 @@ async function writeReview(review: BriefReview): Promise<void> {
     return;
   }
   // dev only — single process, so a plain file read-modify-write is safe
-  const p = reviewsFilePath();
+  const p = reviewsFilePath(review.tier);
   let store: { reviews: BriefReview[] } = { reviews: [] };
   try {
     store = JSON.parse(await fs.readFile(p, "utf8")) as { reviews: BriefReview[] };
@@ -284,13 +328,15 @@ function join(content: BriefContent, review?: BriefReview): Brief {
   };
 }
 
-/** Every brief with its review status merged on top. Order: unreviewed first
-    (needs the admiral), then sent-back (awaiting rework), then signed — the
-    latter two newest-block first, unreviewed alphabetical. */
+/** Every brief with its review status merged on top. Reviews key on
+    (tier, slug) so a same-named brief in both tiers never crosses wires. Order:
+    unreviewed first (needs the admiral), then sent-back (awaiting rework), then
+    signed — the latter two newest-block first, unreviewed alphabetical. */
 export async function listBriefs(): Promise<Brief[]> {
   const [contents, reviews] = await Promise.all([listBriefContents(), readReviews()]);
-  const bySlug = new Map(reviews.map((r) => [r.slug, r]));
-  const merged = contents.map((c) => join(c, bySlug.get(c.slug)));
+  const key = (tier: BriefTier, slug: string) => `${tier}/${slug}`;
+  const byKey = new Map(reviews.map((r) => [key(r.tier, r.slug), r]));
+  const merged = contents.map((c) => join(c, byKey.get(key(c.tier, c.slug))));
   const rank = { unreviewed: 0, revise: 1, signed: 2 } as const;
   return merged.sort((a, b) => {
     if (a.status !== b.status) return rank[a.status] - rank[b.status];
@@ -299,20 +345,22 @@ export async function listBriefs(): Promise<Brief[]> {
   });
 }
 
-export async function getBrief(slug: string): Promise<Brief | null> {
-  const content = await getBriefContent(slug);
+export async function getBrief(tier: BriefTier, slug: string): Promise<Brief | null> {
+  const content = await getBriefContent(tier, slug);
   if (!content) return null;
-  const review = (await readReviews()).find((r) => r.slug === slug);
+  const review = (await readReviewsForTier(tier)).find((r) => r.slug === slug);
   return join(content, review);
 }
 
 // ── recording a signed review ───────────────────────────────────────────────
 
 const CHALLENGE_WINDOW_MS = 5 * 60 * 1000;
-/* content: `PACS-BRIEF-<slug>-<unix-ms>-<signoff|sendback>` + optional
-   `\n<comment>`. The action is pinned to the END so the slug's own hyphens and
-   internal digits stay unambiguous (greedy slug, then `-<digits>-<action>`). */
-const BRIEF_ACTION_RE = /^PACS-BRIEF-(.+)-(\d+)-(signoff|sendback)(?:\n([\s\S]*))?$/;
+/* content: `PACS-BRIEF-<tier>-<slug>-<unix-ms>-<signoff|sendback>` + optional
+   `\n<comment>`. Tier is pinned to the FRONT (fixed alternation) and the action
+   to the END, so the slug's own hyphens and internal digits stay unambiguous
+   (greedy slug between `-<tier>-` and `-<digits>-<action>`). */
+const BRIEF_ACTION_RE =
+  /^PACS-BRIEF-(shared|personal)-(.+)-(\d+)-(signoff|sendback)(?:\n([\s\S]*))?$/;
 
 /**
  * Verify a signed brief review and record it. Same verification ladder as the
@@ -335,7 +383,14 @@ export async function recordReview(event: {
   }
   const m = event.content.match(BRIEF_ACTION_RE);
   if (!m) return { ok: false, reason: "not a brief review action" };
-  const [, slug, ts, action, rawComment] = m;
+  const [, tier, slug, ts, action, rawComment] = m as unknown as [
+    string,
+    BriefTier,
+    string,
+    string,
+    "signoff" | "sendback",
+    string | undefined,
+  ];
   if (Math.abs(Date.now() - Number(ts)) > CHALLENGE_WINDOW_MS) {
     return { ok: false, reason: "review expired — sign a fresh one" };
   }
@@ -347,7 +402,7 @@ export async function recordReview(event: {
     return { ok: false, reason: "signature check failed" };
   }
 
-  const content = await getBriefContent(slug);
+  const content = await getBriefContent(tier, slug);
   if (!content) return { ok: false, reason: "no such brief in the library" };
 
   const comment = (rawComment ?? "").trim().slice(0, 4000) || undefined;
@@ -358,6 +413,7 @@ export async function recordReview(event: {
   const { height } = await currentBlockInfo();
   const review: BriefReview = {
     slug,
+    tier,
     status: action === "sendback" ? "revise" : "signed",
     comment,
     at: height,
@@ -368,14 +424,16 @@ export async function recordReview(event: {
   return { ok: true, brief: join(content, review) };
 }
 
-// ── the pull from the private briefs repo ───────────────────────────────────
+// ── the pulls: shared (public, no token) + personal (private, token) ─────────
 
 const GH = "https://api.github.com";
 
 export interface PullResult {
   ok: boolean;
-  /** honest state when it can't run — mirrors the merge queue's connect box */
-  reason?: "connect-github" | "unreachable" | "empty";
+  tier: BriefTier;
+  /** honest state when it can't run — mirrors the merge queue's connect box.
+      `not-found` = the repo/branch 404s (e.g. the public repo isn't made yet). */
+  reason?: "connect-github" | "unreachable" | "empty" | "not-found";
   detail?: string;
   repo?: string;
   branch?: string;
@@ -390,33 +448,23 @@ interface GitTreeEntry {
 }
 
 /**
- * Pull every `*.md` from the private briefs repo into the store, using the
- * operator's connected GitHub token (Contents:read on that repo). Reads the
- * recursive tree, fetches each markdown blob, parses it, and writes it via
+ * The shared pull-engine for one tier: read the repo's recursive tree, fetch
+ * each `*.md` blob, parse it, and write it into THIS tier's store via
  * putBriefContent — content flows repo → store, NEVER into this public repo.
- * Returns an honest `reason` when there's no token / the repo is unreachable /
- * it's empty, so the UI can show the same "not connected" states as the merge
- * queue and MempoolPanel.
+ * Auth is the ONLY difference between tiers: personal sends the operator's PAT,
+ * shared sends none (public read). Returns an honest `reason` on every failure.
  */
-export async function pullBriefsFromRepo(): Promise<PullResult> {
-  const { token } = await effectiveGithub();
-  const { repo, branch } = await effectiveBriefsRepo();
-  if (!token) {
-    return {
-      ok: false,
-      reason: "connect-github",
-      repo,
-      branch,
-      detail:
-        "no GitHub token connected — connect the console's PAT (needs Contents:read on the briefs repo) in the merge queue",
-    };
-  }
-
+async function pullTier(
+  tier: BriefTier,
+  repo: string,
+  branch: string,
+  token: string | null,
+): Promise<PullResult> {
   const headers: Record<string, string> = {
     Accept: "application/vnd.github+json",
     "User-Agent": "frens-earth-scar",
-    Authorization: `Bearer ${token}`,
   };
+  if (token) headers.Authorization = `Bearer ${token}`;
 
   let tree: GitTreeEntry[];
   try {
@@ -426,14 +474,22 @@ export async function pullBriefsFromRepo(): Promise<PullResult> {
     });
     if (!res.ok) {
       const data = (await res.json().catch(() => ({}))) as { message?: string };
+      // a 404 on a public pull almost always means the repo/branch isn't there
+      // yet — an honest "not made yet" state, not a wiring error.
+      const notFound = res.status === 404;
       return {
         ok: false,
-        reason: "unreachable",
+        tier,
+        reason: notFound ? "not-found" : "unreachable",
         repo,
         branch,
-        detail: `couldn't read ${repo}@${branch} (${res.status}${
-          data.message ? `: ${data.message}` : ""
-        }) — check the token has Contents:read on it`,
+        detail: notFound
+          ? tier === "shared"
+            ? `no public briefs repo at ${repo}@${branch} yet — make it (or point elsewhere in Connections)`
+            : `couldn't find ${repo}@${branch} (404) — check the repo, branch, and token access`
+          : `couldn't read ${repo}@${branch} (${res.status}${data.message ? `: ${data.message}` : ""})${
+              tier === "personal" ? " — check the token has Contents:read on it" : ""
+            }`,
       };
     }
     const body = (await res.json()) as { tree?: GitTreeEntry[] };
@@ -441,6 +497,7 @@ export async function pullBriefsFromRepo(): Promise<PullResult> {
   } catch (err) {
     return {
       ok: false,
+      tier,
       reason: "unreachable",
       repo,
       branch,
@@ -450,7 +507,7 @@ export async function pullBriefsFromRepo(): Promise<PullResult> {
 
   const mdFiles = tree.filter((e) => e.type === "blob" && /\.md$/i.test(e.path));
   if (mdFiles.length === 0) {
-    return { ok: false, reason: "empty", repo, branch, detail: `no *.md briefs found in ${repo}@${branch}` };
+    return { ok: false, tier, reason: "empty", repo, branch, detail: `no *.md briefs found in ${repo}@${branch}` };
   }
 
   const slugs: string[] = [];
@@ -467,7 +524,7 @@ export async function pullBriefsFromRepo(): Promise<PullResult> {
       const slug = briefSlug(file.path);
       if (!slug) continue;
       const { title, body } = parseBrief(raw, name);
-      await putBriefContent({ slug, title, body, source: file.path });
+      await putBriefContent({ slug, title, body, source: file.path, tier });
       slugs.push(slug);
     } catch {
       /* skip a bad file; keep pulling the rest */
@@ -475,7 +532,47 @@ export async function pullBriefsFromRepo(): Promise<PullResult> {
   }
 
   if (slugs.length === 0) {
-    return { ok: false, reason: "unreachable", repo, branch, detail: "found briefs but couldn't read any file" };
+    return { ok: false, tier, reason: "unreachable", repo, branch, detail: "found briefs but couldn't read any file" };
   }
-  return { ok: true, repo, branch, count: slugs.length, slugs };
+  return { ok: true, tier, repo, branch, count: slugs.length, slugs };
+}
+
+/** The PERSONAL tier — the private captains-only repo, read with the console's
+    connected PAT (Contents:read). Honest `connect-github` when no token. */
+export async function pullPersonalBriefs(): Promise<PullResult> {
+  const [{ token }, { repo, branch }] = await Promise.all([effectiveGithub(), effectiveBriefsRepo()]);
+  if (!token) {
+    return {
+      ok: false,
+      tier: "personal",
+      reason: "connect-github",
+      repo,
+      branch,
+      detail:
+        "no GitHub token connected — connect the console's PAT (needs Contents:read on the briefs repo) in the merge queue",
+    };
+  }
+  return pullTier("personal", repo, branch, token);
+}
+
+/** The SHARED tier — the PUBLIC repo, read with NO token (public API). Honest
+    `not-found` until that repo exists. Captains need no key for these. */
+export async function pullSharedBriefs(): Promise<PullResult> {
+  const { repo, branch } = await effectiveSharedBriefsRepo();
+  return pullTier("shared", repo, branch, null);
+}
+
+/** Pull BOTH sources — shared (no token) + personal (token) — each with its own
+    honest status. One button, two independent results; the overall `ok` is true
+    if EITHER source landed briefs, so a missing public repo never masks a good
+    personal pull (and vice-versa). */
+export async function pullAllBriefs(): Promise<{
+  ok: boolean;
+  shared: PullResult;
+  personal: PullResult;
+  count: number;
+}> {
+  const [shared, personal] = await Promise.all([pullSharedBriefs(), pullPersonalBriefs()]);
+  const count = (shared.count ?? 0) + (personal.count ?? 0);
+  return { ok: shared.ok || personal.ok, shared, personal, count };
 }
