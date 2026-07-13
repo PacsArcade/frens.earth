@@ -1,6 +1,6 @@
 import { promises as fs } from "fs";
 import path from "path";
-import { put, get } from "@vercel/blob";
+import { put, get, list } from "@vercel/blob";
 import { blobStoreEnabled } from "./registry";
 import { currentBlockInfo } from "./bb/bft";
 
@@ -207,34 +207,71 @@ interface Board {
   rulings: Ruling[];
 }
 
-const BLOB_PATH = "decisions/board.json";
+/* Storage — ONE BLOB PER RULING, never a shared board doc. A single document
+   read-modify-written on every record clobbers earlier rulings: Blob reads are
+   eventually consistent, so recording a second choice can read a STALE board
+   that's missing the first and overwrite it (Pac's catch, 0018.04.16 a₿:
+   "i approved arrows, it didn't save, but the other one stuck"). Per-ruling
+   blobs never overwrite each other — the same per-entry fix the ship's log and
+   the registry (per-handle blobs) already use. Dev keeps one JSON file (single
+   process → no clobber). The legacy board.json is still read for back-compat so
+   nothing already recorded is lost. */
+const BLOB_DIR = "decisions/rulings/";
+const LEGACY_BLOB_PATH = "decisions/board.json";
+const rulingBlobPath = (id: string) => `${BLOB_DIR}${id}.json`;
 function filePath(): string {
   return path.join(process.cwd(), "data", "decisions.json");
 }
 
-async function readBoard(): Promise<Board> {
-  if (blobStoreEnabled()) {
-    try {
-      const res = await get(BLOB_PATH, { access: "public" });
-      if (res && res.statusCode === 200) {
-        return JSON.parse(await new Response(res.stream).text()) as Board;
-      }
-    } catch {
-      /* missing/unreadable — start with the seeds, nothing recorded */
-    }
-    return { rulings: [] };
-  }
+async function readBlobText(pathname: string): Promise<string | null> {
   try {
-    return JSON.parse(await fs.readFile(filePath(), "utf8")) as Board;
+    const res = await get(pathname, { access: "public" });
+    if (!res || res.statusCode !== 200) return null;
+    return await new Response(res.stream).text();
   } catch {
-    return { rulings: [] };
+    return null;
   }
 }
 
-async function writeBoard(board: Board): Promise<void> {
-  const body = JSON.stringify(board, null, 2);
+async function readRulings(): Promise<Ruling[]> {
   if (blobStoreEnabled()) {
-    await put(BLOB_PATH, body, {
+    const byId = new Map<string, Ruling>();
+    // legacy shared board first (back-compat); authoritative per-ruling blobs win
+    const legacy = await readBlobText(LEGACY_BLOB_PATH);
+    if (legacy) {
+      try {
+        for (const r of (JSON.parse(legacy) as Board).rulings ?? []) byId.set(r.id, r);
+      } catch {
+        /* ignore a malformed legacy doc */
+      }
+    }
+    let cursor: string | undefined;
+    do {
+      const page = await list({ prefix: BLOB_DIR, cursor });
+      const texts = await Promise.all(page.blobs.map((b) => readBlobText(b.pathname)));
+      for (const t of texts) {
+        if (!t) continue;
+        try {
+          const r = JSON.parse(t) as Ruling;
+          if (r?.id) byId.set(r.id, r);
+        } catch {
+          /* skip a malformed ruling rather than break the board */
+        }
+      }
+      cursor = page.hasMore ? page.cursor : undefined;
+    } while (cursor);
+    return [...byId.values()];
+  }
+  try {
+    return (JSON.parse(await fs.readFile(filePath(), "utf8")) as Board).rulings ?? [];
+  } catch {
+    return [];
+  }
+}
+
+async function writeRuling(ruling: Ruling): Promise<void> {
+  if (blobStoreEnabled()) {
+    await put(rulingBlobPath(ruling.id), JSON.stringify(ruling), {
       access: "public",
       addRandomSuffix: false,
       allowOverwrite: true,
@@ -242,18 +279,27 @@ async function writeBoard(board: Board): Promise<void> {
     });
     return;
   }
+  // dev only — single process, so a plain file read-modify-write is safe
   const p = filePath();
+  let board: Board = { rulings: [] };
+  try {
+    board = JSON.parse(await fs.readFile(p, "utf8")) as Board;
+  } catch {
+    /* first write — start empty */
+  }
+  const i = board.rulings.findIndex((r) => r.id === ruling.id);
+  if (i >= 0) board.rulings[i] = ruling;
+  else board.rulings.push(ruling);
   await fs.mkdir(path.dirname(p), { recursive: true });
   const tmp = p + ".tmp";
-  await fs.writeFile(tmp, body, "utf8");
+  await fs.writeFile(tmp, JSON.stringify(board, null, 2), "utf8");
   await fs.rename(tmp, p);
 }
 
 /** The full board: the committed seeds, with any recorded ruling merged on top.
     Open decisions come first, then the decided ones (most-recent block first). */
 export async function listDecisions(): Promise<Decision[]> {
-  const board = await readBoard();
-  const ruled = new Map(board.rulings.map((r) => [r.id, r]));
+  const ruled = new Map((await readRulings()).map((r) => [r.id, r]));
   const merged = SEED_DECISIONS.map((d) => {
     const r = ruled.get(d.id);
     if (!r) return { ...d };
@@ -283,12 +329,8 @@ export async function recordDecision(
   }
   const trimmed = (note ?? "").trim().slice(0, 2000) || undefined;
   const { height } = await currentBlockInfo();
-  const board = await readBoard();
   const ruling: Ruling = { id, choice, note: trimmed, at: height };
-  const i = board.rulings.findIndex((r) => r.id === id);
-  if (i >= 0) board.rulings[i] = ruling;
-  else board.rulings.push(ruling);
-  await writeBoard(board);
+  await writeRuling(ruling);
   return {
     ok: true,
     decision: { ...seed, status: "decided", choice, note: trimmed, at: height },
