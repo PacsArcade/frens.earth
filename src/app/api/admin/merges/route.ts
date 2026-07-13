@@ -41,9 +41,14 @@ export async function GET(request: Request) {
   }
   const auths = await listAuthorizations();
   const canExecute = await mergeExecutionEnabled();
+  /* the SERVER's build stamp, read per-request — after a ship swaps the Vercel
+     deployment, new requests answer from the fresh build with a newer stamp, so
+     the client can flip a merged card MERGED → LIVE by polling (the baked
+     NEXT_PUBLIC_BUILD_AT in the loaded bundle can't move without a reload). */
+  const builtAt = process.env.NEXT_PUBLIC_BUILD_AT ?? "";
   try {
     const prs = await listOpenPrs();
-    return Response.json({ ok: true, canExecute, prs, auths, tokenExpiresAt: tokenExpiration() });
+    return Response.json({ ok: true, canExecute, prs, auths, builtAt, tokenExpiresAt: tokenExpiration() });
   } catch (err) {
     /* Private repo without a token (404), rate limit, or GitHub down — the
        lane still opens with the connect box + the audit log intact. */
@@ -52,6 +57,7 @@ export async function GET(request: Request) {
       canExecute,
       prs: [],
       auths,
+      builtAt,
       setup: canExecute
         ? `couldn't reach GitHub (${err instanceof Error ? err.message : "error"}) — try again`
         : "connect-github",

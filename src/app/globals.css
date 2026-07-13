@@ -37,6 +37,18 @@
 
 .neon-letter { display: inline-block; }
 
+/* SHIP lit — the merge card's ▲ SHIP control lights up the moment a change is
+   merged-but-not-live: a soft neon breathing glow that says "ready, ship it".
+   Stills to a steady ring under prefers-reduced-motion (respected below). */
+@keyframes ship-ready {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-neon) 55%, transparent); }
+  50% { box-shadow: 0 0 18px 3px color-mix(in srgb, var(--color-neon) 45%, transparent); }
+}
+.ship-lit { animation: ship-ready 1.9s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .ship-lit { animation: none; box-shadow: 0 0 12px 1px color-mix(in srgb, var(--color-neon) 38%, transparent); }
+}
+
 /* Cert-case shine: the gold-cartridge glint sweeping across rare cases.
    The element hides itself under prefers-reduced-motion (motion-reduce:hidden). */
 @keyframes case-shine {
