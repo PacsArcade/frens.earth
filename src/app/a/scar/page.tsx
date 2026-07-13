@@ -1,38 +1,11 @@
-import type { Metadata } from "next";
-import { headers } from "next/headers";
-import OperatorGate from "@/components/OperatorGate";
-import TicketsPanel from "@/components/TicketsPanel";
-import MergeQueue from "@/components/MergeQueue";
-import AdminNav from "@/components/AdminNav";
-import ShipsLog from "@/components/ShipsLog";
-import { operatorFromCookieHeader, operatorsConfigured } from "@/lib/operator-auth";
+import { redirect } from "next/navigation";
 
 /**
- * SCAR — the crew's side: the MERGE QUEUE (the admiral authorizes merges with
- * a signature) up top, the duty roster below. Same key-is-the-operator gate
- * as the rest of /a.
+ * SCAR folded into the four-tab console: the merge-queue APPROVALS now live on
+ * ACTION ITEMS (/a) and the IN FLIGHT lane + ship's log on BUG TESTING
+ * (/a/testing). This old room redirects so bookmarks and RTFM links (which
+ * point at /a/scar) still land somewhere real.
  */
-export const metadata: Metadata = {
-  title: "SCAR — frens.earth admin",
-  robots: { index: false, follow: false },
-};
-
-export const dynamic = "force-dynamic";
-
-export default async function AdminTicketsPage() {
-  const cookie = (await headers()).get("cookie");
-  const operator = operatorFromCookieHeader(cookie);
-  if (!operator) {
-    return <OperatorGate configured={operatorsConfigured()} />;
-  }
-  return (
-    <main className="min-h-screen console-ground">
-      <AdminNav current="scar" />
-      <div className="pt-6">
-        <MergeQueue />
-        <TicketsPanel mode="crew" />
-        <ShipsLog />
-      </div>
-    </main>
-  );
+export default function ScarRedirect() {
+  redirect("/a");
 }

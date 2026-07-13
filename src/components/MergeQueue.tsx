@@ -14,6 +14,12 @@ import Notice from "@/components/Notice";
  * signature covers the note's exact words), the server verifies + records
  * it, and — token connected — posts it onto the PR's GitHub conversation
  * with a footer citing the signature.
+ *
+ * ONE PANEL, TWO LANES (the SCAR four-tab split): `mode` picks which lane
+ * renders — "approvals" = the waiting-to-merge queue + the ConnectGithub setup
+ * (Action Items tab); "testing" = only the IN FLIGHT section (Bug Testing tab).
+ * Omitted = both, today's behaviour. Either way the same `/api/admin/merges`
+ * fetch backs it, and every signing/authorize/close-out/note path is untouched.
  */
 
 interface OpenPr {
@@ -80,7 +86,7 @@ function linkifyBrief(text: string): ReactNode[] {
   return out;
 }
 
-export default function MergeQueue() {
+export default function MergeQueue({ mode }: { mode?: "approvals" | "testing" }) {
   const [prs, setPrs] = useState<OpenPr[] | null>(null);
   const [auths, setAuths] = useState<MergeAuth[]>([]);
   const [canExecute, setCanExecute] = useState(false);
@@ -334,25 +340,29 @@ export default function MergeQueue() {
 
   return (
     <div className="mx-auto mb-10 max-w-3xl px-6">
-      <p className="lcars-eyebrow mb-3" data-accent="cyan">
-        MERGE QUEUE · YOUR SIGNATURE IS THE AUTHORIZATION
-      </p>
-      {expiry && daysLeft !== null && (
-        <p className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[10px] tabular-nums uppercase">
-          <span className={daysLeft <= 14 ? "text-ghost" : "text-white/40"}>
-            key expires in ~{daysLeft} days · ▣ ~{(daysLeft * 144).toLocaleString()} blocks
-          </span>
-          <button
-            onClick={downloadRenewalIcs}
-            className="rounded-full border border-edge px-3 py-1 text-cyan hover:border-cyan"
-          >
-            ⤓ calendar (.ics)
-          </button>
-        </p>
+      {mode !== "testing" && (
+        <>
+          <p className="lcars-eyebrow mb-3" data-accent="cyan">
+            MERGE QUEUE · YOUR SIGNATURE IS THE AUTHORIZATION
+          </p>
+          {expiry && daysLeft !== null && (
+            <p className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[10px] tabular-nums uppercase">
+              <span className={daysLeft <= 14 ? "text-ghost" : "text-white/40"}>
+                key expires in ~{daysLeft} days · ▣ ~{(daysLeft * 144).toLocaleString()} blocks
+              </span>
+              <button
+                onClick={downloadRenewalIcs}
+                className="rounded-full border border-edge px-3 py-1 text-cyan hover:border-cyan"
+              >
+                ⤓ calendar (.ics)
+              </button>
+            </p>
+          )}
+        </>
       )}
       {err && <p className="mb-3 font-pixel text-[10px] uppercase text-ghost">{err}</p>}
       {note && <p className="mb-3 font-pixel text-[10px] uppercase text-neon">{note}</p>}
-      {!prs ? (
+      {mode !== "testing" && (!prs ? (
         <p className="font-body text-sm text-white/50">Reading the queue…</p>
       ) : setup === "connect-github" ? (
         /* paste the token right here — same pattern as the node URL boxes */
@@ -503,8 +513,8 @@ export default function MergeQueue() {
             );
           })}
         </div>
-      )}
-      {inFlight.length > 0 && (
+      ))}
+      {mode !== "approvals" && inFlight.length > 0 && (
         <div className="mt-8">
           <p className="lcars-eyebrow mb-3" data-accent="neon">
             IN FLIGHT · SIGNED; YOURS UNTIL YOU CLOSE IT OUT
@@ -602,7 +612,14 @@ export default function MergeQueue() {
           </div>
         </div>
       )}
-      {!canExecute && prs && prs.length > 0 && (
+      {mode === "testing" && inFlight.length === 0 && (
+        <p className="console-card p-4 font-body text-sm text-white/60" data-accent="neon">
+          {!prs
+            ? "Reading the queue…"
+            : "Nothing in flight — every signed change has been tested and closed out. 🌱"}
+        </p>
+      )}
+      {mode !== "testing" && !canExecute && prs && prs.length > 0 && (
         <p className="mt-2 font-body text-xs text-white/40">
           Signatures are recorded as the sign-off; connect a GitHub token and the button merges
           right here.

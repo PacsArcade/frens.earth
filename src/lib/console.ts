@@ -24,55 +24,41 @@ export const CONSOLE_SITE = {
   space: SPACE_NAME,
 };
 
+/**
+ * The console is SCAR — four tabs, collapsed from the old eight rooms. The
+ * land page (/a) is ACTION ITEMS. Accents honour the house colour law (gold =
+ * money ONLY, so no coin here): pink = your action, neon = live/test, cyan =
+ * systems. Adding a tab is still one entry; AdminNav + the tabs render from
+ * this list, and each tab's `key` is what its page passes to AdminNav.
+ */
 export const CONSOLE_ROOMS: ConsoleRoom[] = [
   {
-    key: "scar",
-    href: "/a/scar",
-    label: "SCAR",
-    blurb: "the duty roster — tickets, merges, the ship's log",
-    // cyan (verify/sign — SCAR is where signatures authorize), not coin: gold = money only (Pac's house law)
-    accent: "border-cyan/50 text-cyan",
-  },
-  {
-    key: "decisions",
-    href: "/a/decisions",
-    label: "DECISIONS",
-    blurb: "pending rulings as action cards — Number One recommends, you record",
+    key: "action",
+    href: "/a",
+    label: "ACTION ITEMS",
+    blurb: "approvals + the decision board — everything that needs your signature",
+    // pink = your action (the admiral rules here); not coin — gold = money only (Pac's house law)
     accent: "border-pink/50 text-pink",
   },
   {
-    key: "spaces",
-    href: "/a/spaces",
-    label: "SPACES NODE",
-    blurb: "connect spaced · queue · anchor ceremony",
+    key: "testing",
+    href: "/a/testing",
+    label: "BUG TESTING",
+    blurb: "signed & shipped — test it live, work the board, read the ship's log",
     accent: "border-neon/50 text-neon",
   },
   {
-    key: "mud",
-    href: "/a/mud",
-    label: "MUD NODE",
-    blurb: "point at your P.O.K.E. node — test — verified",
-    accent: "border-cyan/50 text-cyan",
-  },
-  {
-    key: "chat",
-    href: "/a/chat",
-    label: "CHAT",
-    blurb: "the floor — point at your orbee chat, open the door",
-    accent: "border-neon/50 text-neon",
-  },
-  {
-    key: "mempool",
-    href: "/a/mempool",
-    label: "CHAIN NODE",
-    blurb: "point at your own mempool — the fleet stops phoning a third party",
+    key: "connections",
+    href: "/a/connections",
+    label: "CONNECTIONS",
+    blurb: "your nodes & doors — spaces · chat · mud · chain · torrents",
     accent: "border-cyan/50 text-cyan",
   },
   {
     key: "brand",
     href: "/a/brand",
     label: "DRESSING ROOM",
-    blurb: "brand cartridges — preview candidate looks",
+    blurb: "brand cartridges + the cert foundry shelf — preview candidate looks",
     accent: "border-pink/50 text-pink",
   },
 ];

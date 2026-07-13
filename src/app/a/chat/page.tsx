@@ -1,32 +1,9 @@
-import type { Metadata } from "next";
-import { headers } from "next/headers";
-import OperatorGate from "@/components/OperatorGate";
-import ChatPanel from "@/components/ChatPanel";
-import AdminNav from "@/components/AdminNav";
-import { operatorFromCookieHeader, operatorsConfigured } from "@/lib/operator-auth";
+import { redirect } from "next/navigation";
 
 /**
- * Admin connections — link this deployment to its chat floor (orbee door,
- * chat.frens.earth by default). Same key-is-the-operator gate as the rest
- * of /a.
+ * The chat floor link now lives as a section on CONNECTIONS
+ * (/a/connections#chat). This old room redirects so old links don't 404.
  */
-export const metadata: Metadata = {
-  title: "Chat floor — frens.earth admin",
-  robots: { index: false, follow: false },
-};
-
-export const dynamic = "force-dynamic";
-
-export default async function AdminChatPage() {
-  const cookie = (await headers()).get("cookie");
-  const operator = operatorFromCookieHeader(cookie);
-  if (!operator) {
-    return <OperatorGate configured={operatorsConfigured()} />;
-  }
-  return (
-    <main className="min-h-screen console-ground">
-      <AdminNav current="chat" />
-      <ChatPanel />
-    </main>
-  );
+export default function ChatRedirect() {
+  redirect("/a/connections");
 }
