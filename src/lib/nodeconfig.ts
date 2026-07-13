@@ -39,6 +39,10 @@ export interface NodeConfig {
       mempool instance; unset falls through env to the public mempool.space so
       a fresh fork still ticks. No token — read-only public chain data. */
   mempoolUrl: string;
+  /** Vercel Deploy Hook URL for shipping main → production from SCAR. Stored
+      write-only (masked by omission from the nodes GET, like the GitHub token);
+      the admiral pastes it once and ships by signature after. See deploy.ts. */
+  deployHook: string;
   ceremony: CeremonyConfig;
 }
 
@@ -51,6 +55,7 @@ const EMPTY: NodeConfig = {
   githubToken: "",
   githubRepo: "",
   mempoolUrl: "",
+  deployHook: "",
   ceremony: { certTemplate: "bft-auto", welcomeMessage: "" },
 };
 
