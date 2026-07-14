@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, type ReactNode } from "react";
-import { bftDateTime, estimateHeight } from "@/lib/bb/bft";
+import { bftDateTime, currentBlockInfo } from "@/lib/bb/bft";
 
 /**
  * The chat floor — link this deployment to its orbee door (chat.frens.earth
@@ -57,7 +57,7 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
 export default function ChatPanel() {
   const [status, setStatus] = useState<ChatStatus | null>(null);
   const [busy, setBusy] = useState(false);
-  const [checkedHeight, setCheckedHeight] = useState<number | null>(null);
+  const [checked, setChecked] = useState<{ height: number; estimated: boolean } | null>(null);
   const [config, setConfig] = useState<NodesConfig | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -77,7 +77,9 @@ export default function ChatPanel() {
         return;
       }
       setStatus(data);
-      setCheckedHeight(estimateHeight()); // ~estimate — no block recorded for a ping
+      /* stamp the check with the REAL tip through the fleet's own door
+         (currentBlockInfo → /api/chain/tip); ~ only when the network is dark */
+      setChecked(await currentBlockInfo());
     } catch {
       setError("couldn't reach the app — try again");
     } finally {
@@ -215,8 +217,11 @@ export default function ChatPanel() {
             </Row>
             <Row label="SOURCE">{status ? SOURCE_LABEL[status.source] : "—"}</Row>
             <Row label="CHECKED">
-              {checkedHeight != null ? (
-                <span className="text-white/60">~ {bftDateTime(checkedHeight)}</span>
+              {checked != null ? (
+                <span className="text-white/60">
+                  {checked.estimated ? "~ " : ""}
+                  {bftDateTime(checked.height)}
+                </span>
               ) : (
                 "—"
               )}

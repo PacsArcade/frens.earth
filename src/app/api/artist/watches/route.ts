@@ -1,5 +1,5 @@
 import { artistFromRequest, listWatches, addWatch, removeWatch } from "@/lib/artist";
-import { currentBlock } from "@/lib/bb/bft";
+import { serverBlockInfo } from "@/lib/chain-tip-server";
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +29,10 @@ export async function POST(request: Request) {
   }
   let blockHeight: number | null = null;
   try {
-    blockHeight = await currentBlock();
+    /* own node first (serverBlockInfo); an estimate never gets etched as a
+       block fact — null renders the honest ~ from the wall timestamp */
+    const tip = await serverBlockInfo();
+    if (!tip.estimated) blockHeight = tip.height;
   } catch {
     /* stamp is a nicety */
   }

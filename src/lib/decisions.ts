@@ -2,7 +2,7 @@ import { promises as fs } from "fs";
 import path from "path";
 import { put, get, list } from "@vercel/blob";
 import { blobStoreEnabled } from "./registry";
-import { currentBlockInfo } from "./bb/bft";
+import { serverBlockInfo } from "./chain-tip-server";
 
 /**
  * Decisions — the admiral's action deck. The briefings were good data but not
@@ -40,6 +40,9 @@ export interface Decision {
   choice?: string; // optionKey the admiral recorded
   note?: string; // the admiral's note at record time (or what-to-change on a revise)
   at?: number; // block height at record — BFT-stamped in the UI
+  /** the network was dark at record time — `at` is a genesis ~estimate, never
+      a block fact; the UI wears the honest `~ ` */
+  atEstimated?: boolean;
   revise?: boolean; // sent back for rework — a note with no choice
   source?: string; // where the ruling surfaced (topic / briefing)
 }
@@ -203,6 +206,7 @@ interface Ruling {
   note?: string;
   revise?: boolean; // sent back for rework — carries a note + at, no choice
   at: number; // block height at record time
+  atEstimated?: boolean; // network dark at record time — `at` is a ~estimate, not a block fact
 }
 interface Board {
   rulings: Ruling[];
@@ -307,9 +311,23 @@ export async function listDecisions(): Promise<Decision[]> {
     const r = ruled.get(d.id);
     if (!r) return { ...d };
     if (r.revise && !r.choice) {
-      return { ...d, status: "revise" as const, revise: true, note: r.note, at: r.at };
+      return {
+        ...d,
+        status: "revise" as const,
+        revise: true,
+        note: r.note,
+        at: r.at,
+        atEstimated: r.atEstimated,
+      };
     }
-    return { ...d, status: "decided" as const, choice: r.choice, note: r.note, at: r.at };
+    return {
+      ...d,
+      status: "decided" as const,
+      choice: r.choice,
+      note: r.note,
+      at: r.at,
+      atEstimated: r.atEstimated,
+    };
   });
   const rank = { open: 0, revise: 1, decided: 2 } as const;
   return merged.sort((a, b) => {
@@ -335,12 +353,27 @@ export async function recordDecision(
     return { ok: false, reason: "that isn't one of the options" };
   }
   const trimmed = (note ?? "").trim().slice(0, 2000) || undefined;
-  const { height } = await currentBlockInfo();
-  const ruling: Ruling = { id, choice, note: trimmed, at: height };
+  /* the REAL block, own node first (serverBlockInfo) — an unreachable network
+     records the estimate FLAGGED, never as a bare block fact */
+  const { height, estimated } = await serverBlockInfo();
+  const ruling: Ruling = {
+    id,
+    choice,
+    note: trimmed,
+    at: height,
+    atEstimated: estimated || undefined,
+  };
   await writeRuling(ruling);
   return {
     ok: true,
-    decision: { ...seed, status: "decided", choice, note: trimmed, at: height },
+    decision: {
+      ...seed,
+      status: "decided",
+      choice,
+      note: trimmed,
+      at: height,
+      atEstimated: estimated || undefined,
+    },
   };
 }
 
@@ -360,11 +393,25 @@ export async function recordRevise(
   if (!seed) return { ok: false, reason: "no such decision on the board" };
   const trimmed = (note ?? "").trim().slice(0, 2000);
   if (!trimmed) return { ok: false, reason: "a send-back needs a note — say what to change" };
-  const { height } = await currentBlockInfo();
-  const ruling: Ruling = { id, revise: true, note: trimmed, at: height };
+  /* same honest stamp as recordDecision — the flag rides the record */
+  const { height, estimated } = await serverBlockInfo();
+  const ruling: Ruling = {
+    id,
+    revise: true,
+    note: trimmed,
+    at: height,
+    atEstimated: estimated || undefined,
+  };
   await writeRuling(ruling);
   return {
     ok: true,
-    decision: { ...seed, status: "revise", revise: true, note: trimmed, at: height },
+    decision: {
+      ...seed,
+      status: "revise",
+      revise: true,
+      note: trimmed,
+      at: height,
+      atEstimated: estimated || undefined,
+    },
   };
 }

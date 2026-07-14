@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { bftDate } from "@/lib/bb/bft";
+import { bftDate, estimateHeight } from "@/lib/bb/bft";
 import type { HandleStatus } from "@/lib/registry";
 import { ANCHOR_BLOCKS_OUT, SPACE_ROLES } from "@/lib/identity-config";
 import { ARTIST_GATE_CERT_COUNT, CLASSES_URL } from "@/lib/classes";
@@ -110,9 +110,11 @@ export default function FrenProfile({
   const sinceBlock = usePlayerSinceBlock(blockHeight, requestedAt);
   const tipHeight = useTipHeight();
   const registered = new Date(requestedAt);
+  /* NEVER the old calendar (Pac, 2026-07-11): with no recorded or backfilled
+     block, the wall timestamp converts to an honest ~BFT estimate instead. */
   const registeredLabel = isNaN(registered.getTime())
     ? null
-    : registered.toISOString().slice(0, 10);
+    : `~ ${bftDate(estimateHeight(registered.getTime()))}`;
 
   return (
     <main className="min-h-screen bg-void">

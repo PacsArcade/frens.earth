@@ -4,7 +4,7 @@ import { put, get, list } from "@vercel/blob";
 import { verifyEvent } from "nostr-tools";
 import { blobStoreEnabled } from "./registry";
 import { isOperatorHex } from "./operator-auth";
-import { currentBlockInfo } from "./bb/bft";
+import { serverBlockInfo } from "./chain-tip-server";
 
 /**
  * Sign-offs — the cross-project approval tickets on the Action Items board.
@@ -55,6 +55,9 @@ export interface Signoff {
   status: SignoffStatus;
   comment?: string;
   at?: number; // block height at sign time — BFT-stamped
+  /** the network was dark at sign time — `at` is a genesis ~estimate, never a
+      block fact; the UI wears the honest `~ ` */
+  atEstimated?: boolean;
   by?: string; // operator pubkey (hex)
   sig?: string;
 }
@@ -155,6 +158,7 @@ interface SignRecord {
   id: string;
   comment?: string;
   at: number; // block height at sign time
+  atEstimated?: boolean; // network dark at sign time — `at` is a ~estimate, not a block fact
   by: string; // operator pubkey (hex)
   sig: string;
 }
@@ -246,6 +250,7 @@ export async function listSignoffs(): Promise<Signoff[]> {
       status: "signed" as const,
       comment: r.comment,
       at: r.at,
+      atEstimated: r.atEstimated,
       by: r.by,
       sig: r.sig,
     };
@@ -298,11 +303,28 @@ export async function recordSignoff(event: {
   if (!seed) return { ok: false, reason: "no such sign-off on the board" };
 
   const comment = (rawComment ?? "").trim().slice(0, 4000) || undefined;
-  const { height } = await currentBlockInfo();
-  const record: SignRecord = { id, comment, at: height, by: event.pubkey, sig: event.sig };
+  /* the REAL block, own node first (serverBlockInfo) — an unreachable network
+     records the estimate FLAGGED, never as a bare block fact */
+  const { height, estimated } = await serverBlockInfo();
+  const record: SignRecord = {
+    id,
+    comment,
+    at: height,
+    atEstimated: estimated || undefined,
+    by: event.pubkey,
+    sig: event.sig,
+  };
   await writeRecord(record);
   return {
     ok: true,
-    signoff: { ...seed, status: "signed", comment, at: height, by: event.pubkey, sig: event.sig },
+    signoff: {
+      ...seed,
+      status: "signed",
+      comment,
+      at: height,
+      atEstimated: estimated || undefined,
+      by: event.pubkey,
+      sig: event.sig,
+    },
   };
 }

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
-import { currentBlock, BLOCKS_PER_DAY, bft } from "@/lib/bb/bft";
+import { currentBlockInfo, BLOCKS_PER_DAY, bft, bftTime, type BlockInfo } from "@/lib/bb/bft";
 
 /**
  * Bitcoin Federated Time clock — date + time displayed in familiar HH:MM format.
@@ -16,7 +16,7 @@ import { currentBlock, BLOCKS_PER_DAY, bft } from "@/lib/bb/bft";
  */
 export default function BftClock() {
   const pathname = usePathname();
-  const [height, setHeight] = useState<number | null>(null);
+  const [info, setInfo] = useState<BlockInfo | null>(null);
   const [breaking, setBreaking] = useState(false);
   const [fill, setFill] = useState(0); // real mempool fullness vs one block, 0..1
   const prev = useRef<number | null>(null);
@@ -24,16 +24,19 @@ export default function BftClock() {
   useEffect(() => {
     let alive = true;
     const tick = () => {
-      currentBlock().then((h) => {
+      currentBlockInfo().then((i) => {
         if (!alive) return;
         /* the block breaks — pulse bitcoin orange around the clock (Pac,
-           0018.04.15 a₿). First reading never pulses; only a NEW block does. */
-        if (prev.current != null && h > prev.current) {
-          setBreaking(true);
-          setTimeout(() => alive && setBreaking(false), 4000);
+           0018.04.15 a₿). First reading never pulses; only a NEW REAL block
+           does — a genesis ~estimate never fakes a break. */
+        if (!i.estimated) {
+          if (prev.current != null && i.height > prev.current) {
+            setBreaking(true);
+            setTimeout(() => alive && setBreaking(false), 4000);
+          }
+          prev.current = i.height;
         }
-        prev.current = h;
-        setHeight(h);
+        setInfo(i);
       });
       /* the ring fills like the mempool fills (Pac): live vsize against one
          block's worth (~1 MvB). Full ring = the next block is packed.
@@ -61,14 +64,15 @@ export default function BftClock() {
      floating bubble stands down there so time never shows twice */
   if (pathname === "/a" || pathname.startsWith("/a/")) return null;
 
-  if (height == null) return null;
+  if (info == null) return null;
 
+  const { height, estimated } = info;
   const { year, month, day } = bft(height);
 
-  // 144 blocks/day ÷ 24 hours = 6 blocks per Bitcoin hour (exactly)
-  const beat      = height % BLOCKS_PER_DAY;   // 0–143
-  const btcHour   = Math.floor(beat / 6);       // 0–23  — the "hour hand"
-  const btcMin    = (beat % 6) * 10;            // 0,10,20,30,40,50 — the "minute hand"
+  /* the face comes from bft.ts — bftTime() IS the canonical beat→hh:mm mapping
+     (144 blocks/day on a 24h face), never reimplemented here */
+  const [btcHour, btcMin] = bftTime(height).split(":");
+  const beat = height % BLOCKS_PER_DAY; // 0–143
 
   const pad2 = (n: number) => String(n).padStart(2, "0");
 
@@ -106,12 +110,12 @@ export default function BftClock() {
       {/* Divider */}
       <div className="my-1.5 h-px bg-white/10" />
 
-      {/* HH:MM — the familiar clock face, derived from 144÷24=6 */}
+      {/* HH:MM — the familiar clock face, straight from bftTime() (bft.ts) */}
       <div className="flex items-center justify-center gap-0.5 font-mono">
         <div className="flex flex-col items-center">
           <span className="text-[6px] uppercase tracking-widest text-white/30">HR</span>
           <span className="text-[20px] leading-none tabular-nums text-white">
-            {pad2(btcHour)}
+            {btcHour}
           </span>
         </div>
         {/* blinking colon */}
@@ -119,14 +123,14 @@ export default function BftClock() {
         <div className="flex flex-col items-center">
           <span className="text-[6px] uppercase tracking-widest text-white/30">MIN</span>
           <span className="text-[20px] leading-none tabular-nums text-white">
-            {pad2(btcMin)}
+            {btcMin}
           </span>
         </div>
       </div>
 
-      {/* Sub-label: 6 blocks = 1 hour */}
+      {/* Sub-label: 6 blocks = 1 hour — a ~estimate wears the honest ~ (like the tray clock) */}
       <div className="mt-1 text-center text-[7px] tabular-nums text-white/25 font-mono">
-        beat {String(beat).padStart(3, "0")}/144 · ★{height.toLocaleString()}
+        beat {String(beat).padStart(3, "0")}/144 · ★{estimated ? "~" : ""}{height.toLocaleString()}
       </div>
       </div>
     </div>

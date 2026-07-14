@@ -4,8 +4,9 @@ import { put, get } from "@vercel/blob";
 import { verifyEvent, nip19 } from "nostr-tools";
 import { blobStoreEnabled, findHandleByNpub } from "./registry";
 import { isOperatorHex } from "./operator-auth";
-import { effectiveGithub, effectiveMempoolNode, MEMPOOL_URL_DEFAULT } from "./nodeconfig";
-import { bftDateTime, estimateHeight } from "./bb/bft";
+import { effectiveGithub } from "./nodeconfig";
+import { bftDateTime } from "./bb/bft";
+import { serverBlockInfo } from "./chain-tip-server";
 
 /**
  * Merge authorizations — the admiral signs merges from the SCAR console.
@@ -30,30 +31,14 @@ import { bftDateTime, estimateHeight } from "./bb/bft";
 
 /** The BFT stamp for a SIGNED record, from the REAL block — our own node first
     (sovereign truth), mempool.space only if it's dark, a genesis estimate (the
-    honest `~`) only if both are unreachable. A signature must carry true block
+    honest `~ `) only if both are unreachable. A signature must carry true block
     time, not the sun-time guess `estimateHeight()` returns (which lags the chain
-    by months, since early blocks ran faster than ten minutes). */
+    by months, since early blocks ran faster than ten minutes). The ladder lives
+    in serverBlockInfo() (chain-tip-server.ts) — the one server tip for every
+    record-writer. */
 async function signingStamp(): Promise<string> {
-  try {
-    const { url } = await effectiveMempoolNode();
-    for (const base of [url, MEMPOOL_URL_DEFAULT]) {
-      try {
-        const res = await fetch(`${base.replace(/\/+$/, "")}/api/blocks/tip/height`, {
-          cache: "no-store",
-          signal: AbortSignal.timeout(5000),
-        });
-        if (res.ok) {
-          const h = parseInt((await res.text()).trim(), 10);
-          if (Number.isFinite(h) && h > 0) return bftDateTime(h);
-        }
-      } catch {
-        /* this base is dark — try the next */
-      }
-    }
-  } catch {
-    /* node config unavailable — fall through to the honest estimate */
-  }
-  return `~${bftDateTime(estimateHeight())}`;
+  const { height, estimated } = await serverBlockInfo();
+  return estimated ? `~ ${bftDateTime(height)}` : bftDateTime(height);
 }
 
 const GH = "https://api.github.com";
@@ -366,16 +351,17 @@ export async function postNote(event: {
     return { ok: false, reason: "signature check failed" };
   }
 
-  /* the footer ties the comment back to the signature: who (short npub),
-     when (BFT — the old calendar is burned), and the sig's leading bytes,
-     checkable against this log's full record. */
+  /* the footer ties the comment back to the signature — SIGNER FIRST (the
+     admiral's order): who (fren tag, short-npub fallback), then "signed via
+     SCAR·LET at" the true-block BFT stamp (the old calendar is burned), then
+     the sig's leading bytes, checkable against this log's full record. */
   const npub = nip19.npubEncode(event.pubkey);
   const shortNpub = `${npub.slice(0, 7)}…${npub.slice(-4)}`;
   // prefer the captain's fren tag (name@space) + the npub's last four in parens;
   // fall back to the short npub if they hold no tag yet.
   const owner = await findHandleByNpub(npub).catch(() => null);
   const who = owner ? `${owner.handle}@${owner.space} (${npub.slice(-4)})` : shortNpub;
-  const footer = `\n\n—— ✍ signed via SCAR·LET by ${who} · ${await signingStamp()} a₿ · sig ${event.sig.slice(0, 16)}…`;
+  const footer = `\n\n—— ✍ ${who} signed via SCAR·LET at ${await signingStamp()} a₿ · sig ${event.sig.slice(0, 16)}…`;
 
   const gh = await ghContext();
   let posted = false;

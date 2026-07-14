@@ -41,7 +41,12 @@ interface Signoff {
   status: "open" | "signed";
   comment?: string;
   at?: number;
+  atEstimated?: boolean;
 }
+
+/** BFT stamp, honest: `~ ` when the network was dark at sign time (the height
+    is a genesis estimate, never a block fact). */
+const stamp = (at: number, estimated?: boolean) => `${estimated ? "~ " : ""}${bftDateTime(at)}`;
 
 const CHANGE_GLYPH: Record<SignoffChange["kind"], { glyph: string; cls: string }> = {
   add: { glyph: "+", cls: "text-neon" },
@@ -163,7 +168,7 @@ export default function SignoffsPanel() {
               raised by <b className="font-bold text-white/60">{current.raisedBy}</b>
             </span>
             {current.at && (
-              <span className="text-neon/80">✓ signed · {bftDateTime(current.at)}</span>
+              <span className="text-neon/80">✓ signed · {stamp(current.at, current.atEstimated)}</span>
             )}
           </>
         ),
@@ -228,7 +233,7 @@ export default function SignoffsPanel() {
             ) : (
               <div className="mt-5 border-t border-edge pt-4">
                 <p className="font-pixel text-[10px] uppercase text-neon">
-                  ✓ SIGNED{current.at ? ` · ${bftDateTime(current.at)}` : ""}
+                  ✓ SIGNED{current.at ? ` · ${stamp(current.at, current.atEstimated)}` : ""}
                 </p>
                 {current.comment && (
                   <p className="mt-2 font-mono text-[11px] leading-relaxed text-white/50">
@@ -262,7 +267,7 @@ export default function SignoffsPanel() {
             <span className="font-mono text-[10px] uppercase text-white/30">{t.id}</span>
             {chips(t)}
             {t.status === "signed" && t.at && (
-              <span className="font-mono text-[10px] text-white/30">✓ {bftDateTime(t.at)}</span>
+              <span className="font-mono text-[10px] text-white/30">✓ {stamp(t.at, t.atEstimated)}</span>
             )}
           </span>
           <span className="mt-1.5 block font-pixel text-sm uppercase leading-snug text-white/90">

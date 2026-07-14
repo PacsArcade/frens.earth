@@ -29,9 +29,14 @@ interface Decision {
   choice?: string;
   note?: string;
   at?: number;
+  atEstimated?: boolean;
   revise?: boolean;
   source?: string;
 }
+
+/** BFT stamp, honest: `~ ` when the network was dark at record time (the
+    height is a genesis estimate, never a block fact). */
+const stamp = (at: number, estimated?: boolean) => `${estimated ? "~ " : ""}${bftDateTime(at)}`;
 
 export default function DecisionsPanel() {
   const [decisions, setDecisions] = useState<Decision[] | null>(null);
@@ -316,7 +321,7 @@ export default function DecisionsPanel() {
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <span className="font-mono text-[10px] uppercase text-white/30">{d.id}</span>
                   <span className="font-mono text-[10px] text-cyan">
-                    ↩ {d.at ? bftDateTime(d.at) : "sent back"}
+                    ↩ {d.at ? stamp(d.at, d.atEstimated) : "sent back"}
                   </span>
                 </div>
                 <p className="mt-1 font-body text-sm text-white/80">{d.question}</p>
@@ -347,7 +352,7 @@ export default function DecisionsPanel() {
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
                     <span className="font-mono text-[10px] uppercase text-white/30">{d.id}</span>
                     <span className="font-mono text-[10px] text-neon">
-                      ✓ {d.at ? bftDateTime(d.at) : "recorded"}
+                      ✓ {d.at ? stamp(d.at, d.atEstimated) : "recorded"}
                     </span>
                   </div>
                   <p className="mt-1 font-body text-sm text-white/80">{d.question}</p>

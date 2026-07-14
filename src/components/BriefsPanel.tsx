@@ -38,8 +38,13 @@ interface Brief {
   status: BriefStatus;
   comment?: string;
   at?: number;
+  atEstimated?: boolean;
   sig?: string;
 }
+
+/** BFT stamp, honest: `~ ` when the network was dark at record time (the
+    height is a genesis estimate, never a block fact). */
+const stamp = (at: number, estimated?: boolean) => `${estimated ? "~ " : ""}${bftDateTime(at)}`;
 interface Sources {
   shared: { repo: string; branch: string };
   personal: { repo: string; branch: string; tokenSet: boolean };
@@ -254,7 +259,7 @@ export default function BriefsPanel() {
               {b.source && <span className="uppercase">{b.source}</span>}
               {b.at && (
                 <span>
-                  {b.status === "signed" ? "✓" : "↩"} {bftDateTime(b.at)}
+                  {b.status === "signed" ? "✓" : "↩"} {stamp(b.at, b.atEstimated)}
                 </span>
               )}
             </>
@@ -351,7 +356,7 @@ export default function BriefsPanel() {
             )}
             {b.at && (
               <span className="font-mono text-[10px] text-white/30">
-                {b.status === "signed" ? "✓" : "↩"} {bftDateTime(b.at)}
+                {b.status === "signed" ? "✓" : "↩"} {stamp(b.at, b.atEstimated)}
               </span>
             )}
           </span>

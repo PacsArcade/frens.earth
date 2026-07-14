@@ -5,7 +5,7 @@ import { verifyEvent } from "nostr-tools";
 import { blobStoreEnabled } from "./registry";
 import { isOperatorHex } from "./operator-auth";
 import { effectiveBriefsToken, effectiveBriefsRepo, effectiveSharedBriefsRepo } from "./nodeconfig";
-import { currentBlockInfo } from "./bb/bft";
+import { serverBlockInfo } from "./chain-tip-server";
 
 /**
  * Briefs library — the design briefs as reviewable tickets in SCAR.
@@ -63,6 +63,9 @@ export interface BriefReview {
   status: "signed" | "revise"; // signed off, or sent back for another pass
   comment?: string;
   at: number; // block height at record — the block IS the record
+  /** the network was dark at record time — `at` is a genesis ~estimate, never
+      a block fact; the UI wears the honest `~ ` */
+  atEstimated?: boolean;
   by?: string; // operator pubkey hex
   sig?: string; // the per-action signature — the record IS the proof
 }
@@ -72,6 +75,7 @@ export interface Brief extends BriefContent {
   status: BriefStatus;
   comment?: string;
   at?: number;
+  atEstimated?: boolean;
   by?: string;
   sig?: string;
 }
@@ -324,6 +328,7 @@ function join(content: BriefContent, review?: BriefReview): Brief {
     status: review.status === "revise" ? "revise" : "signed",
     comment: review.comment,
     at: review.at,
+    atEstimated: review.atEstimated,
     by: review.by,
     sig: review.sig,
   };
@@ -411,13 +416,16 @@ export async function recordReview(event: {
     return { ok: false, reason: "a send-back needs a comment — say what to change" };
   }
 
-  const { height } = await currentBlockInfo();
+  /* the REAL block, own node first (serverBlockInfo) — an unreachable network
+     records the estimate FLAGGED, never as a bare block fact */
+  const { height, estimated } = await serverBlockInfo();
   const review: BriefReview = {
     slug,
     tier,
     status: action === "sendback" ? "revise" : "signed",
     comment,
     at: height,
+    atEstimated: estimated || undefined,
     by: event.pubkey,
     sig: event.sig,
   };
