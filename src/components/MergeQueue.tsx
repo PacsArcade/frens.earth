@@ -211,12 +211,12 @@ export default function MergeQueue({ mode }: { mode?: "approvals" | "testing" })
     const ics = [
       "BEGIN:VCALENDAR",
       "VERSION:2.0",
-      "PRODID:-//frens.earth//SCARLET//EN",
+      "PRODID:-//frens.earth//SCAR-LET//EN",
       "BEGIN:VEVENT",
       `UID:scarlet-key-${d8(expiry)}@frens.earth`,
       `DTSTAMP:${stamp}`,
       `DTSTART;VALUE=DATE:${d8(remind)}`,
-      "SUMMARY:SCARLET — renew the GitHub key (7 days left)",
+      "SUMMARY:SCAR·LET — renew the GitHub key (7 days left)",
       `DESCRIPTION:RTFM 002 · phase 06 — make a fresh fine-grained token and paste it at /a/scar. The old key expires ${expiry.toISOString().slice(0, 10)}.`,
       "BEGIN:VALARM",
       "TRIGGER:-PT9H",
@@ -965,7 +965,7 @@ export default function MergeQueue({ mode }: { mode?: "approvals" | "testing" })
     write, this repo only), save write-once, and the queue lights up. The
     token is masked forever after; no deployment env required.
 
-    On connect, SCARLET runs THE HANDSHAKE in front of the captain — each
+    On connect, SCAR·LET runs THE HANDSHAKE in front of the captain — each
     stage is a real check, shown as manual-style flow boxes (equal grid,
     chip top-left, label stacked — the house box standard), ending with a
     plain-words "you did great". The training dashboard's first instance. */
@@ -1088,7 +1088,7 @@ function ConnectGithub({ onConnected }: { onConnected: () => void }) {
             {prCount === 0
               ? "The board is clean — proposals will line up here."
               : `${prCount} proposal${prCount === 1 ? "" : "s"} waiting for your signature.`}{" "}
-            SCARLET has the conn.
+            SCAR·LET has the conn.
           </p>
         </div>
       )}
