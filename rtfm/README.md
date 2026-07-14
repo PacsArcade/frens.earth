@@ -20,6 +20,7 @@ body of work.
 | [003](003-treasury-rescue.html) | **Treasury Rescue** | BTCPay damage control — locked out of the panel, sats "not moving", and the lightning sync runbook that keeps it from recurring. |
 | [004](004-wear-your-own-name.html) | **Wear Your Own Name** | Mask every door behind your brand — DNS doors vs gated rewrites, your own orbee floor (what's config, what's a fork), and the whole-fleet masking table. |
 | [006](006-ship-it.html) | **Ship It** | Deploy frens.earth from SCAR with your signature — connect the repo, turn off Vercel auto-deploy, wire a deploy hook, arm the signed ▲ SHIP button. |
+| [007](007-the-captains-signoff.html) | **The Captain's Sign-Off** | What to check before your key merges a PR — not-a-draft, the sha your signature binds, the diff over the title, green checks, trusted source, your name on the block, and how to say "not yet." |
 
 _(more to come — 005 CLASSROOM SETUPS & MANAGEMENT is commissioned.)_
 
