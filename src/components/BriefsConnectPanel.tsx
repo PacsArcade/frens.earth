@@ -59,7 +59,7 @@ export default function BriefsConnectPanel() {
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-10">
-      <p className="mb-2 font-pixel text-[10px] uppercase tracking-widest text-white/40">
+      <p className="lcars-eyebrow mb-3" data-accent="cyan">
         OPERATOR CONSOLE · FRENS.EARTH
       </p>
       <h2 className="mb-3 font-arcade text-4xl text-cyan glow-cyan">BRIEFS</h2>
@@ -72,7 +72,7 @@ export default function BriefsConnectPanel() {
       <div className="max-w-2xl space-y-6">
         <SourceBox
           title="SHARED SOURCE — PUBLIC REPO · NO TOKEN"
-          accentClass="text-cyan"
+          tone="cyan"
           repoLabel="REPO (owner/name) — PUBLIC"
           defaults={DEFAULTS.shared}
           repo={config?.sharedBriefsRepo ?? ""}
@@ -84,7 +84,7 @@ export default function BriefsConnectPanel() {
 
         <SourceBox
           title="PERSONAL SOURCE — PRIVATE REPO · TOKEN REQUIRED"
-          accentClass="text-pink"
+          tone="pink"
           repoLabel="REPO (owner/name) — PRIVATE"
           defaults={DEFAULTS.personal}
           repo={config?.briefsRepo ?? ""}
@@ -125,10 +125,12 @@ export default function BriefsConnectPanel() {
 }
 
 /** One source's POINT · SAVE box — repo + branch, saved write-through to the
-    node config. Empty falls back to the house default (shown, honestly). */
+    node config. Empty falls back to the house default (shown, honestly).
+    `tone` is the box's semantic accent (cyan = info/systems, pink = personal
+    flair) — the SAVE wears it too. Never coin: gold = money only. */
 function SourceBox({
   title,
-  accentClass,
+  tone,
   repoLabel,
   defaults,
   repo,
@@ -139,7 +141,7 @@ function SourceBox({
   extra,
 }: {
   title: string;
-  accentClass: string;
+  tone: "cyan" | "pink";
   repoLabel: string;
   defaults: { repo: string; branch: string };
   repo: string;
@@ -187,8 +189,10 @@ function SourceBox({
   }
 
   return (
-    <div className="border-2 border-edge bg-panel p-4">
-      <p className={`mb-3 font-pixel text-[10px] uppercase tracking-widest ${accentClass}`}>{title}</p>
+    <div className="console-card p-4" data-accent={tone}>
+      <p className={`mb-3 font-pixel text-[10px] uppercase tracking-widest ${tone === "pink" ? "text-pink" : "text-cyan"}`}>
+        {title}
+      </p>
       <div className="flex flex-wrap items-end gap-2">
         <label className="min-w-0 flex-1">
           <span className="font-pixel text-[9px] uppercase text-white/40">{repoLabel}</span>
@@ -208,7 +212,12 @@ function SourceBox({
             className="mt-1 w-full rounded-lg border-2 border-edge bg-void px-3 py-2 font-mono text-xs text-cyan placeholder:text-white/25 focus:border-cyan focus:outline-none"
           />
         </label>
-        <button onClick={save} disabled={saving} className="button disabled:opacity-50">
+        <button
+          onClick={save}
+          disabled={saving}
+          data-accent={tone}
+          className="btn-pill btn-pill--solid"
+        >
           {saving ? "SAVING…" : saved ? "✓ SAVED" : "SAVE"}
         </button>
       </div>
@@ -285,7 +294,12 @@ function BriefsTokenField({ tokenSet, onSaved }: { tokenSet: boolean; onSaved: (
             className="mt-1 w-full rounded-lg border-2 border-edge bg-void px-3 py-2 font-mono text-xs text-cyan placeholder:text-white/25 focus:border-cyan focus:outline-none disabled:opacity-50"
           />
         </label>
-        <button onClick={save} disabled={saving} className="button disabled:opacity-50">
+        <button
+          onClick={save}
+          disabled={saving}
+          data-accent="pink"
+          className="btn-pill btn-pill--solid"
+        >
           {saving ? "SAVING…" : saved ? "✓ SAVED" : "POINT · SAVE"}
         </button>
       </div>

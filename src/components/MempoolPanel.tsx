@@ -37,11 +37,7 @@ const SOURCE_LABEL: Record<MempoolStatus["source"], string> = {
 
 function Pill({ ok, children }: { ok: boolean; children: ReactNode }) {
   return (
-    <span
-      className={`inline-block border-2 px-2 py-0.5 font-pixel text-[9px] uppercase ${
-        ok ? "border-neon text-neon glow-neon" : "border-ghost text-ghost"
-      }`}
-    >
+    <span className="pill" data-accent={ok ? "neon" : "ghost"}>
       {children}
     </span>
   );
@@ -141,7 +137,7 @@ export default function MempoolPanel() {
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-10">
-      <p className="mb-2 font-pixel text-[10px] uppercase tracking-widest text-white/40">
+      <p className="lcars-eyebrow mb-3" data-accent="cyan">
         OPERATOR CONSOLE · FRENS.EARTH
       </p>
       <h1 className="mb-3 font-arcade text-4xl text-cyan glow-cyan">CHAIN NODE</h1>
@@ -154,7 +150,7 @@ export default function MempoolPanel() {
       <div className="max-w-2xl space-y-6">
         {/* honest state — still on the public fallback, no own node linked */}
         {status && onDefault && (
-          <div className="border-2 border-cyan/60 bg-cyan/5 p-4 font-body text-sm text-white/80">
+          <div className="rounded-xl border-2 border-cyan/60 bg-cyan/5 p-4 font-body text-sm text-white/80">
             <p className="mb-2 font-pixel text-[10px] uppercase text-cyan">
               USING THE PUBLIC MEMPOOL.SPACE (FALLBACK) — POINT YOUR OWN BELOW
             </p>
@@ -169,7 +165,7 @@ export default function MempoolPanel() {
         )}
 
         {/* your node — the boxes: point, save, test */}
-        <div className="border-2 border-edge bg-panel p-4">
+        <div className="console-card p-4" data-accent="cyan">
           <p className="mb-3 font-pixel text-[10px] uppercase tracking-widest text-white/40">
             YOUR NODE — POINT · SAVE · TEST
           </p>
@@ -181,18 +177,19 @@ export default function MempoolPanel() {
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               placeholder="https://mempool.space"
-              className="mt-1 w-full border-2 border-edge bg-void px-3 py-2 font-mono text-xs text-cyan placeholder:text-white/25 focus:border-cyan focus:outline-none"
+              className="mt-1 w-full rounded-lg border-2 border-edge bg-void px-3 py-2 font-mono text-xs text-cyan placeholder:text-white/25 focus:border-cyan focus:outline-none"
             />
           </label>
           <div className="mt-4 flex flex-wrap items-center gap-2">
-            <button onClick={save} disabled={saving} className="button disabled:opacity-50">
+            <button
+              onClick={save}
+              disabled={saving}
+              data-accent="cyan"
+              className="btn-pill btn-pill--solid"
+            >
               {saving ? "SAVING…" : saved ? "✓ SAVED" : "SAVE & TEST"}
             </button>
-            <button
-              onClick={loadStatus}
-              disabled={busy}
-              className="min-h-11 border-2 border-cyan px-4 font-pixel text-[9px] uppercase text-cyan hover:glow-cyan disabled:opacity-50"
-            >
+            <button onClick={loadStatus} disabled={busy} data-accent="cyan" className="btn-pill">
               {busy ? "TESTING…" : "TEST CONNECTION"}
             </button>
           </div>
@@ -203,8 +200,8 @@ export default function MempoolPanel() {
         </div>
 
         {/* the link, validated */}
-        <div className="border-2 border-edge bg-panel">
-          <div className="border-b-2 border-edge px-4 py-2">
+        <div className="console-card overflow-hidden" data-accent="cyan">
+          <div className="border-b border-edge px-4 py-2.5">
             <p className="font-pixel text-[10px] uppercase tracking-widest text-white/40">
               NODE LINK
             </p>

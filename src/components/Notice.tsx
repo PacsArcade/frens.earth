@@ -19,10 +19,11 @@ export default function Notice({ id, children }: { id: string; children: ReactNo
     }
   }, [key]);
   if (dismissed) return null;
+  /* cyan, not coin — a notice is INFO; gold stays money-only (house law) */
   return (
-    <div className="mb-4 flex items-start gap-3 border-l-4 border-coin bg-coin/5 px-3 py-2">
+    <div className="mb-4 flex items-start gap-3 rounded-r-lg border-l-4 border-cyan bg-cyan/5 px-3 py-2">
       <p className="min-w-0 flex-1 font-body text-xs text-white/80">
-        <span className="mr-2 font-pixel text-[9px] uppercase text-coin">◈ NOTICE</span>
+        <span className="mr-2 font-pixel text-[9px] uppercase text-cyan">◈ NOTICE</span>
         {children}
       </p>
       <button
@@ -35,7 +36,7 @@ export default function Notice({ id, children }: { id: string; children: ReactNo
           setDismissed(true);
         }}
         aria-label="Dismiss notice"
-        className="flex-none border border-edge px-1.5 font-pixel text-[9px] text-white/40 hover:text-white/80"
+        className="flex-none rounded-md border border-edge px-1.5 py-0.5 font-pixel text-[9px] text-white/40 hover:border-cyan hover:text-white/80"
       >
         ✕
       </button>
