@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import OperatorGate from "@/components/OperatorGate";
-import AdminNav from "@/components/AdminNav";
 import SpacesPanel from "@/components/SpacesPanel";
 import ChatPanel from "@/components/ChatPanel";
 import MudPanel from "@/components/MudPanel";
@@ -43,8 +42,7 @@ export default async function AdminConnectionsPage() {
     return <OperatorGate configured={operatorsConfigured()} />;
   }
   return (
-    <main className="min-h-screen console-ground">
-      <AdminNav current="connections" />
+    <main className="min-h-screen">
       <div className="mx-auto max-w-5xl px-6 pb-2 pt-10">
         <p className="lcars-eyebrow mb-3" data-accent="cyan">
           OPERATOR CONSOLE · {CONSOLE_SITE.domain.toUpperCase()}
@@ -54,8 +52,8 @@ export default async function AdminConnectionsPage() {
           Your nodes and doors — point each one at your own server, save, and test. Leave one
           empty and it falls back honestly.
         </p>
-        {/* jump rail — skip to any node without a scroll hunt */}
-        <nav aria-label="connections sections" className="flex flex-wrap gap-2">
+        {/* jump rail — MOBILE fallback (the desktop ribbon accordion owns this sub-nav) */}
+        <nav aria-label="connections sections" className="scar-mobile-only flex-wrap gap-2">
           {SECTIONS.map((s) => (
             <a
               key={s.id}
@@ -69,33 +67,33 @@ export default async function AdminConnectionsPage() {
         </nav>
       </div>
 
-      <section id="spaces" className="scroll-mt-6">
+      <section id="spaces" className="scroll-mt-20">
         <SpacesPanel space={SPACE_NAME} />
       </section>
 
-      <section id="chat" className="scroll-mt-6 border-t-2 border-edge/60">
+      <section id="chat" className="scroll-mt-20 border-t-2 border-edge/60">
         <ChatPanel />
       </section>
 
-      <section id="mud" className="scroll-mt-6 border-t-2 border-edge/60">
+      <section id="mud" className="scroll-mt-20 border-t-2 border-edge/60">
         <MudPanel />
       </section>
 
-      <section id="chain" className="scroll-mt-6 border-t-2 border-edge/60">
+      <section id="chain" className="scroll-mt-20 border-t-2 border-edge/60">
         <MempoolPanel />
       </section>
 
       {/* BRIEFS — the two sources the briefs library pulls from (shared public +
           personal private). The repo/branch editors were consolidated here from
           the Briefs page; the ⟳ PULL action stays on /a/briefs. */}
-      <section id="briefs" className="scroll-mt-6 border-t-2 border-edge/60">
+      <section id="briefs" className="scroll-mt-20 border-t-2 border-edge/60">
         <BriefsConnectPanel />
       </section>
 
       {/* SHIP — the deploy hook: the door from merged `main` to production. The
           per-card ▲ SHIP on Action Items fires this same hook; connect it once
           here (stored write-only). A merge is never live until a ship. */}
-      <section id="deploy" className="scroll-mt-6 border-t-2 border-edge/60">
+      <section id="deploy" className="scroll-mt-20 border-t-2 border-edge/60">
         <div className="mx-auto max-w-3xl px-6 pt-10">
           <p className="mb-2 font-pixel text-[10px] uppercase tracking-widest text-white/40">
             OPERATOR CONSOLE · {CONSOLE_SITE.domain.toUpperCase()}
@@ -108,7 +106,7 @@ export default async function AdminConnectionsPage() {
         <DeployPanel />
       </section>
 
-      <section id="torrents" className="scroll-mt-6 border-t-2 border-edge/60">
+      <section id="torrents" className="scroll-mt-20 border-t-2 border-edge/60">
         <div className="mx-auto max-w-5xl px-6 py-10">
           <p className="mb-2 font-pixel text-[10px] uppercase tracking-widest text-white/40">
             OPERATOR CONSOLE · {CONSOLE_SITE.domain.toUpperCase()}

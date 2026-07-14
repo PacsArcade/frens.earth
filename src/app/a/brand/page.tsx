@@ -3,7 +3,6 @@ import { headers } from "next/headers";
 import BrandTester from "@/components/BrandTester";
 import CertCase from "@/components/CertCase";
 import OperatorGate from "@/components/OperatorGate";
-import AdminNav from "@/components/AdminNav";
 import { operatorFromCookieHeader, operatorsConfigured } from "@/lib/operator-auth";
 import { specimenShelf } from "@/lib/certs";
 
@@ -30,13 +29,11 @@ export default async function AdminBrandPage() {
   }
   const shelf = specimenShelf();
   return (
-    <div className="min-h-screen console-ground">
-      <AdminNav current="brand" />
-
+    <div className="min-h-screen">
       {/* Cert foundry — specimen shelf (moved from the old deck). Real BFT lore
           on every case; the profile shelf renders the same component once certs
-          have data. */}
-      <div className="mx-auto max-w-5xl px-6 pt-10">
+          have data. The id anchors the ribbon accordion (CERT FOUNDRY). */}
+      <div id="certs" className="mx-auto max-w-5xl scroll-mt-20 px-6 pt-10">
         <p className="lcars-eyebrow mb-3" data-accent="coin">
           CERT FOUNDRY · CASE SPECIMENS
         </p>
@@ -52,7 +49,9 @@ export default async function AdminBrandPage() {
         </div>
       </div>
 
-      <BrandTester />
+      <section id="tester" className="scroll-mt-20">
+        <BrandTester />
+      </section>
     </div>
   );
 }

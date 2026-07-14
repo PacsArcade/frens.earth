@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import OperatorGate from "@/components/OperatorGate";
-import AdminNav from "@/components/AdminNav";
 import MergeQueue from "@/components/MergeQueue";
 import DecisionsPanel from "@/components/DecisionsPanel";
 import { operatorFromCookieHeader, operatorsConfigured } from "@/lib/operator-auth";
@@ -30,8 +29,7 @@ export default async function AdminActionItemsPage() {
     return <OperatorGate configured={operatorsConfigured()} />;
   }
   return (
-    <main className="min-h-screen console-ground">
-      <AdminNav current="action" />
+    <main className="min-h-screen">
       <div className="mx-auto max-w-3xl px-6 pb-4 pt-10">
         <p className="lcars-eyebrow mb-3" data-accent="pink">
           OPERATOR CONSOLE · {CONSOLE_SITE.domain.toUpperCase()}
@@ -42,8 +40,13 @@ export default async function AdminActionItemsPage() {
           card. The decision board sits below.
         </p>
       </div>
-      <MergeQueue mode="approvals" />
-      <DecisionsPanel />
+      {/* anchors feed the ribbon accordion (APPROVALS / DECISIONS) */}
+      <section id="approvals" className="scroll-mt-20">
+        <MergeQueue mode="approvals" />
+      </section>
+      <section id="decisions" className="scroll-mt-20">
+        <DecisionsPanel />
+      </section>
     </main>
   );
 }

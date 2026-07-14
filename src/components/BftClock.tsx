@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import { currentBlock, BLOCKS_PER_DAY, bft } from "@/lib/bb/bft";
 
 /**
@@ -14,6 +15,7 @@ import { currentBlock, BLOCKS_PER_DAY, bft } from "@/lib/bb/bft";
  * Fixed to the corner of every page; refreshes each minute.
  */
 export default function BftClock() {
+  const pathname = usePathname();
   const [height, setHeight] = useState<number | null>(null);
   const [breaking, setBreaking] = useState(false);
   const [fill, setFill] = useState(0); // real mempool fullness vs one block, 0..1
@@ -53,6 +55,11 @@ export default function BftClock() {
     const id = setInterval(tick, 60_000);
     return () => { alive = false; clearInterval(id); };
   }, []);
+
+  /* inside the operator console the SCAR·LET shell carries the ONE BFT
+     tray-clock (ribbon foot on desktop, bottom elbow bar on mobile) — the
+     floating bubble stands down there so time never shows twice */
+  if (pathname === "/a" || pathname.startsWith("/a/")) return null;
 
   if (height == null) return null;
 

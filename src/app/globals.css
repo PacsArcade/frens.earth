@@ -623,3 +623,381 @@ footer {
     transition: border-color .2s ease, box-shadow .2s ease, background-color .2s ease;
   }
 }
+
+/* ==========================================================================
+   SCAR·LET SHELL — the approved LCARS operator console (scar-lcars-wireframe).
+   A two-column frame: the left ELBOW RIBBON (sticky rail of colour blocks
+   that sweeps into the top bar through a concave corner — rooms + accordion
+   sub-nav + the SCAR readout + the ONE BFT tray-clock) beside the main
+   column. ≤900px = Option B: the ribbon becomes a bottom SHEET raised by the
+   ▲ MENU sweep on a persistent bottom elbow bar (room · SCAR 0x/05 · clock).
+   The structural frame is MUTED ops-green (not neon) so the semantic law
+   stays readable: coin = money · neon = live · cyan = info · ghost = danger
+   · pink = your-action/flair.
+   ========================================================================== */
+
+:root {
+  --scar-ops: #5c8a6e;    /* muted ops-green — the LCARS structural frame (NOT neon) */
+  --scar-ops-d: #33503f;  /* darker ops-green — bar baselines / seams */
+  --scar-rail-w: 172px;   /* the elbow rail column */
+  --scar-nav-h: 60px;     /* top bar height — sticky offsets derive from it */
+  --scar-sweep: 30px;     /* the elbow concave-corner radius */
+  --scar-mbar-h: 62px;    /* the mobile bottom elbow bar */
+}
+
+@keyframes scar-pulse {
+  0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-neon) 60%, transparent); }
+  70%  { box-shadow: 0 0 0 7px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+@layer components {
+
+  /* ── the two-column LCARS frame: elbow rail | main ─────────────────────── */
+  .scar-frame {
+    max-width: 1440px; margin: 0 auto;
+    display: grid; grid-template-columns: var(--scar-rail-w) minmax(0, 1fr);
+    align-items: start;
+  }
+  .scar-main { min-width: 0; }
+
+  /* ── the ELBOW RIBBON ──────────────────────────────────────────────────── */
+  .scar-rail {
+    position: sticky; top: 0; align-self: start;
+    height: 100vh; height: 100dvh;
+    overflow-y: auto; overflow-x: hidden;
+    display: flex; flex-direction: column; gap: 6px;
+    padding: 0 4px 14px 12px; z-index: 42;
+    scrollbar-width: thin; scrollbar-color: var(--scar-ops-d) transparent;
+  }
+  /* sheet header — only shown when the rail is raised as a bottom sheet on mobile */
+  .scar-rail__sheethead { display: none; }
+  /* the elbow IS the leave-console button — site name kept clear of the sweep */
+  .scar-rail__elbow {
+    flex: none; height: var(--scar-nav-h);
+    display: flex; align-items: center; justify-content: center;
+    padding: 0 26px 8px 6px; overflow: hidden;
+    color: #0e1712 !important;
+    background: radial-gradient(circle at 100% 100%, transparent 0 var(--scar-sweep), var(--scar-ops) var(--scar-sweep));
+    border-top-left-radius: 26px;
+    font-family: var(--font-console); font-size: 12px; font-weight: 800;
+    letter-spacing: .02em; white-space: nowrap;
+    transition: filter .15s ease;
+  }
+  .scar-rail__elbow:hover { filter: brightness(1.1); color: #0e1712; }
+  /* SCAR·LET brand block — opens the console front page */
+  .scar-rail__brand {
+    flex: none; display: flex; flex-direction: column; align-items: center;
+    text-align: center; border-radius: 6px 6px 20px 6px; padding: 9px 12px 10px;
+    background: linear-gradient(150deg, var(--color-pink), #6f4fc4);
+    color: #17111f !important;
+    transition: transform .12s ease, filter .15s ease;
+  }
+  .scar-rail__brand:hover { transform: translateX(2px); filter: brightness(1.05); color: #17111f; }
+  .scar-rail__brand b {
+    display: block; font-family: var(--font-console);
+    font-size: 13px; letter-spacing: .16em; font-weight: 800;
+  }
+  .scar-rail__brand small {
+    display: block; font-family: var(--font-console);
+    font-size: 8px; letter-spacing: .22em; opacity: .74; margin-top: 3px;
+    font-weight: 700; text-transform: uppercase;
+  }
+  .scar-rail__nav { display: flex; flex-direction: column; gap: 5px; }
+  /* room blocks — LCARS colour bars, rounded right end-caps */
+  .scar-railbtn {
+    display: flex; align-items: center; justify-content: center; text-align: center;
+    min-height: 44px; padding: 11px 12px;
+    border: none; cursor: pointer;
+    border-radius: 3px 15px 15px 3px;
+    background: var(--scar-ops); color: #0d1712 !important;
+    font-family: var(--font-pixel);
+    font-size: 8px; letter-spacing: .07em; text-transform: uppercase; line-height: 1.4;
+    transition: filter .15s ease, transform .12s ease;
+  }
+  .scar-railbtn:hover { filter: brightness(1.14); transform: translateX(2px); color: #0d1712; }
+  .scar-railbtn[aria-current="page"] {
+    background: var(--acc); color: var(--color-void) !important;
+    box-shadow: inset 3px 0 0 rgba(0, 0, 0, .28);
+  }
+  /* accordion — the active room's sub-sections nest under it in the ribbon */
+  .scar-railsub {
+    display: flex; flex-direction: column; gap: 3px;
+    margin: 3px 0 4px 12px; padding-left: 9px;
+    border-left: 2px solid var(--scar-ops-d);
+  }
+  .scar-railsubbtn {
+    display: flex; align-items: center; justify-content: center; text-align: center;
+    min-height: 44px; padding: 7px 10px;
+    border: none; cursor: pointer;
+    border-radius: 3px 12px 12px 3px;
+    background: color-mix(in srgb, var(--scar-ops) 42%, #16221b);
+    color: #cfe0d6 !important;
+    font-family: var(--font-pixel);
+    font-size: 7px; letter-spacing: .07em; text-transform: uppercase; line-height: 1.5;
+    transition: filter .15s ease, transform .12s ease;
+  }
+  .scar-railsubbtn:hover { filter: brightness(1.16); transform: translateX(2px); color: #e6f0e9; }
+  .scar-railsubbtn[aria-current="page"] { background: var(--acc); color: var(--color-void) !important; }
+  .scar-railsubbtn--soon { opacity: .45; cursor: default; pointer-events: none; }
+  .scar-railsubbtn--soon .soon { font-size: 6px; letter-spacing: .18em; opacity: .8; margin-left: .5em; }
+  .scar-rail__gap { flex: 1 1 auto; min-height: 8px; }
+  /* numeric callouts — the console's REAL data (SCAR room readout) */
+  .scar-railstat {
+    flex: none; border-radius: 3px 3px 3px 15px;
+    background: #17211b; border: 1.5px solid var(--console-edge);
+    padding: 8px 10px; text-align: center;
+    font-family: var(--font-console);
+  }
+  .scar-railstat > span {
+    display: block; font-size: 7.5px; letter-spacing: .18em;
+    text-transform: uppercase; color: #7f9578;
+  }
+  .scar-railstat b {
+    display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+    margin-top: 3px; font-size: 12.5px; font-weight: 800;
+    color: var(--color-cyan); font-variant-numeric: tabular-nums;
+  }
+
+  /* ── the ONE BFT tray-clock (rail foot · desktop) ──────────────────────── */
+  .scar-railclock {
+    flex: none; border-radius: 3px 3px 15px 3px;
+    background: #17211b;
+    border: 1.5px solid color-mix(in srgb, var(--color-coin) 30%, var(--console-edge));
+    padding: 9px 10px 10px; text-align: center;
+    font-family: var(--font-console);
+  }
+  .scar-railclock__time {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    font-size: 15px; font-weight: 800; letter-spacing: .03em;
+    color: var(--color-coin); font-variant-numeric: tabular-nums;
+  }
+  .scar-clockdot {
+    width: 7px; height: 7px; border-radius: 50%; background: var(--color-neon); flex: none;
+    animation: scar-pulse 2.6s ease-out infinite;
+  }
+  .scar-railclock__date {
+    margin-top: 3px; font-size: 9.5px; letter-spacing: .1em;
+    color: color-mix(in srgb, var(--color-coin) 70%, #839388);
+    font-variant-numeric: tabular-nums;
+  }
+  .scar-railclock__foot {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--console-edge);
+    flex-wrap: wrap;
+  }
+  .scar-railclock__height {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 12px; font-weight: 800;
+    color: var(--color-coin); font-variant-numeric: tabular-nums;
+  }
+  /* the star-in-a-box — "the StarDate is our block height"; precedes every height */
+  .scar-starbox {
+    display: inline-grid; place-items: center;
+    width: 14px; height: 14px; flex: none;
+    border: 1.3px solid currentColor; border-radius: 3px;
+    font-size: 8px; line-height: 1;
+  }
+  .scar-starbox::before { content: "★"; }
+  /* the a₿ era marker — coin-tinted (it reads as bitcoin), display only */
+  .scar-ab {
+    font-family: var(--font-console);
+    font-size: 9px; letter-spacing: .1em; font-weight: 800;
+    color: var(--color-coin);
+    border: 1.5px solid color-mix(in srgb, var(--color-coin) 40%, var(--scar-ops-d));
+    border-radius: 4px; padding: 2px 6px;
+  }
+
+  /* ── top bar — an LCARS segmented bar; the ops arm underlines it ───────── */
+  .scar-topbar {
+    position: sticky; top: 0; z-index: 40;
+    background: color-mix(in srgb, var(--color-void) 90%, transparent);
+    backdrop-filter: blur(9px) saturate(1.1);
+  }
+  .scar-topbar__row {
+    position: relative; display: flex; align-items: center; flex-wrap: nowrap;
+    gap: 8px 10px; min-height: var(--scar-nav-h); padding: 0 24px;
+  }
+  .scar-topbar__row::after {
+    content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 2px;
+    background: linear-gradient(90deg, var(--scar-ops), var(--scar-ops-d) 42%, transparent);
+  }
+  .scar-crumb {
+    display: flex; align-items: baseline; gap: 8px; min-width: 0; flex: 1 1 auto;
+    font-family: var(--font-console);
+  }
+  .scar-crumb__site {
+    font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
+    color: #7f9578; font-weight: 700;
+  }
+  .scar-crumb__sep { color: var(--console-edge); font-size: 13px; }
+  .scar-crumb__room {
+    font-size: 13px; letter-spacing: .14em; text-transform: uppercase;
+    color: #f1efe7; font-weight: 800; white-space: nowrap;
+  }
+  .scar-readout {
+    margin-left: auto; flex: none;
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: var(--font-console);
+    font-size: 10px; letter-spacing: .2em; text-transform: uppercase;
+    color: #7f9578; font-variant-numeric: tabular-nums;
+  }
+  .scar-readout b {
+    padding: 4px 9px; border-radius: 3px 10px 10px 3px;
+    background: color-mix(in srgb, var(--color-neon) 10%, #0b110a);
+    color: color-mix(in srgb, var(--color-neon) 80%, #dfe8db); font-weight: 700;
+  }
+  /* mobile-only site-exit fallback — the ribbon (which owns ⌂ + home) hides ≤900px */
+  .scar-siteexit {
+    display: none; align-items: center; gap: .4em; flex: none;
+    min-height: 38px; padding: 0 11px; border-radius: 8px;
+    border: 1.5px solid var(--console-edge);
+    background: color-mix(in srgb, var(--color-void) 55%, transparent);
+    color: #839388 !important;
+    font-family: var(--font-console); font-size: 10px; letter-spacing: .04em; font-weight: 700;
+    transition: border-color .2s, color .2s, background .2s;
+  }
+  .scar-siteexit:hover { border-color: var(--color-cyan); color: var(--color-cyan) !important; }
+
+  /* the single brand statement — footer brandline only (never duplicated) */
+  .scar-brandline {
+    margin: 0; padding: 24px 20px 44px; text-align: center;
+    font-family: var(--font-console);
+    font-size: 11px; letter-spacing: .05em; color: #839388; line-height: 1.6;
+  }
+  .scar-brandline b { color: #c5cfc0; font-weight: 700; }
+
+  /* in-page horizontal sub-nav bars: the desktop ribbon accordion owns sub-nav,
+     so these are the MOBILE fallback */
+  .scar-mobile-only { display: none; }
+
+  /* ── OPTION B — mobile bottom LCARS elbow bar + scrim ──────────────────── */
+  .scar-mbar {
+    display: none; position: fixed; left: 0; right: 0; bottom: 0; z-index: 65;
+    align-items: stretch; min-height: var(--scar-mbar-h); overflow: hidden;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    background: color-mix(in srgb, var(--color-void) 94%, transparent);
+    backdrop-filter: blur(10px) saturate(1.1);
+    border-top: 2px solid var(--scar-ops-d);
+    box-shadow: 0 -14px 34px -20px #000;
+  }
+  .scar-mbar__menu {
+    flex: none; width: 62px; border: none; cursor: pointer; color: #0d1712;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+    background: radial-gradient(circle at 100% 0%, transparent 0 18px, var(--scar-ops) 18px);
+    font-family: var(--font-pixel);
+    transition: filter .15s ease;
+  }
+  .scar-mbar__menu:hover, .scar-mbar__menu:focus-visible { filter: brightness(1.12); outline: none; }
+  .scar-mbar__caret { font-size: 12px; line-height: 1; transition: transform .25s ease; }
+  body.menu-open .scar-mbar__caret { transform: rotate(180deg); }
+  .scar-mbar__menulbl { font-size: 7px; letter-spacing: .1em; font-weight: 800; }
+  .scar-mbar__room {
+    flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column;
+    justify-content: center; gap: 2px; padding: 0 10px;
+  }
+  .scar-mbar__roomname {
+    font-family: var(--font-pixel); font-size: 9px; letter-spacing: .1em;
+    text-transform: uppercase; color: #f1efe7;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .scar-mbar__readout {
+    font-family: var(--font-console); font-size: 9px; letter-spacing: .16em;
+    text-transform: uppercase; color: #7f9578; white-space: nowrap;
+  }
+  .scar-mbar__readout b { color: color-mix(in srgb, var(--color-cyan) 82%, #f1efe7); font-weight: 800; }
+  .scar-mbar__clock {
+    flex: none; display: flex; flex-direction: column; align-items: flex-end;
+    justify-content: center; gap: 2px; padding: 0 12px 0 8px; text-align: right;
+    font-family: var(--font-console); font-variant-numeric: tabular-nums;
+  }
+  .scar-mbar__time {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 13.5px; font-weight: 800; color: var(--color-coin);
+  }
+  .scar-mbar__time .scar-clockdot { width: 6px; height: 6px; }
+  .scar-mbar__time .scar-ab { font-size: 8.5px; padding: 1px 4px; }
+  .scar-mbar__sub {
+    display: inline-flex; align-items: center; gap: 4px; white-space: nowrap;
+    font-size: 9.5px; color: color-mix(in srgb, var(--color-coin) 68%, #839388);
+  }
+  /* the scrim behind the raised sheet */
+  .scar-scrim {
+    display: none; position: fixed; inset: 0; z-index: 60;
+    background: rgba(4, 8, 6, .62); backdrop-filter: blur(2px);
+    opacity: 0; visibility: hidden;
+    transition: opacity .28s ease, visibility .28s ease;
+  }
+  body.menu-open .scar-scrim { opacity: 1; visibility: visible; }
+  .scar-rail__sheettitle {
+    font-family: var(--font-console);
+    font-size: 11px; letter-spacing: .2em; text-transform: uppercase;
+    color: #839388; font-weight: 800;
+  }
+  .scar-rail__sheetx {
+    flex: none; width: 44px; height: 44px; border-radius: 10px; cursor: pointer;
+    border: 1.5px solid var(--console-edge); background: transparent;
+    color: #839388; font-family: var(--font-console); font-size: 14px;
+  }
+  .scar-rail__sheetx:hover { border-color: var(--color-ghost); color: var(--color-ghost); }
+
+  /* ── ≤900px: bottom bar + rail-as-bottom-sheet; single column ──────────── */
+  @media (max-width: 900px) {
+    .scar-frame { grid-template-columns: 1fr; }
+    .scar-mbar { display: flex; }
+    .scar-scrim { display: block; }
+    .scar-siteexit { display: inline-flex; }
+    .scar-crumb { display: none; }
+    .scar-readout { display: none; }
+    .scar-mobile-only { display: flex; }
+    /* keep page content clear of the fixed bottom bar */
+    .scar-main { padding-bottom: calc(var(--scar-mbar-h) + env(safe-area-inset-bottom, 0px) + 14px); }
+    /* the RIBBON becomes a bottom SHEET (same markup, raised by ▲ MENU) */
+    .scar-rail {
+      position: fixed; left: 0; right: 0; top: auto; z-index: 62; width: auto;
+      bottom: calc(var(--scar-mbar-h) + env(safe-area-inset-bottom, 0px));
+      height: auto; max-height: min(70vh, 560px);
+      padding: 0 12px 14px; overflow-y: auto;
+      background: linear-gradient(180deg, #1a231d, #0f1510);
+      border: 1.5px solid var(--scar-ops-d); border-bottom: none;
+      border-radius: 18px 18px 0 0;
+      box-shadow: 0 -26px 60px -18px #000;
+      transform: translateY(120%);
+      transition: transform .3s cubic-bezier(.2, .8, .2, 1);
+    }
+    body.menu-open .scar-rail { transform: translateY(0); }
+    .scar-rail__sheethead {
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+      position: sticky; top: 0; z-index: 2;
+      padding: 12px 2px 10px; margin-bottom: 2px;
+      background: linear-gradient(180deg, #1a231d 76%, transparent);
+    }
+    /* the clock + readout live in the bottom bar → hide their rail copies + the elbow */
+    .scar-rail__elbow, .scar-rail__gap, .scar-railstat, .scar-railclock { display: none; }
+    .scar-rail__brand { border-radius: 10px; margin: 2px 0 6px; }
+    /* lock the background scroll while the sheet is up */
+    body.menu-open { overflow: hidden; }
+  }
+  @media (min-width: 901px) {
+    .scar-mbar, .scar-scrim, .scar-rail__sheethead { display: none !important; }
+  }
+
+  /* focus-visible for every shell control */
+  .scar-railbtn:focus-visible, .scar-railsubbtn:focus-visible,
+  .scar-rail__elbow:focus-visible, .scar-rail__brand:focus-visible,
+  .scar-mbar__menu:focus-visible, .scar-rail__sheetx:focus-visible,
+  .scar-siteexit:focus-visible {
+    outline: 2px solid var(--color-cyan); outline-offset: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scar-railbtn, .scar-railbtn:hover, .scar-railsubbtn, .scar-railsubbtn:hover,
+  .scar-rail__brand, .scar-rail__brand:hover {
+    transform: none;
+    transition: border-color .2s ease, box-shadow .2s ease, background-color .2s ease;
+  }
+  .scar-rail { transition: none; }
+  .scar-clockdot { animation: none; }
+  .scar-mbar__caret { transition: none; }
+}
