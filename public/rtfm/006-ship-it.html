@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>006 · Ship It — deploy from SCAR with your signature — RTFM</title>
+<style>
+  :root {
+    --void:#100c09; --panel:#1a1611; --edge:#3d3227;
+    --ink:#f1efe7; --muted:#a99a86;
+    --sprout:#f7931a; --teal:#ffa733; --gold:#f7c948; --ghost:#ff6b6b; --heart:#b795ff;
+    --mono: ui-monospace,"Cascadia Code","JetBrains Mono","SFMono-Regular",Menlo,Consolas,monospace;
+    --sans: ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --maxw:900px;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --void:#faf6f0; --panel:#fff; --edge:#e3d8c9; --ink:#241a10; --muted:#6a5c49;
+      --sprout:#c56a12; --teal:#a9550c; --gold:#a97c07; --ghost:#c23a3a; --heart:#6f4dc0;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--void); color:var(--ink); font-family:var(--sans); font-size:16px; line-height:1.65; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:var(--maxw); margin:0 auto; padding:0 20px 96px; }
+  a { color:var(--teal); text-decoration:none; border-bottom:1px solid transparent; }
+  a:hover { border-bottom-color:currentColor; }
+  a:focus-visible { outline:2px solid var(--teal); outline-offset:2px; }
+  code,.mono { font-family:var(--mono); }
+  header.hero { max-width:var(--maxw); margin:0 auto; padding:64px 20px 36px; }
+  .eyebrow { font-family:var(--mono); font-size:12px; letter-spacing:.22em; text-transform:uppercase; color:var(--sprout); display:flex; align-items:center; gap:10px; margin-bottom:20px; }
+  .eyebrow::before { content:""; width:22px; height:1px; background:var(--sprout); }
+  h1.title { font-family:var(--mono); font-weight:700; font-size:clamp(2rem,6vw,3.2rem); line-height:1.04; letter-spacing:-.01em; margin:0; text-wrap:balance; }
+  h1.title .glow { color:var(--sprout); text-shadow:0 0 24px color-mix(in srgb,var(--sprout) 45%,transparent); }
+  .subtitle { color:var(--muted); font-size:1.05rem; max-width:62ch; margin:14px 0 0; }
+  .mission { margin-top:22px; padding:14px 18px; border-left:3px solid var(--heart); background:color-mix(in srgb,var(--heart) 9%,transparent); font-size:.95rem; border-radius:0 6px 6px 0; max-width:64ch; }
+  .mission b { color:var(--heart); }
+  section { margin-top:52px; scroll-margin-top:20px; }
+  .head { display:flex; align-items:baseline; gap:14px; border-bottom:1px solid var(--edge); padding-bottom:12px; margin-bottom:20px; }
+  .head .num { font-family:var(--mono); font-size:13px; color:var(--void); background:var(--sprout); padding:3px 9px; border-radius:5px; font-weight:700; }
+  h2 { font-family:var(--mono); font-size:clamp(1.35rem,3.4vw,1.85rem); margin:0; letter-spacing:-.01em; text-wrap:balance; }
+  h3 { font-family:var(--mono); font-size:1.02rem; margin:28px 0 10px; color:var(--teal); }
+  p, ul { max-width:68ch; }
+  ul.plain { padding-left:20px; }
+  ul.plain li { margin:5px 0; }
+  strong { color:var(--ink); }
+  .term { margin:14px 0; border:1px solid var(--edge); border-radius:8px; overflow:hidden; background:color-mix(in srgb,var(--panel) 82%,var(--void)); }
+  .term .bar { display:flex; align-items:center; gap:8px; padding:7px 12px; border-bottom:1px solid var(--edge); font-family:var(--mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); background:var(--panel); }
+  .term .bar .dot { width:9px; height:9px; border-radius:50%; background:var(--edge); }
+  .term .bar .dot.g { background:var(--sprout); }
+  .term pre { margin:0; padding:14px 16px; overflow-x:auto; font-family:var(--mono); font-size:13px; line-height:1.7; }
+  .term pre .c { color:var(--muted); } .term pre .p { color:var(--sprout); } .term pre .s { color:var(--gold); }
+  .call { margin:18px 0; padding:14px 16px 14px 18px; border-radius:8px; border:1px solid var(--edge); border-left-width:3px; background:var(--panel); }
+  .call .lab { font-family:var(--mono); font-size:11px; letter-spacing:.14em; text-transform:uppercase; font-weight:700; margin-bottom:6px; display:block; }
+  .call p { margin:0; }
+  .call.danger { border-left-color:var(--ghost); background:color-mix(in srgb,var(--ghost) 8%,var(--panel)); } .call.danger .lab { color:var(--ghost); }
+  .call.check  { border-left-color:var(--sprout); background:color-mix(in srgb,var(--sprout) 8%,var(--panel)); } .call.check .lab { color:var(--sprout); }
+  .call.tip    { border-left-color:var(--teal); } .call.tip .lab { color:var(--teal); }
+  footer { max-width:var(--maxw); margin:56px auto 0; padding:24px 20px 0; border-top:1px solid var(--edge); color:var(--muted); font-family:var(--mono); font-size:12px; }
+  footer b { color:var(--heart); }
+  .kbd { font-family:var(--mono); font-size:.82em; border:1px solid var(--edge); border-bottom-width:2px; border-radius:4px; padding:1px 6px; color:var(--ink); }
+  #rtfm-magic { position:fixed; inset:0; display:grid; place-items:center; padding:24px; background:rgba(10,7,4,.85); z-index:9999; }
+  #rtfm-magic[hidden] { display:none; }
+  #rtfm-magic .card { max-width:440px; width:100%; border:2px solid var(--sprout); border-radius:12px; background:var(--panel); padding:28px; text-align:center; box-shadow:0 0 44px color-mix(in srgb,var(--sprout) 34%,transparent); }
+  #rtfm-magic .eye { font-family:var(--mono); font-size:11px; letter-spacing:.2em; text-transform:uppercase; color:var(--sprout); }
+  #rtfm-magic h2 { font-family:var(--mono); font-size:1.6rem; margin:.35em 0 .5em; }
+  #rtfm-magic .secret { font-family:var(--mono); margin-top:16px; border:1px dashed var(--edge); border-radius:8px; padding:10px 12px; }
+  #rtfm-magic .secret b { color:var(--heart); }
+  #rtfm-magic .foot { color:var(--muted); font-size:.85rem; margin-top:14px; }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="eyebrow">RTFM · 006 · deploy from SCAR with your signature</div>
+  <h1 class="title">Ship it.<br><span class="glow">Merge ≠ live until you say so.</span></h1>
+  <p class="subtitle">frens.earth deploys on your command, not on a git push. This wires a signed <strong>▲ SHIP</strong> button into SCAR so you deploy production with your key — no terminal — while a push to <code>main</code> never deploys on its own.</p>
+  <div class="mission"><b>Why this exists.</b> Merging records the code; <b>shipping</b> puts it in front of the world. Those are two different acts, and both should be your signature. This keeps them separate — and both yours.</div>
+</header>
+
+<div class="wrap">
+
+  <section id="s1">
+    <div class="head"><span class="num">01</span><h2>Connect the repo (once)</h2></div>
+    <p>Deploy Hooks — the thing the SHIP button fires — need the project linked to its Git repo. This does <strong>not</strong> mean pushes will auto-deploy; step 02 turns that off.</p>
+    <ul class="plain">
+      <li>Vercel dashboard → the <strong>frens-earth</strong> project → <strong>Settings → Git</strong>.</li>
+      <li><strong>Connect Git Repository</strong> → GitHub → <code>PacsArcade/frens.earth</code>.</li>
+    </ul>
+    <div class="call tip"><span class="lab">Note</span><p>Every deploy so far has been a CLI upload (<code>vercel deploy</code>). Connecting the repo just unlocks Deploy Hooks — it changes nothing else until you push, and step 02 stops pushes from deploying.</p></div>
+  </section>
+
+  <section id="s2">
+    <div class="head"><span class="num">02</span><h2>Turn off auto-deploy</h2></div>
+    <p>By default a connected repo deploys on every push to the production branch. We don't want that — a merge should sit in <code>main</code> until <em>you</em> ship it. Flip it off in <code>vercel.json</code> at the repo root:</p>
+    <div class="term">
+      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;vercel.json — add the git block</div>
+<pre>{
+  <span class="s">"git"</span>: {
+    <span class="s">"deploymentEnabled"</span>: <span class="p">false</span>   <span class="c">// no branch auto-deploys on push</span>
+  }
+}
+</pre>
+    </div>
+    <p>Commit it. From now on, pushing to <code>main</code> creates <strong>no</strong> deployment — Vercel just records the commit.</p>
+    <div class="call tip"><span class="lab">The key fact</span><p><code>deploymentEnabled:false</code> blocks <strong>automatic</strong> (git-push) deploys only. <strong>Deploy Hooks still fire</strong> — they're an explicit trigger. That's exactly the split we want: push does nothing, the button ships.</p></div>
+    <div class="call tip"><span class="lab">Per-branch variant</span><p>If you'd rather only stop production: <code>"deploymentEnabled": { "main": false }</code>. For frens.earth (all deploys are hook/CLI), <code>false</code> for everything is simplest.</p></div>
+  </section>
+
+  <section id="s3">
+    <div class="head"><span class="num">03</span><h2>Create the Deploy Hook</h2></div>
+    <p>A Deploy Hook is a secret URL. POST to it → Vercel builds and deploys the branch you bound it to. Make one for <code>main</code>.</p>
+    <h3>Dashboard</h3>
+    <ul class="plain">
+      <li><strong>Settings → Git → Deploy Hooks</strong>.</li>
+      <li>Name it <code>ship-main</code>, branch <code>main</code> → <strong>Create Hook</strong> → copy the URL.</li>
+    </ul>
+    <h3>…or the CLI (returns the URL)</h3>
+    <div class="term">
+      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;make the hook from the terminal</div>
+<pre><span class="p">$</span> vercel deploy-hooks create ship-main --ref <span class="s">main</span>
+<span class="c"># → https://api.vercel.com/v1/integrations/deploy/prj_…/…</span>
+</pre>
+    </div>
+    <div class="call danger"><span class="lab">Careful — it's a key</span><p>Anyone with that URL can trigger a production deploy. Treat it like a token: don't paste it in chat, don't commit it. It goes into SCAR write-only (step 04) and is never shown again.</p></div>
+  </section>
+
+  <section id="s4">
+    <div class="head"><span class="num">04</span><h2>Arm the SHIP button</h2></div>
+    <ul class="plain">
+      <li>Open SCAR → <strong>ACTION ITEMS</strong> (<code>/a</code>).</li>
+      <li>In the <strong>SHIP</strong> panel's connect box, paste the Deploy Hook URL → save. It's stored <strong>write-only</strong> (masked forever after, like your GitHub token).</li>
+    </ul>
+    <p>Done. The panel now shows the <strong>▲ SHIP — DEPLOY TO PRODUCTION</strong> button.</p>
+  </section>
+
+  <section id="s5">
+    <div class="head"><span class="num">05</span><h2>The flow, from now on</h2></div>
+    <ul class="plain">
+      <li><strong>Sign to merge</strong> — authorize a PR in SCAR (your key merges it).</li>
+      <li><strong>Sign to SHIP</strong> — press ▲ SHIP; you sign <code>PACS-DEPLOY-&lt;ts&gt;</code>, the server verifies your key against the operator allowlist, fires the hook, and records the ship (your key · block height · Vercel job id).</li>
+      <li><strong>Live.</strong> No terminal, ever again.</li>
+    </ul>
+    <div class="call check"><span class="lab">Checkpoint — did it work?</span><p>Push a throwaway commit to <code>main</code> → Vercel shows <strong>no new deployment</strong>. Press ▲ SHIP in SCAR → a fresh <strong>Production</strong> deployment appears, and a row lands in the SHIP log, block-stamped and signed by your key.</p></div>
+  </section>
+
+  <footer>
+    <b>frens.earth</b> · RTFM 006 · Ship It — companion to <a href="002-first-deployment.html">002 · Your First Deployment</a><br>
+    <span style="opacity:.32">the frens who read to the end find the magic. ↑ ↑ ↓ ↓ …</span>
+  </footer>
+</div>
+
+<div id="rtfm-magic" hidden>
+  <div class="card">
+    <p class="eye">RTFM ▸ you read to the end</p>
+    <h2>🟠 the magic</h2>
+    <p>You read the whole runbook before you touched production. That's the difference between an operator and a button-masher.</p>
+    <p class="secret">secret word: <b>tick-tock-ship</b></p>
+    <p class="foot">Wire this to a real reward. <span class="kbd">Esc</span> to close.</p>
+  </div>
+</div>
+<script>
+  (function () {
+    var seq = ["arrowup","arrowup","arrowdown","arrowdown","arrowleft","arrowright","arrowleft","arrowright","b","a"];
+    var i = 0, el = document.getElementById("rtfm-magic");
+    if (!el) return;
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") { el.hidden = true; return; }
+      var k = e.key.toLowerCase();
+      if (k === seq[i]) { i++; if (i === seq.length) { i = 0; el.hidden = false; } }
+      else { i = (k === seq[0] ? 1 : 0); }
+    });
+    el.addEventListener("click", function (e) { if (e.target === el) el.hidden = true; });
+  })();
+</script>
+</body>
+</html>

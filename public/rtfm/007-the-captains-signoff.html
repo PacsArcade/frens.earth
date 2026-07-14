@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>007 · The Captain's Sign-Off — review a merge before your key moves it — RTFM</title>
+<style>
+  :root {
+    --void:#0d1210; --panel:#151d18; --edge:#2f4033;
+    --ink:#e8ede9; --muted:#839388;
+    --sprout:#5ef78a; --teal:#53e0d4; --gold:#f7c948; --ghost:#ff6b6b; --heart:#b795ff;
+    --mono: ui-monospace,"Cascadia Code","JetBrains Mono","SFMono-Regular",Menlo,Consolas,monospace;
+    --sans: ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --maxw:900px;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --void:#f3f6f1; --panel:#fff; --edge:#d6ded3; --ink:#17211b; --muted:#5a6b60;
+      --sprout:#12924a; --teal:#0e8b82; --gold:#a97c07; --ghost:#c23a3a; --heart:#6f4dc0;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--void); color:var(--ink); font-family:var(--sans); font-size:16px; line-height:1.65; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:var(--maxw); margin:0 auto; padding:0 20px 96px; }
+  a { color:var(--teal); text-decoration:none; border-bottom:1px solid transparent; }
+  a:hover { border-bottom-color:currentColor; }
+  a:focus-visible { outline:2px solid var(--teal); outline-offset:2px; }
+  code,.mono { font-family:var(--mono); }
+
+  header.hero { max-width:var(--maxw); margin:0 auto; padding:64px 20px 36px; }
+  .eyebrow { font-family:var(--mono); font-size:12px; letter-spacing:.22em; text-transform:uppercase; color:var(--sprout); display:flex; align-items:center; gap:10px; margin-bottom:20px; }
+  .eyebrow::before { content:""; width:22px; height:1px; background:var(--sprout); }
+  h1.title { font-family:var(--mono); font-weight:700; font-size:clamp(2rem,6vw,3.2rem); line-height:1.04; letter-spacing:-.01em; margin:0; text-wrap:balance; }
+  h1.title .glow { color:var(--sprout); text-shadow:0 0 24px color-mix(in srgb,var(--sprout) 45%,transparent); }
+  .subtitle { color:var(--muted); font-size:1.05rem; max-width:62ch; margin:14px 0 0; }
+  .mission { margin-top:22px; padding:14px 18px; border-left:3px solid var(--heart); background:color-mix(in srgb,var(--heart) 9%,transparent); font-size:.95rem; border-radius:0 6px 6px 0; max-width:64ch; }
+  .mission b { color:var(--heart); }
+
+  section { margin-top:52px; scroll-margin-top:20px; }
+  .head { display:flex; align-items:baseline; gap:14px; border-bottom:1px solid var(--edge); padding-bottom:12px; margin-bottom:20px; }
+  .head .num { font-family:var(--mono); font-size:13px; color:var(--void); background:var(--sprout); padding:3px 9px; border-radius:5px; font-weight:700; }
+  h2 { font-family:var(--mono); font-size:clamp(1.35rem,3.4vw,1.85rem); margin:0; letter-spacing:-.01em; text-wrap:balance; }
+  h3 { font-family:var(--mono); font-size:1.02rem; margin:28px 0 10px; color:var(--teal); }
+  p, ul { max-width:68ch; }
+  ul.plain { padding-left:20px; }
+  ul.plain li { margin:5px 0; }
+  strong { color:var(--ink); }
+
+  .term { margin:14px 0; border:1px solid var(--edge); border-radius:8px; overflow:hidden; background:color-mix(in srgb,var(--panel) 82%,var(--void)); }
+  .term .bar { display:flex; align-items:center; gap:8px; padding:7px 12px; border-bottom:1px solid var(--edge); font-family:var(--mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); background:var(--panel); }
+  .term .bar .dot { width:9px; height:9px; border-radius:50%; background:var(--edge); }
+  .term .bar .dot.g { background:var(--sprout); }
+  .term pre { margin:0; padding:14px 16px; overflow-x:auto; font-family:var(--mono); font-size:13px; line-height:1.7; }
+  .term pre .c { color:var(--muted); } .term pre .p { color:var(--sprout); } .term pre .s { color:var(--gold); }
+
+  .call { margin:18px 0; padding:14px 16px 14px 18px; border-radius:8px; border:1px solid var(--edge); border-left-width:3px; background:var(--panel); }
+  .call .lab { font-family:var(--mono); font-size:11px; letter-spacing:.14em; text-transform:uppercase; font-weight:700; margin-bottom:6px; display:block; }
+  .call p { margin:0; }
+  .call.danger { border-left-color:var(--ghost); background:color-mix(in srgb,var(--ghost) 8%,var(--panel)); } .call.danger .lab { color:var(--ghost); }
+  .call.check  { border-left-color:var(--sprout); background:color-mix(in srgb,var(--sprout) 8%,var(--panel)); } .call.check .lab { color:var(--sprout); }
+  .call.tip    { border-left-color:var(--teal); } .call.tip .lab { color:var(--teal); }
+
+  footer { max-width:var(--maxw); margin:56px auto 0; padding:24px 20px 0; border-top:1px solid var(--edge); color:var(--muted); font-family:var(--mono); font-size:12px; }
+  footer b { color:var(--heart); }
+  .kbd { font-family:var(--mono); font-size:.82em; border:1px solid var(--edge); border-bottom-width:2px; border-radius:4px; padding:1px 6px; color:var(--ink); }
+
+  /* the magic — keep this. RTFM rewards the readers. */
+  #rtfm-magic { position:fixed; inset:0; display:grid; place-items:center; padding:24px; background:rgba(5,8,6,.82); z-index:9999; }
+  #rtfm-magic[hidden] { display:none; }
+  #rtfm-magic .card { max-width:440px; width:100%; border:2px solid var(--sprout); border-radius:12px; background:var(--panel); padding:28px; text-align:center; box-shadow:0 0 44px color-mix(in srgb,var(--sprout) 34%,transparent); }
+  #rtfm-magic .eye { font-family:var(--mono); font-size:11px; letter-spacing:.2em; text-transform:uppercase; color:var(--sprout); }
+  #rtfm-magic h2 { font-family:var(--mono); font-size:1.6rem; margin:.35em 0 .5em; }
+  #rtfm-magic .secret { font-family:var(--mono); margin-top:16px; border:1px dashed var(--edge); border-radius:8px; padding:10px 12px; }
+  #rtfm-magic .secret b { color:var(--heart); }
+  #rtfm-magic .foot { color:var(--muted); font-size:.85rem; margin-top:14px; }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="eyebrow">RTFM · 007 · SIGNING</div>
+  <h1 class="title">Your key moves the code.<br><span class="glow">Sign nothing you haven't read.</span></h1>
+  <p class="subtitle">For a new captain about to sign their first merge in the SCAR·LET console. One read and you'll do it with your eyes open — you'll know exactly what your signature binds, what to check first, and how to say <strong>not yet</strong> without shame.</p>
+  <div class="mission"><b>Why this exists.</b> Agents open PRs; they <b>never</b> merge. Between a proposal and <code>main</code> stands exactly one thing: your key. This manual is the look you take before you turn it.</div>
+</header>
+
+<div class="wrap">
+
+  <section id="s1">
+    <div class="head"><span class="num">01</span><h2>Not a draft</h2></div>
+    <p>Open SCAR·LET → <strong>ACTION ITEMS</strong> — the approvals lane
+    lists every open PR against <code>main</code>. The first check is the
+    plainest: on GitHub the PR must read <strong>Open</strong>, not
+    <strong>Draft</strong>. In the queue, a draft wears a
+    <code>DRAFT</code> pill on its card.</p>
+    <p>A draft is the author saying <em>"not finished."</em> GitHub will
+    refuse to merge one no matter how perfect your signature is. We hit
+    this on a real change — everything green, signature valid, merge
+    refused — because the PR was still a draft. Don't spend your
+    first sign-off learning that the hard way.</p>
+    <div class="call tip"><span class="lab">Who flips it</span><p>If the work really is done, the <em>author</em> marks it "Ready for review." Agents are allowed to do that — it only surfaces the change. Merging still waits for your key, and yours alone.</p></div>
+  </section>
+
+  <section id="s2">
+    <div class="head"><span class="num">02</span><h2>You sign a specific commit</h2></div>
+    <p>The <strong>AUTHORIZE &amp; MERGE</strong> button doesn't send a
+    password. It asks your key to sign a small nostr event:</p>
+    <div class="term">
+      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;the event your key signs</div>
+<pre><span class="p">content</span>  PACS-MERGE-<span class="s">&lt;pr&gt;</span>-<span class="s">&lt;headSha&gt;</span>-<span class="s">&lt;ts&gt;</span>   <span class="c"># which PR · exactly which code · when</span>
+<span class="p">kind</span>     22242                            <span class="c"># auth-only event — never a public post</span>
+<span class="p">signer</span>   your operator key                <span class="c"># must be on this site's allowlist</span>
+</pre>
+    </div>
+    <p>Read that content line again. Your signature binds the PR number
+    <strong>and the exact head commit</strong>. You are authorizing
+    <em>that</em> code — not "whatever the branch says by the time the
+    server gets around to it." The sha you signed is handed to GitHub's
+    <strong>sha-guarded merge</strong>: if anyone pushes to the branch
+    after you sign, even one commit, the head moves, your signature no
+    longer matches, and GitHub refuses. Nobody can slip code underneath
+    a signature you already gave. <strong>Feature, not bug.</strong></p>
+    <p>Signatures are also fresh by design — an authorization expires
+    after <strong>five minutes</strong>. You can't stockpile sign-offs;
+    each one is signed at the moment of decision.</p>
+    <div class="call danger"><span class="lab">If the merge refuses — good</span><p>A "branch was modified" refusal means the code changed after you looked. Don't just sign again to make the error go away. Go back to 03 and re-read the new diff — that's the system protecting you, working exactly as built.</p></div>
+  </section>
+
+  <section id="s3">
+    <div class="head"><span class="num">03</span><h2>Read the diff, not the title</h2></div>
+    <p>The title is a claim. The diff is the truth. The queue card lists
+    every touched file with its adds and removes; the card links to the
+    PR, where <strong>Files changed</strong> holds the full diff. Open
+    it. Three questions, every time:</p>
+    <ul class="plain">
+      <li><strong>Does it do what the title claims?</strong> A "fix typo" PR that rewrites an API route is not a typo fix.</li>
+      <li><strong>Does it do anything more?</strong> Scope creep hides in "while I was in there" — extra files, extra features, config changes nobody briefed you on.</li>
+      <li><strong>Did anything ride along?</strong> <code>.env</code> files, tokens, private keys, stray build output, a surprise <code>node_modules</code>, giant binaries.</li>
+    </ul>
+    <div class="call danger"><span class="lab">Secrets are the irreversible one</span><p>A merged secret lives in git history forever — the fix isn't a revert, it's rotating the key everywhere it's used. If anything in the diff looks like a token, a private key, or a password, <strong>stop</strong>. Don't sign. Send it back (08).</p></div>
+  </section>
+
+  <section id="s4">
+    <div class="head"><span class="num">04</span><h2>The checks are green</h2></div>
+    <p>Two greens, and you want both — the machine's and the crew's:</p>
+    <ul class="plain">
+      <li><strong>Build passing.</strong> The checks at the bottom of the PR page on GitHub. Red or amber means not yet — a broken build doesn't get a signature, no matter how urgent the fix feels.</li>
+      <li><strong>A QA all-clear comment.</strong> The QA seat posts what was actually tested and what was actually measured — sizes, states, both themes, the numbers. <strong>Measured, not claimed.</strong> "Looks good to me" is a vibe; an all-clear is evidence.</li>
+    </ul>
+    <div class="call tip"><span class="lab">Honest, as of July 2026</span><p>The queue card doesn't render check status inline yet, and the QA all-clear is crew discipline, not a machine gate. Which is exactly why <em>you</em> open the PR and look for both, instead of assuming them.</p></div>
+  </section>
+
+  <section id="s5">
+    <div class="head"><span class="num">05</span><h2>Trusted source</h2></div>
+    <p>Before the code, the courier. Glance at where the change comes
+    from:</p>
+    <ul class="plain">
+      <li><strong>A branch in our own repo</strong> — <code>feat/…</code>, <code>fix/…</code> — not a fork you've never seen.</li>
+      <li><strong>The author you expect</strong> — your agents, your crew, on the task you assigned.</li>
+      <li><strong>Based on <code>main</code></strong> — the change targets the trunk you think it does.</li>
+    </ul>
+    <div class="call tip"><span class="lab">Honest, as of July 2026</span><p>Branch protection that makes the signed queue the <em>only</em> physical door into <code>main</code> needs GitHub Pro or a public repo — today the wall is convention plus this checklist. The queue holds the line because you do.</p></div>
+  </section>
+
+  <section id="s6">
+    <div class="head"><span class="num">06</span><h2>Your name, on the block, forever</h2></div>
+    <p>When your sign-off is recorded — and when a signed note lands on a
+    PR — the footer reads:</p>
+    <div class="term">
+      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;the recorded footer — who · when · proof</div>
+<pre>—— ✍ signed via SCAR·LET by <span class="s">npub18…h6w6</span> · <span class="s">&lt;BFT time&gt;</span> a₿ · sig <span class="s">3f9c41…</span>
+<span class="c">   who: your short npub · when: the TRUE block height · proof: checkable in the log</span>
+</pre>
+    </div>
+    <p>That timestamp is not a guess. It's stamped with the real block
+    height, asked of <strong>our own node first</strong> — sovereign
+    truth — with mempool.space only as a fallback if our node is dark.
+    If both are unreachable, the stamp wears an honest <code>~</code>:
+    an estimate that admits it's one.</p>
+    <p>Feel the weight of it. Your npub, on the record, tied to the
+    block, permanent. <strong>Agents open PRs; they never merge. Only
+    the captain's key moves code into <code>main</code></strong> — so
+    every merge in the log traces to a human who chose it. Sign well and
+    that log is your reputation, written in a ledger nobody can quietly
+    edit.</p>
+  </section>
+
+  <section id="s7">
+    <div class="head"><span class="num">07</span><h2>After you sign</h2></div>
+    <p>Three things happen, in order:</p>
+    <ul class="plain">
+      <li><strong>The record, first.</strong> Your signed go-ahead lands in the audit trail (dual-driver — the blob store in production, <code>data/merges.json</code> in dev). The record <em>is</em> the proof.</li>
+      <li><strong>The merge, if the token is connected.</strong> With a GitHub token configured, the server verifies your signature and executes the sha-guarded merge right there — the card flips to <strong>MERGE ✓</strong>. Without one, the signed go-ahead is still recorded and the merge happens on GitHub; the signature is the sign-off either way.</li>
+      <li><strong>Nothing deploys.</strong> Merge ≠ live. The card advances on its lifecycle strip — <code>MERGE → SHIP → LIVE → TEST</code> — and waits for a separate, signed <strong>▲ SHIP</strong>. That's its own manual: <a href="006-ship-it.html">RTFM 006 · Ship It</a>.</li>
+    </ul>
+    <div class="call check"><span class="lab">Checkpoint — did it work?</span><p>The card shows <strong>MERGE ✓</strong>, the PR on GitHub reads <strong>Merged</strong>, and a fresh row in the audit log carries your key, the exact sha you signed, and your sig. All three or stop and look.</p></div>
+  </section>
+
+  <section id="s8">
+    <div class="head"><span class="num">08</span><h2>When in doubt, send it back</h2></div>
+    <p>Approving isn't the only signed act. The card's <strong>✎
+    NOTE</strong> signs <code>PACS-NOTE-&lt;pr&gt;-&lt;ts&gt;</code>
+    with your words underneath — the signature covers the note's
+    <em>exact</em> text — records it in the same audit log, and, with
+    the token connected, posts it onto the PR's GitHub conversation
+    wearing the same signed footer from 06.</p>
+    <p>So asking for changes carries the same weight as approving: your
+    key, on the record. Use it freely. The PR stays open, the author
+    fixes it, the head sha changes, and you review the new commit from
+    the top of this list. The system is built for exactly that loop.</p>
+    <div class="call check"><span class="lab">The safe default</span><p>If any item 01–06 fails, don't sign the merge — sign a note. <strong>"Not yet" is a complete sentence.</strong> No captain was ever demoted for reading twice; a few have been sunk for signing once too fast.</p></div>
+  </section>
+
+  <footer>
+    <b>frens.earth</b> · RTFM 007 · The Captain's Sign-Off — companion to <a href="006-ship-it.html">006 · Ship It</a><br>
+    <span style="opacity:.32">the frens who read to the end find the magic. ↑ ↑ ↓ ↓ … the chain agrees on one word.</span>
+  </footer>
+</div>
+
+<div id="rtfm-magic" hidden>
+  <div class="card">
+    <p class="eye">RTFM ▸ you read before you signed</p>
+    <h2>🌱 the magic</h2>
+    <p>You read the whole manual before your first sign-off. That's the difference between a captain and a rubber stamp: the rules get checked, <em>then</em> the key turns.</p>
+    <p class="secret">secret word: <b>consensus</b></p>
+    <p class="foot">Wire this to a real reward. <span class="kbd">Esc</span> to close.</p>
+  </div>
+</div>
+<script>
+  (function () {
+    var seq = ["arrowup","arrowup","arrowdown","arrowdown","arrowleft","arrowright","arrowleft","arrowright","b","a"];
+    var i = 0, el = document.getElementById("rtfm-magic");
+    if (!el) return;
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") { el.hidden = true; return; }
+      var k = e.key.toLowerCase();
+      if (k === seq[i]) { i++; if (i === seq.length) { i = 0; el.hidden = false; } }
+      else { i = (k === seq[0] ? 1 : 0); }
+    });
+    el.addEventListener("click", function (e) { if (e.target === el) el.hidden = true; });
+  })();
+</script>
+</body>
+</html>
