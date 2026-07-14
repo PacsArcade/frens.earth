@@ -5,6 +5,7 @@ import {
   GENESIS_MS,
   bftDate,
   beforeBitcoin,
+  estimateHeight,
   moonPhase,
   yearAnimal,
 } from "@/lib/bb/bft";
@@ -34,7 +35,7 @@ function convert(value: string): Bday | null {
   if (utc < GENESIS_MS) {
     return { preGenesis: true, date: beforeBitcoin(y, mo, d) };
   }
-  const height = Math.floor((utc - GENESIS_MS) / 600_000); // ~10 min/block
+  const height = estimateHeight(utc); // the ONE genesis-anchored estimator (bft.ts), ~10 min/block
   const moon = moonPhase(height);
   const animal = yearAnimal(height);
   return {
@@ -79,7 +80,8 @@ export default function BdayPage() {
       {bday && !bday.preGenesis && (
         <div className="mb-6 border-2 border-neon bg-neon/10 p-5">
           <p className="font-pixel text-[10px] uppercase text-white/50">your bitcoin birthday</p>
-          <p className="mt-2 font-mono text-2xl text-neon">{bday.date}</p>
+          {/* the date is height-derived, so it wears the honest ~ too */}
+          <p className="mt-2 font-mono text-2xl text-neon">~ {bday.date}</p>
           <p className="mt-2 font-mono text-xs text-white/70">
             ▣ ~{bday.height!.toLocaleString()} — your birth block (estimated, ~10 min a block)
           </p>

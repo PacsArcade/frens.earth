@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import OperatorGate from "@/components/OperatorGate";
-import AdminNav from "@/components/AdminNav";
 import MergeQueue from "@/components/MergeQueue";
 import TicketsPanel from "@/components/TicketsPanel";
 import ShipsLog from "@/components/ShipsLog";
@@ -29,8 +28,7 @@ export default async function AdminTestingPage() {
     return <OperatorGate configured={operatorsConfigured()} />;
   }
   return (
-    <main className="min-h-screen console-ground">
-      <AdminNav current="testing" />
+    <main className="min-h-screen">
       <div className="mx-auto max-w-3xl px-6 pb-4 pt-10">
         <p className="lcars-eyebrow mb-3" data-accent="neon">
           OPERATOR CONSOLE · {CONSOLE_SITE.domain.toUpperCase()}
@@ -40,9 +38,16 @@ export default async function AdminTestingPage() {
           Signed &amp; shipped — test it live, work the board, and read what the crew shipped.
         </p>
       </div>
-      <MergeQueue mode="testing" />
-      <TicketsPanel mode="crew" />
-      <ShipsLog />
+      {/* anchors feed the ribbon accordion (IN FLIGHT / DUTY ROSTER / SHIP'S LOG) */}
+      <section id="inflight" className="scroll-mt-20">
+        <MergeQueue mode="testing" />
+      </section>
+      <section id="roster" className="scroll-mt-20">
+        <TicketsPanel mode="crew" />
+      </section>
+      <section id="log" className="scroll-mt-20">
+        <ShipsLog />
+      </section>
     </main>
   );
 }

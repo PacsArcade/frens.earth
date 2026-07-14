@@ -32,15 +32,33 @@ tray-clock** layout — time on top, date below, exactly like the OS taskbar
 | the block itself matters | prefix `▣ {h.toLocaleString()} · ` | `▣ 957,580 · 0018.04.15 14:30` |
 | an estimated stamp (no recorded block) | prefix `~ ` | `~ 0018.04.15 14:30` |
 
-## The year — bitcoin's age, no explaining required
+## The year — lead with block time, and explain it
 
-**Years start at 0** (already true in `bft.ts`: genesis block 0 opens year
-`0000`), so **the display year IS bitcoin's age**. We're in `0018` — bitcoin
-is 18. One BFT year = 52,416 blocks (13 months × 28 days × 144), about 364
-wall-days, so the ₿-birthday drifts slowly off the January calendar — which
-is fine, because the calendar is not the reference. The block is.
+**Years start at 0** (genesis block 0 opens year `0000` in `bft.ts`), and one
+BFT year = **52,416 blocks** (13 months × 28 days × 144). So the year is simply
+`⌊height / 52,416⌋`. **Year `0018` began at block 943,488** (18 × 52,416) and
+we're well past it — so the year is **`0018`, and that's correct.** Block time
+is the reference, not the sun. **The block doesn't lie.**
 
-The one-line explainer, if anyone asks: *"the year is how old bitcoin is."*
+Someone will notice the old calendar disagrees — so here's the honest answer,
+and why we still lead with the block:
+
+- **By the block (what we keep):** bitcoin has lived **18** block-years → year `0018`.
+- **By the sun (the old way):** born Jan 3, 2009, so by birthdays it turns 18 on
+  Jan 3, 2027 (2027 − 2009 = 18) — the old count still says "17" today.
+
+Both are honest; they just read different clocks. They diverge because **block
+time runs ahead of sun time** — early blocks came faster than ten minutes, and a
+BFT year is a clean 364 days — roughly **eight months ahead** right now. And they
+**meet at Day 0**: the new moon just after bitcoin's eighteenth birthday (the
+birthday is Jan 3, 2027 ≈ block 983,100; the new moon that opens the new calendar
+falls ~Jan 7, 2027 ≈ block 983,664), when the sun has counted to 18 and agrees
+with what the block already knew. That convergence is why **Day 0 is where the new
+calendar begins.**
+
+We lead with the block because it has kept honest time since block 1, while the
+old calendar was shoved around by emperors and popes for centuries. *the year is
+how old bitcoin is — measured by the only clock that never lied.*
 
 Rules of thumb:
 - **The `a₿` marker is assumed on new items** (queues, requests, logs) — only

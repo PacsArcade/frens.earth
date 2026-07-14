@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import OperatorGate from "@/components/OperatorGate";
-import AdminNav from "@/components/AdminNav";
 import BriefsPanel from "@/components/BriefsPanel";
 import { operatorFromCookieHeader, operatorsConfigured } from "@/lib/operator-auth";
 
@@ -27,8 +26,7 @@ export default async function AdminBriefsPage() {
     return <OperatorGate configured={operatorsConfigured()} />;
   }
   return (
-    <main className="min-h-screen console-ground">
-      <AdminNav current="briefs" />
+    <main className="min-h-screen">
       <BriefsPanel />
     </main>
   );

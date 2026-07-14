@@ -20,9 +20,14 @@ import { bftDateTime } from "@/lib/bb/bft";
 interface DeployRecord {
   by: string; // signer pubkey hex
   at: number; // BFT block height
+  atEstimated?: boolean; // network dark at record time — `at` is a ~estimate
   jobId: string;
   ts: number;
 }
+
+/** BFT stamp, honest: `~ ` when the network was dark at record time (the
+    height is a genesis estimate, never a block fact). */
+const stamp = (at: number, estimated?: boolean) => `${estimated ? "~ " : ""}${bftDateTime(at)}`;
 
 export default function DeployPanel() {
   const [configured, setConfigured] = useState<boolean | null>(null);
@@ -141,7 +146,7 @@ export default function DeployPanel() {
                       ▲ shipped by <span className="text-white/70">{d.by.slice(0, 8)}…</span>
                       {d.jobId && <span className="ml-2 text-white/30">job {d.jobId.slice(0, 10)}</span>}
                     </span>
-                    <span className="text-neon">{bftDateTime(d.at)}</span>
+                    <span className="text-neon">{stamp(d.at, d.atEstimated)}</span>
                   </p>
                 ))}
               </div>

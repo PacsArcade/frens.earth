@@ -29,7 +29,7 @@ function AdminDeckRow() {
       href="/a"
       className="flex min-h-11 items-center gap-2 border-b-2 border-edge px-4 font-pixel text-[10px] text-coin glow-coin"
     >
-      <span aria-hidden>⚓</span> SCARLET
+      <span aria-hidden>⚓</span> SCAR·LET
     </Link>
   );
 }

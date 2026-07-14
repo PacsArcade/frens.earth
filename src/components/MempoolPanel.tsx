@@ -59,7 +59,7 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
 export default function MempoolPanel() {
   const [status, setStatus] = useState<MempoolStatus | null>(null);
   const [busy, setBusy] = useState(false);
-  const [checkedHeight, setCheckedHeight] = useState<number | null>(null);
+  const [checked, setChecked] = useState<{ height: number; estimated: boolean } | null>(null);
   const [config, setConfig] = useState<NodesConfig | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -79,7 +79,13 @@ export default function MempoolPanel() {
         return;
       }
       setStatus(data);
-      setCheckedHeight(estimateHeight()); // ~estimate — no block recorded for a ping
+      /* the test just read the REAL tip — that IS the checked block; only a
+         dark node falls back to the honest ~estimate */
+      setChecked(
+        data.reachable && typeof data.height === "number"
+          ? { height: data.height, estimated: false }
+          : { height: estimateHeight(), estimated: true },
+      );
     } catch {
       setError("couldn't reach the app — try again");
     } finally {
@@ -228,8 +234,11 @@ export default function MempoolPanel() {
               )}
             </Row>
             <Row label="CHECKED">
-              {checkedHeight != null ? (
-                <span className="text-white/60">~ {bftDateTime(checkedHeight)}</span>
+              {checked != null ? (
+                <span className="text-white/60">
+                  {checked.estimated ? "~ " : ""}
+                  {bftDateTime(checked.height)}
+                </span>
               ) : (
                 "—"
               )}
