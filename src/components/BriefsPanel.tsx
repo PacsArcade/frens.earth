@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Markdown from "@/components/Markdown";
 import { bftDateTime } from "@/lib/bb/bft";
+import { ScarConsole, type ReaderContent } from "@/components/console/ReaderDrawer";
 
 /**
  * The Briefs library — the design briefs as reviewable tickets, in TWO TIERS:
@@ -20,6 +21,10 @@ import { bftDateTime } from "@/lib/bb/bft";
  * repo/branch editors now live in the Connections tab (⚙ link below); only the
  * PULL action and the sources readout stay here. Content lives only in the
  * store, never in this public repo. Types are inlined: the store is server-only.
+ *
+ * The reader is the shared SCAR·LET READER DRAWER (closed by default beside
+ * the library, ⤢ expand-full, ✕/Escape closes). The ribbon's SHARED/PERSONAL
+ * level-2 filters drive the tier filter through the URL hash.
  */
 
 type BriefStatus = "unreviewed" | "revise" | "signed";
@@ -127,6 +132,17 @@ export default function BriefsPanel() {
     load();
   }, [load]);
 
+  /* the ribbon's SHARED / PERSONAL level-2 filters arrive as the URL hash */
+  useEffect(() => {
+    const read = () => {
+      const h = window.location.hash.replace("#", "");
+      if (h === "shared" || h === "personal") setFilter(h);
+    };
+    read();
+    window.addEventListener("hashchange", read);
+    return () => window.removeEventListener("hashchange", read);
+  }, []);
+
   /** ⟳ pull BOTH tiers at once — honest per-source status back in one line. */
   async function pull() {
     setErr(null);
@@ -214,90 +230,91 @@ export default function BriefsPanel() {
 
   const selectedBrief = selected ? (briefs ?? []).find((b) => keyOf(b) === selected) ?? null : null;
 
-  // ── the reader ─────────────────────────────────────────────────────────────
-  if (selectedBrief) {
-    const b = selectedBrief;
-    const k = keyOf(b);
-    const accent = ACCENT[b.status];
-    return (
-      <div className="mx-auto max-w-3xl px-6 py-10">
-        <button onClick={() => setSelected(null)} className="btn-pill btn-pill--muted mb-5">
-          ← BACK TO LIBRARY
-        </button>
-
-        {err && <p className="mb-4 font-pixel text-[10px] uppercase text-ghost">{err}</p>}
-        {ok && <p className="mb-4 font-pixel text-[10px] uppercase text-neon">{ok}</p>}
-
-        <div className="console-card p-6" data-accent={accent}>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="pill">{STATUS_LABEL[b.status]}</span>
-            <span className="pill pill--muted" data-accent={TIER_ACCENT[b.tier]}>
-              {TIER_LABEL[b.tier]}
-            </span>
-            {b.source && (
-              <span className="font-mono text-[10px] uppercase text-white/30">{b.source}</span>
-            )}
-            {b.at && (
-              <span className="font-mono text-[10px] text-white/30">
-                {b.status === "signed" ? "✓" : "↩"} {bftDateTime(b.at)}
+  // ── the reader — the shared SCAR·LET drawer, closed until a card is picked ──
+  const reader: ReaderContent | null = selectedBrief
+    ? (() => {
+        const b = selectedBrief;
+        const k = keyOf(b);
+        return {
+          accent: ACCENT[b.status],
+          code: `BRIEF · ${b.tier.toUpperCase()} · ${b.slug}`,
+          title: b.title,
+          chips: (
+            <>
+              <span className="pill" data-accent={ACCENT[b.status]}>
+                {STATUS_LABEL[b.status]}
               </span>
-            )}
-          </div>
-          <h1 className="mt-2 font-arcade text-3xl text-cyan glow-cyan">{b.title}</h1>
-
-          {b.comment && b.status !== "unreviewed" && (
-            <p
-              className={`mt-3 font-mono text-[11px] leading-relaxed ${
-                b.status === "signed" ? "text-neon/85" : "text-cyan/85"
-              }`}
-            >
-              ▸ {b.comment}
-            </p>
-          )}
-
-          <article className="mt-5 border-t border-edge pt-5">
-            <Markdown source={b.body} />
-          </article>
-
-          <div className="mt-6 border-t border-edge pt-4">
-            <label className="block">
-              <span className="font-pixel text-[9px] uppercase text-white/40">
-                COMMENT — RIDES THE SIGNATURE (REQUIRED TO SEND BACK)
+              <span className="pill pill--muted" data-accent={TIER_ACCENT[b.tier]}>
+                {TIER_LABEL[b.tier]}
               </span>
-              <textarea
-                value={drafts[k] ?? ""}
-                onChange={(e) => setDrafts((p) => ({ ...p, [k]: e.target.value }))}
-                rows={3}
-                placeholder="what you think — or what to change on a send-back"
-                className="mt-1 w-full rounded-lg border-2 border-edge bg-void px-3 py-2 font-mono text-xs text-white/85 placeholder:text-white/25 focus:border-cyan focus:outline-none"
-              />
-            </label>
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <button
-                onClick={() => review(b, "signoff")}
-                disabled={busy === "signoff" || busy === "sendback"}
-                data-accent="neon"
-                className="btn-pill btn-pill--solid"
-              >
-                {busy === "signoff" ? "SIGNING…" : "✍ SIGN OFF"}
-              </button>
-              <button
-                onClick={() => review(b, "sendback")}
-                disabled={busy === "signoff" || busy === "sendback" || !(drafts[k] ?? "").trim()}
-                data-accent="cyan"
-                className="btn-pill"
-              >
-                {busy === "sendback" ? "SENDING BACK…" : "↩ SEND BACK"}
-              </button>
+            </>
+          ),
+          meta: (
+            <>
+              {b.source && <span className="uppercase">{b.source}</span>}
+              {b.at && (
+                <span>
+                  {b.status === "signed" ? "✓" : "↩"} {bftDateTime(b.at)}
+                </span>
+              )}
+            </>
+          ),
+          body: (
+            <div>
+              {b.comment && b.status !== "unreviewed" && (
+                <p
+                  className={`mb-3 font-mono text-[11px] leading-relaxed ${
+                    b.status === "signed" ? "text-neon/85" : "text-cyan/85"
+                  }`}
+                >
+                  ▸ {b.comment}
+                </p>
+              )}
+
+              <article>
+                <Markdown source={b.body} />
+              </article>
+
+              <div className="mt-6 border-t border-edge pt-4">
+                <label className="block">
+                  <span className="font-pixel text-[9px] uppercase text-white/40">
+                    COMMENT — RIDES THE SIGNATURE (REQUIRED TO SEND BACK)
+                  </span>
+                  <textarea
+                    value={drafts[k] ?? ""}
+                    onChange={(e) => setDrafts((p) => ({ ...p, [k]: e.target.value }))}
+                    rows={3}
+                    placeholder="what you think — or what to change on a send-back"
+                    className="mt-1 w-full rounded-lg border-2 border-edge bg-void px-3 py-2 font-mono text-xs text-white/85 placeholder:text-white/25 focus:border-cyan focus:outline-none"
+                  />
+                </label>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <button
+                    onClick={() => review(b, "signoff")}
+                    disabled={busy === "signoff" || busy === "sendback"}
+                    data-accent="neon"
+                    className="btn-pill btn-pill--solid"
+                  >
+                    {busy === "signoff" ? "SIGNING…" : "✍ SIGN OFF"}
+                  </button>
+                  <button
+                    onClick={() => review(b, "sendback")}
+                    disabled={busy === "signoff" || busy === "sendback" || !(drafts[k] ?? "").trim()}
+                    data-accent="cyan"
+                    className="btn-pill"
+                  >
+                    {busy === "sendback" ? "SENDING BACK…" : "↩ SEND BACK"}
+                  </button>
+                </div>
+                <p className="mt-2 font-mono text-[11px] text-white/40">
+                  your key signs the review — PACS-BRIEF-{b.tier}-{b.slug}-…
+                </p>
+              </div>
             </div>
-            <p className="mt-2 font-mono text-[11px] text-white/40">
-              your key signs the review — PACS-BRIEF-{b.tier}-{b.slug}-…
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+          ),
+        };
+      })()
+    : null;
 
   // ── the library list ───────────────────────────────────────────────────────
   const all = briefs ?? [];
@@ -318,7 +335,9 @@ export default function BriefsPanel() {
           setOk(null);
         }}
         data-accent={accent}
-        className="console-card console-card--hover flex w-full items-stretch gap-3 overflow-hidden text-left"
+        className={`console-card console-card--hover flex w-full items-stretch gap-3 overflow-hidden text-left ${
+          selected === keyOf(b) ? "console-card--active" : ""
+        }`}
       >
         <span aria-hidden className="w-1.5 shrink-0" style={{ background: "var(--acc)" }} />
         <span className="min-w-0 flex-1 p-4">
@@ -346,7 +365,7 @@ export default function BriefsPanel() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-10">
+    <div className="mx-auto max-w-5xl px-6 py-10">
       <p className="lcars-eyebrow mb-3" data-accent="cyan">
         BRIEFS LIBRARY · READ · COMMENT · SIGN OFF
       </p>
@@ -403,73 +422,76 @@ export default function BriefsPanel() {
       {err && <p className="mb-4 font-pixel text-[10px] uppercase text-ghost">{err}</p>}
       {ok && <p className="mb-4 font-pixel text-[10px] uppercase text-neon">{ok}</p>}
 
-      {!briefs ? (
-        <p className="font-body text-sm text-white/50">Reading the library…</p>
-      ) : briefs.length === 0 ? (
-        <div className="console-card p-5 font-body text-sm text-white/60" data-accent="cyan">
-          The library is empty. Hit <span className="text-cyan">⟳ PULL BRIEFS</span> to load both tiers
-          — the shared public source and your private one (or run{" "}
-          <span className="font-mono text-white/70">npm run sync:briefs</span> locally for personal).
-          Nothing here ever touches the public repo. 🌱
-        </div>
-      ) : (
-        <>
-          {/* tier filter — Duty-Roster style segmented chips */}
-          <div className="mb-5 flex flex-wrap gap-2">
-            {TIER_FILTERS.map((f) => (
-              <button
-                key={f.v}
-                onClick={() => setFilter(f.v)}
-                data-accent="cyan"
-                className={`btn-pill ${filter === f.v ? "btn-pill--solid" : "btn-pill--muted"}`}
-                aria-pressed={filter === f.v}
-              >
-                {f.label} · {tierCount(f.v)}
-              </button>
-            ))}
+      <ScarConsole reader={reader} onClose={() => setSelected(null)}>
+        {!briefs ? (
+          <p className="font-body text-sm text-white/50">Reading the library…</p>
+        ) : briefs.length === 0 ? (
+          <div className="console-card p-5 font-body text-sm text-white/60" data-accent="cyan">
+            The library is empty. Hit <span className="text-cyan">⟳ PULL BRIEFS</span> to load both tiers
+            — the shared public source and your private one (or run{" "}
+            <span className="font-mono text-white/70">npm run sync:briefs</span> locally for personal).
+            Nothing here ever touches the public repo. 🌱
           </div>
+        ) : (
+          <>
+            {/* tier filter — Duty-Roster style segmented chips (the ribbon's
+                SHARED/PERSONAL level-2 items land here through the hash) */}
+            <div className="mb-5 flex flex-wrap gap-2">
+              {TIER_FILTERS.map((f) => (
+                <button
+                  key={f.v}
+                  onClick={() => setFilter(f.v)}
+                  data-accent="cyan"
+                  className={`btn-pill ${filter === f.v ? "btn-pill--solid" : "btn-pill--muted"}`}
+                  aria-pressed={filter === f.v}
+                >
+                  {f.label} · {tierCount(f.v)}
+                </button>
+              ))}
+            </div>
 
-          {shown.length === 0 ? (
-            <div className="console-card p-5 font-body text-sm text-white/60" data-accent="cyan">
-              No {filter} briefs yet. Hit <span className="text-cyan">⟳ PULL BRIEFS</span> or check the
-              source in <a href="/a/connections#briefs" className="text-cyan underline">Connections</a>.
-            </div>
-          ) : (
-            <div className="space-y-8">
-              {unreviewed.length > 0 && (
-                <section>
-                  <p
-                    className="mb-3 font-pixel text-[10px] uppercase tracking-widest text-pink/80"
-                    data-accent="pink"
-                  >
-                    NEEDS YOUR REVIEW · {unreviewed.length}
-                  </p>
-                  <div className="space-y-3">{unreviewed.map(card)}</div>
-                </section>
-              )}
-              {revise.length > 0 && (
-                <section>
-                  <p
-                    className="mb-3 font-pixel text-[10px] uppercase tracking-widest text-cyan/80"
-                    data-accent="cyan"
-                  >
-                    ↩ SENT BACK · {revise.length}
-                  </p>
-                  <div className="space-y-3">{revise.map(card)}</div>
-                </section>
-              )}
-              {signed.length > 0 && (
-                <section>
-                  <p className="mb-3 font-pixel text-[10px] uppercase tracking-widest text-white/40">
-                    ✓ SIGNED OFF · {signed.length}
-                  </p>
-                  <div className="space-y-3">{signed.map(card)}</div>
-                </section>
-              )}
-            </div>
-          )}
-        </>
-      )}
+            {shown.length === 0 ? (
+              <div className="console-card p-5 font-body text-sm text-white/60" data-accent="cyan">
+                No {filter} briefs yet. Hit <span className="text-cyan">⟳ PULL BRIEFS</span> or check the
+                source in <a href="/a/connections#briefs" className="text-cyan underline">Connections</a>.
+              </div>
+            ) : (
+              <div className="space-y-8">
+                {unreviewed.length > 0 && (
+                  <section>
+                    <p
+                      className="mb-3 font-pixel text-[10px] uppercase tracking-widest text-pink/80"
+                      data-accent="pink"
+                    >
+                      NEEDS YOUR REVIEW · {unreviewed.length}
+                    </p>
+                    <div className="space-y-3">{unreviewed.map(card)}</div>
+                  </section>
+                )}
+                {revise.length > 0 && (
+                  <section>
+                    <p
+                      className="mb-3 font-pixel text-[10px] uppercase tracking-widest text-cyan/80"
+                      data-accent="cyan"
+                    >
+                      ↩ SENT BACK · {revise.length}
+                    </p>
+                    <div className="space-y-3">{revise.map(card)}</div>
+                  </section>
+                )}
+                {signed.length > 0 && (
+                  <section>
+                    <p className="mb-3 font-pixel text-[10px] uppercase tracking-widest text-white/40">
+                      ✓ SIGNED OFF · {signed.length}
+                    </p>
+                    <div className="space-y-3">{signed.map(card)}</div>
+                  </section>
+                )}
+              </div>
+            )}
+          </>
+        )}
+      </ScarConsole>
     </div>
   );
 }

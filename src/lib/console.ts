@@ -20,6 +20,11 @@ export interface ConsoleRoomSub {
   href: string;
   /** cut but not wired — renders as a disabled SOON berth */
   soon?: boolean;
+  /** key into /api/admin/counts — renders the label-left / count-right pill */
+  countKey?: string;
+  /** level-2 filters — PROGRESSIVE accordion: they open only when the captain
+      clicks this level-1 item, never on room enter (level 1 only then) */
+  children?: ConsoleRoomSub[];
 }
 
 export interface ConsoleRoom {
@@ -42,38 +47,72 @@ export const CONSOLE_SITE = {
 };
 
 /**
+ * The console FRONT PAGE — the room the ◗ SCAR·LET brand block opens. Not a
+ * numbered room (the readout reads ◉ HOME there), so it lives beside the
+ * registry rather than in it.
+ */
+export const CONSOLE_OVERVIEW: ConsoleRoom = {
+  key: "overview",
+  href: "/a",
+  label: "SCAR·LET Overview",
+  short: "OVERVIEW",
+  blurb: "the console front page — site health, what needs you, where a first captain begins",
+  tone: "cyan",
+};
+
+/**
  * The console is SCAR·LET — five rooms in the left elbow ribbon, each with its
  * accordion sub-nav. Accents honour the house colour law (gold = money ONLY):
- * pink = your action, neon = live/test, cyan = info/systems. STATUS leads (the
- * wireframe's landing room — its Reports sub-page is phase 2; Briefs is live).
- * Adding a room is still one entry; the ribbon, breadcrumb, readouts and
- * mobile bottom bar all render from this list.
+ * pink = your action, neon = live/test, cyan = info/systems. STATUS leads —
+ * its Reports sub-view lands the room; Briefs sits beside it. Sub-items with a
+ * `countKey` wear a live count pill; ones with `children` open a level-2
+ * filter rail progressively (level 1 only on room enter). Adding a room is
+ * still one entry; the ribbon, breadcrumb, readouts and mobile bottom bar all
+ * render from this list.
  */
 export const CONSOLE_ROOMS: ConsoleRoom[] = [
   {
     key: "status",
-    href: "/a/briefs",
+    href: "/a/status",
     label: "STATUS",
     short: "STATUS",
     blurb: "where everything stands — status reports + the briefs library",
     tone: "cyan",
     subs: [
-      // the Status Reports board is cut in the approved wireframe — wired in phase 2
-      { key: "reports", label: "STATUS REPORTS", href: "", soon: true },
-      { key: "briefs", label: "BRIEFS", href: "/a/briefs" },
+      {
+        key: "reports",
+        label: "STATUS REPORTS",
+        href: "/a/status",
+        children: [
+          { key: "flight", label: "IN FLIGHT", href: "/a/status#flight", countKey: "flight" },
+          { key: "sign", label: "SIGN", href: "/a/status#sign", countKey: "sign" },
+          { key: "review", label: "REVIEW", href: "/a/status#review", countKey: "review" },
+          { key: "vote", label: "VOTE", href: "/a/status#vote", countKey: "vote" },
+        ],
+      },
+      {
+        key: "briefs",
+        label: "BRIEFS",
+        href: "/a/briefs",
+        children: [
+          { key: "shared", label: "SHARED", href: "/a/briefs#shared", countKey: "briefsShared" },
+          { key: "personal", label: "PERSONAL", href: "/a/briefs#personal", countKey: "briefsPersonal" },
+        ],
+      },
     ],
   },
   {
     key: "action",
-    href: "/a",
+    href: "/a/action",
     label: "ACTION ITEMS",
     short: "ACTION",
-    blurb: "approvals + the decision board — everything that needs your signature",
+    blurb: "sign-offs + approvals + the decision board — everything that needs your signature",
     // pink = your action (the admiral rules here); not coin — gold = money only (Pac's house law)
     tone: "pink",
     subs: [
-      { key: "approvals", label: "APPROVALS", href: "/a#approvals" },
-      { key: "decisions", label: "DECISIONS", href: "/a#decisions" },
+      { key: "signoffs", label: "SIGN-OFFS", href: "/a/action#signoffs", countKey: "signoffs" },
+      { key: "approvals", label: "APPROVALS", href: "/a/action#approvals" },
+      { key: "decisions", label: "DECISIONS", href: "/a/action#decisions", countKey: "decisions" },
     ],
   },
   {
@@ -85,7 +124,7 @@ export const CONSOLE_ROOMS: ConsoleRoom[] = [
     tone: "neon",
     subs: [
       { key: "inflight", label: "IN FLIGHT", href: "/a/testing#inflight" },
-      { key: "roster", label: "DUTY ROSTER", href: "/a/testing#roster" },
+      { key: "roster", label: "DUTY ROSTER", href: "/a/testing#roster", countKey: "tickets" },
       { key: "log", label: "SHIP'S LOG", href: "/a/testing#log" },
     ],
   },
@@ -120,16 +159,22 @@ export const CONSOLE_ROOMS: ConsoleRoom[] = [
   },
 ];
 
+/** Every level-1 + level-2 sub of a room, flattened (for path matching). */
+function allSubs(room: ConsoleRoom): ConsoleRoomSub[] {
+  return (room.subs ?? []).flatMap((s) => [s, ...(s.children ?? [])]);
+}
+
 /**
- * Which room a console pathname lives in — exact room href first, then a sub
- * route (Briefs lives under STATUS), then the longest room-href prefix. "/a"
- * only matches exactly (every room shares it as a prefix).
+ * Which room a console pathname lives in — "/a" exactly is the Overview front
+ * page (◉ HOME), then the exact room href, then a sub route at any accordion
+ * level (Briefs lives under STATUS), then the longest room-href prefix.
  */
 export function roomForPath(pathname: string): ConsoleRoom {
+  if (pathname === CONSOLE_OVERVIEW.href) return CONSOLE_OVERVIEW;
   const exact = CONSOLE_ROOMS.find((r) => r.href === pathname);
   if (exact) return exact;
   const bySub = CONSOLE_ROOMS.find((r) =>
-    r.subs?.some((s) => !s.soon && s.href.split("#")[0] === pathname)
+    allSubs(r).some((s) => !s.soon && s.href.split("#")[0] === pathname)
   );
   if (bySub) return bySub;
   const byPrefix = CONSOLE_ROOMS.filter(

@@ -102,7 +102,7 @@ export default function BriefsConnectPanel() {
                 ) : (
                   <span className="text-ghost">NOT CONNECTED</span>
                 )}
-                <a href="/a" className="text-cyan underline hover:text-white">
+                <a href="/a/action#approvals" className="text-cyan underline hover:text-white">
                   {config?.githubTokenSet
                     ? "manage the key in the merge queue →"
                     : "connect the GitHub PAT in the merge queue →"}

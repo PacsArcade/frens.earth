@@ -1,28 +1,25 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import OperatorGate from "@/components/OperatorGate";
-import MergeQueue from "@/components/MergeQueue";
-import DecisionsPanel from "@/components/DecisionsPanel";
+import OverviewPanel from "@/components/console/OverviewPanel";
 import { operatorFromCookieHeader, operatorsConfigured } from "@/lib/operator-auth";
 import { CONSOLE_SITE } from "@/lib/console";
 
 /**
- * ACTION ITEMS — SCAR's landing tab and the admiral's signature desk. The
- * APPROVALS queue up top carries the merge → ship stages on one card: open PRs
- * waiting to merge (① AUTHORIZE & MERGE, ② SHIP locked), then merged-but-not-yet-
- * live changes (① MERGE ✓, ② SHIP lit — sign to deploy). A change only crosses
- * to Bug Testing once it's LIVE. The DECISION BOARD sits below. Everything here
- * needs the admiral's key; the node/connection rooms (and the deploy-hook setup)
- * live one tab over. Same key-is-the-operator gate as every /a tab.
+ * SCAR·LET OVERVIEW — the console FRONT PAGE. "/a" is the room the ribbon's
+ * ◗ SCAR·LET brand block opens (◉ HOME in the readout): how the site is doing
+ * at a glance, what needs the admiral (real board counts, each a door), and
+ * where a first captain begins. The Action Items desk moved to /a/action.
+ * Same key-is-the-operator gate as every /a tab.
  */
 export const metadata: Metadata = {
-  title: "Action items — frens.earth admin",
+  title: "Overview — frens.earth admin",
   robots: { index: false, follow: false },
 };
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminActionItemsPage() {
+export default async function ConsoleOverviewPage() {
   const cookie = (await headers()).get("cookie");
   const operator = operatorFromCookieHeader(cookie);
   if (!operator) {
@@ -30,23 +27,17 @@ export default async function AdminActionItemsPage() {
   }
   return (
     <main className="min-h-screen">
-      <div className="mx-auto max-w-3xl px-6 pb-4 pt-10">
-        <p className="lcars-eyebrow mb-3" data-accent="pink">
-          OPERATOR CONSOLE · {CONSOLE_SITE.domain.toUpperCase()}
+      <div className="mx-auto max-w-5xl px-6 pb-6 pt-10">
+        <p className="lcars-eyebrow mb-3" data-accent="cyan">
+          ◗ CONSOLE FRONT PAGE · {CONSOLE_SITE.domain.toUpperCase()}
         </p>
-        <h1 className="mb-3 font-arcade text-4xl text-cyan glow-cyan">ACTION ITEMS</h1>
+        <h1 className="mb-3 font-arcade text-4xl text-cyan glow-cyan">SCAR·LET OVERVIEW</h1>
         <p className="font-body text-sm text-white/55">
-          Everything that needs your signature — merge a proposal, then ship it live from the same
-          card. The decision board sits below.
+          The console&apos;s front page — how <b className="text-white/75">{CONSOLE_SITE.domain}</b>{" "}
+          is doing at a glance, and where a first captain begins. The rooms live in the ribbon.
         </p>
       </div>
-      {/* anchors feed the ribbon accordion (APPROVALS / DECISIONS) */}
-      <section id="approvals" className="scroll-mt-20">
-        <MergeQueue mode="approvals" />
-      </section>
-      <section id="decisions" className="scroll-mt-20">
-        <DecisionsPanel />
-      </section>
+      <OverviewPanel />
     </main>
   );
 }

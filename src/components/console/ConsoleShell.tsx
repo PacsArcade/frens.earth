@@ -29,7 +29,11 @@ export default function ConsoleShell({ children }: { children: React.ReactNode }
 
   const room = roomForPath(pathname);
   const pad2 = (n: number) => String(n).padStart(2, "0");
-  const readout = `${pad2(CONSOLE_ROOMS.indexOf(room) + 1)} / ${pad2(CONSOLE_ROOMS.length)}`;
+  /* the Overview front page isn't a numbered room — the readout reads HOME */
+  const readout =
+    room.key === "overview"
+      ? "◉ HOME"
+      : `${pad2(CONSOLE_ROOMS.indexOf(room) + 1)} / ${pad2(CONSOLE_ROOMS.length)}`;
 
   /* the sheet state lives on <body> so the CSS (scrim, caret flip, scroll
      lock, sheet raise) follows one class, same as the approved wireframe */

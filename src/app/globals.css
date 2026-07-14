@@ -982,11 +982,148 @@ footer {
     .scar-mbar, .scar-scrim, .scar-rail__sheethead { display: none !important; }
   }
 
+  /* ── PHASE 2 · the brand block lights up on the Overview front page ────── */
+  .scar-rail__brand[aria-current="page"] {
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-pink) 75%, #fff),
+      0 10px 26px -14px var(--color-pink);
+  }
+
+  /* ── PHASE 2 · count pills on the accordion sub-items ──────────────────
+     rule: an item WITH a count reads label-left / count-right (uniform pill —
+     same height · min-width · radius on every count); items WITHOUT a count
+     stay centred. */
+  .scar-railsubbtn .rl {
+    min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .scar-railsubbtn .rc {
+    flex: none; display: inline-flex; align-items: center; justify-content: center;
+    min-width: 21px; height: 18px; padding: 0 6px; border-radius: 999px;
+    background: rgba(0, 0, 0, .26);
+    font-family: var(--font-console); font-size: 9.5px; font-weight: 800;
+    font-variant-numeric: tabular-nums; letter-spacing: 0; opacity: .85;
+  }
+  .scar-railsubbtn:has(.rc) {
+    justify-content: space-between; text-align: left;
+    padding-left: 10px; padding-right: 7px; gap: 5px;
+  }
+  .scar-railsubbtn[aria-current="page"] .rc { background: rgba(0, 0, 0, .34); opacity: 1; }
+
+  /* ── PHASE 2 · level-2 accordion — the PROGRESSIVE filter rail ──────────
+     opens only when the captain clicks its level-1 parent; room enter shows
+     level 1 only. */
+  .scar-railsub2 {
+    display: flex; flex-direction: column; gap: 3px;
+    margin: 2px 0 5px 10px; padding-left: 8px;
+    border-left: 2px solid var(--scar-ops-d);
+  }
+  .scar-railsubbtn--parent[aria-expanded="true"] {
+    background: color-mix(in srgb, var(--scar-ops) 58%, #16221b); color: #eaf2ec !important;
+  }
+  .scar-railsubbtn--2 {
+    min-height: 40px; font-size: 6.5px;
+    background: color-mix(in srgb, var(--scar-ops) 26%, #16221b);
+  }
+
+  /* ── PHASE 2 · stat cards — read-outs, and (as buttons) the board FILTERS:
+     one taxonomy, the counts match the list ──────────────────────────────── */
+  .scar-stats {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(128px, 1fr)); gap: 10px;
+  }
+  .scar-stat {
+    border: 1.5px solid var(--console-edge); border-radius: 12px;
+    background: linear-gradient(180deg, #1a2419, #10160f);
+    padding: 12px 10px 11px; text-align: center;
+    font-family: var(--font-console); color: inherit;
+    transition: border-color .2s ease, box-shadow .2s ease, transform .12s ease;
+  }
+  button.scar-stat, a.scar-stat { cursor: pointer; }
+  button.scar-stat:hover, a.scar-stat:hover {
+    transform: translateY(-1px);
+    border-color: color-mix(in srgb, var(--acc) 55%, var(--console-edge));
+    box-shadow: 0 12px 28px -20px var(--acc);
+  }
+  .scar-stat[aria-pressed="true"] {
+    border-color: var(--acc);
+    box-shadow: 0 0 0 1px var(--acc), 0 10px 26px -14px var(--acc);
+  }
+  .scar-stat__n {
+    font-size: 23px; font-weight: 800; line-height: 1.15;
+    color: var(--acc); font-variant-numeric: tabular-nums;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .scar-stat__l {
+    margin-top: 4px; font-size: 9.5px; letter-spacing: .14em;
+    text-transform: uppercase; color: #cfe0d6; font-weight: 700;
+  }
+  .scar-stat__sub { margin-top: 2px; font-size: 9px; letter-spacing: .04em; color: #7f9578; }
+
+  /* ── PHASE 2 · the READER DRAWER — board | reader split. The reader starts
+     CLOSED (single column); selecting an item opens it TOP-ALIGNED beside the
+     board; ⤢ EXPAND fills the board area (the ribbon stays); ✕ closes. ────── */
+  .scar-console {
+    display: grid; grid-template-columns: minmax(0, 1fr);
+    gap: 14px; align-items: start;
+  }
+  .scar-console--open { grid-template-columns: minmax(0, 1fr) minmax(290px, 372px); }
+  .scar-console--full { grid-template-columns: minmax(0, 1fr); }
+  .scar-console--full .scar-console__board { display: none; }
+  .scar-console__board { min-width: 0; }
+  .scar-drawer {
+    position: sticky; top: calc(var(--scar-nav-h) + 14px); min-width: 0;
+    border: 1.5px solid var(--console-edge); border-radius: 12px; overflow: hidden;
+    background: linear-gradient(180deg, #1a2419, #10160f);
+  }
+  .scar-console--full .scar-drawer { position: static; }
+  .scar-drawer__bar {
+    height: 4px; background: var(--acc);
+    box-shadow: 0 0 18px -1px color-mix(in srgb, var(--acc) 70%, transparent);
+  }
+  .scar-drawer__head {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 12px 14px 10px; border-bottom: 1px solid var(--console-edge);
+  }
+  .scar-drawer__code {
+    min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    font-family: var(--font-console); font-size: 10.5px; letter-spacing: .12em;
+    text-transform: uppercase; color: #7f9578; font-variant-numeric: tabular-nums;
+  }
+  .scar-drawer__actions { display: inline-flex; align-items: center; gap: 8px; flex: none; }
+  .scar-drawer__expand {
+    flex: none; display: inline-flex; align-items: center; gap: .5em;
+    min-height: 44px; padding: 0 12px; border-radius: 3px 12px 12px 3px; cursor: pointer;
+    border: 1.5px solid var(--console-edge); background: transparent; color: #839388;
+    font-family: var(--font-console); font-size: 10px; letter-spacing: .06em; font-weight: 700;
+    transition: border-color .2s ease, color .2s ease;
+  }
+  .scar-drawer__expand:hover,
+  .scar-console--full .scar-drawer__expand {
+    border-color: var(--acc); color: color-mix(in srgb, var(--acc) 90%, #f1efe7);
+  }
+  .scar-drawer__x {
+    flex: none; width: 44px; height: 44px; border-radius: 10px; cursor: pointer;
+    border: 1.5px solid var(--console-edge); background: transparent;
+    color: #839388; font-family: var(--font-console); font-size: 14px;
+    transition: border-color .2s ease, color .2s ease;
+  }
+  .scar-drawer__x:hover { border-color: var(--color-ghost); color: var(--color-ghost); }
+  .scar-drawer__scroll {
+    padding: 13px 14px 15px;
+    max-height: calc(100vh - var(--scar-nav-h) - 96px); overflow-y: auto;
+    scrollbar-width: thin; scrollbar-color: var(--console-edge) transparent;
+  }
+  .scar-console--full .scar-drawer__scroll { max-height: none; }
+  @media (max-width: 900px) {
+    .scar-console--open { grid-template-columns: 1fr; }
+    .scar-drawer { position: static; }
+    .scar-drawer__scroll { max-height: none; }
+  }
+
   /* focus-visible for every shell control */
   .scar-railbtn:focus-visible, .scar-railsubbtn:focus-visible,
   .scar-rail__elbow:focus-visible, .scar-rail__brand:focus-visible,
   .scar-mbar__menu:focus-visible, .scar-rail__sheetx:focus-visible,
-  .scar-siteexit:focus-visible {
+  .scar-siteexit:focus-visible, .scar-stat:focus-visible,
+  .scar-drawer__x:focus-visible, .scar-drawer__expand:focus-visible {
     outline: 2px solid var(--color-cyan); outline-offset: 2px;
   }
 }
