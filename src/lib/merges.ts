@@ -2,7 +2,7 @@ import { promises as fs } from "fs";
 import path from "path";
 import { put, get } from "@vercel/blob";
 import { verifyEvent, nip19 } from "nostr-tools";
-import { blobStoreEnabled } from "./registry";
+import { blobStoreEnabled, findHandleByNpub } from "./registry";
 import { isOperatorHex } from "./operator-auth";
 import { effectiveGithub, effectiveMempoolNode, MEMPOOL_URL_DEFAULT } from "./nodeconfig";
 import { bftDateTime, estimateHeight } from "./bb/bft";
@@ -371,7 +371,11 @@ export async function postNote(event: {
      checkable against this log's full record. */
   const npub = nip19.npubEncode(event.pubkey);
   const shortNpub = `${npub.slice(0, 7)}…${npub.slice(-4)}`;
-  const footer = `\n\n—— ✍ signed via SCAR·LET by ${shortNpub} · ${await signingStamp()} a₿ · sig ${event.sig.slice(0, 16)}…`;
+  // prefer the captain's fren tag (name@space) + the npub's last four in parens;
+  // fall back to the short npub if they hold no tag yet.
+  const owner = await findHandleByNpub(npub).catch(() => null);
+  const who = owner ? `${owner.handle}@${owner.space} (${npub.slice(-4)})` : shortNpub;
+  const footer = `\n\n—— ✍ signed via SCAR·LET by ${who} · ${await signingStamp()} a₿ · sig ${event.sig.slice(0, 16)}…`;
 
   const gh = await ghContext();
   let posted = false;
