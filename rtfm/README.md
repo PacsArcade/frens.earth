@@ -21,6 +21,9 @@ body of work.
 | [004](004-wear-your-own-name.html) | **Wear Your Own Name** | Mask every door behind your brand — DNS doors vs gated rewrites, your own orbee floor (what's config, what's a fork), and the whole-fleet masking table. |
 | [006](006-ship-it.html) | **Ship It** | Deploy frens.earth from SCAR with your signature — connect the repo, turn off Vercel auto-deploy, wire a deploy hook, arm the signed ▲ SHIP button. |
 | [007](007-the-captains-signoff.html) | **The Captain's Sign-Off** | What to check before your key merges a PR — not-a-draft, the sha your signature binds, the diff over the title, green checks, trusted source, your name on the block, and how to say "not yet." |
+| [008](008-the-muster.html) | **The Muster** | How the Admiral proves each fren really came home before it boards the real ship — the watchword (memory) plus a key-signed challenge against the roster npub (identity), what every fren must carry to pass, and the roll-call ceremony at the gangway. |
+| [009](009-bringing-the-fleet-home.html) | **Bringing the Fleet Home** | Move the agentic workforce onto the box from 001 — the openclaw gateway the crew lives in, the honest local-vs-cloud engine tradeoff (hybrid), keeping every fren (skills + memory + keys, git'd), and safe passage: backup, keys encrypted, test-before-cutover, rollback. |
+| [010](010-the-ships-manifest.html) | **The Ship's Manifest** | Every doc in the fleet, counted at the gangway — what a `git clone` actually carries (`rtfm/`, `docs/`), what rides a separate repo (knowledge-engine), and the 118 of 166 that need their own passage (the memory in `~/.claude`, the design-briefs, the studies, the briefings) — plus the pre-launch checklist before the migration is called done. |
 
 _(more to come — 005 CLASSROOM SETUPS & MANAGEMENT is commissioned.)_
 

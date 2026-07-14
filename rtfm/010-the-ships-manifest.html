@@ -1,0 +1,551 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>010 · The Ship's Manifest — every doc in the fleet, and whether it travels — RTFM</title>
+<style>
+  :root {
+    /* frens.earth night-garden palette, terminal treatment */
+    --void: #0d1210; --panel: #151d18; --edge: #2f4033;
+    --ink: #e8ede9; --muted: #839388;
+    --sprout: #5ef78a; --teal: #53e0d4; --gold: #f7c948; --ghost: #ff6b6b; --heart: #b795ff;
+    --shadow: 0 1px 0 rgba(255,255,255,.03), 0 12px 30px -18px rgba(0,0,0,.8);
+    --mono: ui-monospace, "Cascadia Code", "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+    --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    --maxw: 960px;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --void: #f3f6f1; --panel: #ffffff; --edge: #d6ded3;
+      --ink: #17211b; --muted: #5a6b60;
+      --sprout: #12924a; --teal: #0e8b82; --gold: #a97c07; --ghost: #c23a3a; --heart: #6f4dc0;
+      --shadow: 0 1px 2px rgba(20,40,30,.05), 0 14px 30px -22px rgba(20,40,30,.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --void: #0d1210; --panel: #151d18; --edge: #2f4033;
+    --ink: #e8ede9; --muted: #839388;
+    --sprout: #5ef78a; --teal: #53e0d4; --gold: #f7c948; --ghost: #ff6b6b; --heart: #b795ff;
+    --shadow: 0 1px 0 rgba(255,255,255,.03), 0 12px 30px -18px rgba(0,0,0,.8);
+  }
+  :root[data-theme="light"] {
+    --void: #f3f6f1; --panel: #ffffff; --edge: #d6ded3;
+    --ink: #17211b; --muted: #5a6b60;
+    --sprout: #12924a; --teal: #0e8b82; --gold: #a97c07; --ghost: #c23a3a; --heart: #6f4dc0;
+    --shadow: 0 1px 2px rgba(20,40,30,.05), 0 14px 30px -22px rgba(20,40,30,.35);
+  }
+
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--void); color:var(--ink); font-family:var(--sans); font-size:16px; line-height:1.65; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:var(--maxw); margin:0 auto; padding:0 20px 96px; }
+  a { color:var(--teal); text-decoration:none; border-bottom:1px solid transparent; }
+  a:hover { border-bottom-color:currentColor; }
+  a:focus-visible, button:focus-visible, input:focus-visible { outline:2px solid var(--teal); outline-offset:2px; }
+  code, kbd, .mono { font-family:var(--mono); }
+
+  header.hero { max-width:var(--maxw); margin:0 auto; padding:64px 20px 36px; }
+  .eyebrow { font-family:var(--mono); font-size:12px; letter-spacing:.22em; text-transform:uppercase; color:var(--sprout); display:flex; align-items:center; gap:10px; margin-bottom:20px; }
+  .eyebrow::before { content:""; width:22px; height:1px; background:var(--sprout); display:inline-block; }
+  h1.title { font-family:var(--mono); font-weight:700; font-size:clamp(2rem,6vw,3.2rem); line-height:1.04; letter-spacing:-.01em; margin:0; text-wrap:balance; }
+  h1.title .glow { color:var(--sprout); text-shadow:0 0 24px color-mix(in srgb,var(--sprout) 45%,transparent); }
+  .subtitle { color:var(--muted); font-size:1.05rem; max-width:62ch; margin:14px 0 0; }
+  .mission { margin-top:22px; padding:14px 18px; border-left:3px solid var(--heart); background:color-mix(in srgb,var(--heart) 9%,transparent); font-size:.95rem; border-radius:0 6px 6px 0; max-width:66ch; }
+  .mission b { color:var(--heart); }
+
+  /* tally strip */
+  .specs { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:1px; background:var(--edge); border:1px solid var(--edge); border-radius:10px; overflow:hidden; margin:30px 0 8px; box-shadow:var(--shadow); }
+  .spec { background:var(--panel); padding:14px 16px; }
+  .spec .k { font-family:var(--mono); font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
+  .spec .v { font-family:var(--mono); font-size:15px; margin-top:4px; color:var(--ink); }
+  .spec .v small { color:var(--teal); font-size:12px; }
+  .spec.red .v { color:var(--ghost); }
+
+  nav.toc { margin:34px 0 10px; display:grid; gap:8px; }
+  nav.toc a { display:grid; grid-template-columns:44px 1fr auto; align-items:baseline; gap:12px; padding:11px 14px; border:1px solid var(--edge); border-radius:8px; background:var(--panel); color:var(--ink); font-size:.95rem; }
+  nav.toc a:hover { border-color:var(--sprout); border-bottom-color:var(--sprout); }
+  nav.toc .n { font-family:var(--mono); color:var(--sprout); font-size:13px; }
+  nav.toc .t { font-weight:600; }
+  nav.toc .d { color:var(--muted); font-size:.82rem; font-family:var(--mono); }
+
+  section { margin-top:56px; scroll-margin-top:20px; }
+  .head { display:flex; align-items:baseline; gap:14px; border-bottom:1px solid var(--edge); padding-bottom:12px; margin-bottom:20px; flex-wrap:wrap; }
+  .head .num { font-family:var(--mono); font-size:13px; color:var(--void); background:var(--sprout); padding:3px 9px; border-radius:5px; font-weight:700; white-space:nowrap; }
+  h2 { font-family:var(--mono); font-size:clamp(1.3rem,3.4vw,1.8rem); margin:0; letter-spacing:-.01em; text-wrap:balance; }
+  h3 { font-family:var(--mono); font-size:1.02rem; margin:28px 0 10px; color:var(--teal); }
+  p, ul { max-width:68ch; }
+  .lead { color:var(--muted); max-width:68ch; }
+  ul.plain { padding-left:20px; }
+  ul.plain li { margin:5px 0; }
+  strong { color:var(--ink); }
+
+  /* travel-status pills */
+  .fate { display:inline-block; font-family:var(--mono); font-size:10.5px; letter-spacing:.06em; padding:2px 8px; border-radius:4px; white-space:nowrap; }
+  .fate.green { color:var(--sprout); border:1px solid var(--sprout); }
+  .fate.gold  { color:var(--gold);   border:1px solid var(--gold); }
+  .fate.red   { color:var(--ghost);  border:1px solid var(--ghost); }
+  .fate.dim   { color:var(--muted);  border:1px solid var(--edge); }
+
+  .term { margin:14px 0; border:1px solid var(--edge); border-radius:8px; overflow:hidden; background:color-mix(in srgb,var(--panel) 82%,var(--void)); box-shadow:var(--shadow); }
+  .term .bar { display:flex; align-items:center; gap:8px; padding:7px 12px; border-bottom:1px solid var(--edge); font-family:var(--mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); background:var(--panel); }
+  .term .bar .dot { width:9px; height:9px; border-radius:50%; background:var(--edge); }
+  .term .bar .dot.g { background:var(--sprout); }
+  .term pre { margin:0; padding:14px 16px; overflow-x:auto; font-family:var(--mono); font-size:13px; line-height:1.7; color:var(--ink); }
+  .term pre .c { color:var(--muted); } .term pre .p { color:var(--sprout); } .term pre .s { color:var(--gold); }
+
+  .call { margin:18px 0; padding:14px 16px 14px 18px; border-radius:8px; border:1px solid var(--edge); border-left-width:3px; background:var(--panel); }
+  .call .lab { font-family:var(--mono); font-size:11px; letter-spacing:.14em; text-transform:uppercase; font-weight:700; margin-bottom:6px; display:block; }
+  .call p, .call ul { margin:0; }
+  .call.danger { border-left-color:var(--ghost); background:color-mix(in srgb,var(--ghost) 8%,var(--panel)); } .call.danger .lab { color:var(--ghost); }
+  .call.check  { border-left-color:var(--sprout); background:color-mix(in srgb,var(--sprout) 8%,var(--panel)); } .call.check .lab { color:var(--sprout); }
+  .call.tip    { border-left-color:var(--teal); } .call.tip .lab { color:var(--teal); }
+  .call.pending{ border-left-color:var(--gold); background:color-mix(in srgb,var(--gold) 8%,var(--panel)); } .call.pending .lab { color:var(--gold); }
+
+  .tablewrap { overflow-x:auto; margin:16px 0; border:1px solid var(--edge); border-radius:8px; }
+  table { border-collapse:collapse; width:100%; font-size:13.5px; min-width:560px; }
+  th, td { text-align:left; padding:9px 14px; border-bottom:1px solid var(--edge); vertical-align:top; }
+  th { font-family:var(--mono); font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); background:var(--panel); }
+  td.mono, td .mono { font-family:var(--mono); font-size:12.5px; white-space:nowrap; }
+  tr:last-child td { border-bottom:none; }
+
+  /* compact cargo list (briefings) */
+  .cargo { margin:14px 0; padding:14px 16px; border:1px solid var(--edge); border-radius:8px; background:color-mix(in srgb,var(--panel) 82%,var(--void)); font-family:var(--mono); font-size:12.5px; line-height:2; color:var(--muted); }
+  .cargo b { color:var(--ink); font-weight:400; }
+
+  /* pre-launch checklist */
+  ul.check { list-style:none; padding:0; margin:14px 0; display:grid; gap:8px; max-width:72ch; }
+  ul.check li { display:flex; gap:12px; align-items:flex-start; padding:11px 14px; border:1px solid var(--edge); border-radius:8px; background:var(--panel); }
+  ul.check input[type="checkbox"] { accent-color: var(--sprout); width:17px; height:17px; margin-top:3px; flex:none; cursor:pointer; }
+  ul.check label { cursor:pointer; }
+  ul.check li:has(input:checked) { border-color:var(--sprout); }
+  ul.check li:has(input:checked) label { color:var(--muted); }
+
+  hr.soft { border:none; border-top:1px solid var(--edge); margin:26px 0; }
+  footer { max-width:var(--maxw); margin:60px auto 0; padding:26px 20px 0; border-top:1px solid var(--edge); color:var(--muted); font-family:var(--mono); font-size:12px; }
+  footer b { color:var(--heart); }
+  .kbd { font-family:var(--mono); font-size:.82em; border:1px solid var(--edge); border-bottom-width:2px; border-radius:4px; padding:1px 6px; color:var(--ink); }
+
+  /* the magic — for frens who read to the end */
+  #rtfm-magic { position:fixed; inset:0; display:grid; place-items:center; padding:24px; background:rgba(5,8,6,.82); z-index:9999; }
+  #rtfm-magic[hidden] { display:none; }
+  #rtfm-magic .card { max-width:440px; width:100%; border:2px solid var(--sprout); border-radius:12px; background:var(--panel); padding:28px; text-align:center; box-shadow:0 0 44px color-mix(in srgb,var(--sprout) 34%,transparent); }
+  #rtfm-magic .eye { font-family:var(--mono); font-size:11px; letter-spacing:.2em; text-transform:uppercase; color:var(--sprout); }
+  #rtfm-magic h2 { font-family:var(--mono); font-size:1.6rem; margin:.35em 0 .5em; }
+  #rtfm-magic .secret { font-family:var(--mono); margin-top:16px; border:1px dashed var(--edge); border-radius:8px; padding:10px 12px; }
+  #rtfm-magic .secret b { color:var(--heart); }
+  #rtfm-magic .foot { color:var(--muted); font-size:.85rem; margin-top:14px; }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="eyebrow">RTFM · 010 · MANIFEST</div>
+  <h1 class="title">Every doc, mustered.<br><span class="glow">Nothing sails unlisted.</span></h1>
+  <p class="subtitle">For the Admiral, before the migration — the complete index of the fleet's documentation: every manual, spec, brief, study, and memory, where each one lives today, and the question that decides the voyage: <strong>does a <span class="mono">git clone</span> actually carry it?</strong></p>
+  <div class="mission">
+    <b>Why this exists.</b> The mission is <b>knowledge kept, not erased</b>. <a href="008-the-muster.html">008</a> musters the crew; this manifest musters the library. A migration that lands the services but loses the corpus fails the mission quietly — so before the fleet is called home, every doc gets counted at the gangway.
+  </div>
+
+  <div class="specs" aria-label="The tally">
+    <div class="spec"><div class="k">RTFM aboard</div><div class="v">9 <small>articles</small></div></div>
+    <div class="spec"><div class="k">Ship docs/</div><div class="v">20 <small>specs</small></div></div>
+    <div class="spec"><div class="k">Separate repo</div><div class="v">19 <small>P.O.K.E.</small></div></div>
+    <div class="spec"><div class="k">Loose docks</div><div class="v">81 <small>3 folders</small></div></div>
+    <div class="spec"><div class="k">The memory</div><div class="v">37 <small>~/.claude</small></div></div>
+    <div class="spec red"><div class="k">Won't self-travel</div><div class="v">118 / 166</div></div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <nav class="toc" aria-label="Sections">
+    <a href="#s1"><span class="n">01</span><span class="t">The three fates</span><span class="d">how to read this manifest</span></a>
+    <a href="#s2"><span class="n">02</span><span class="t">🟢 The ship's RTFMs</span><span class="d">rtfm/ · 9 aboard, 3 unmerged</span></a>
+    <a href="#s3"><span class="n">03</span><span class="t">🟢 The ship's docs/</span><span class="d">20 specs &amp; standing orders</span></a>
+    <a href="#s4"><span class="n">04</span><span class="t">🟡 The knowledge-engine docs</span><span class="d">19 manuals · separate repo</span></a>
+    <a href="#s5"><span class="n">05</span><span class="t">🔴 The crew's memory</span><span class="d">37 files · ~/.claude · loud flag</span></a>
+    <a href="#s6"><span class="n">06</span><span class="t">🔴 The loose docks</span><span class="d">design-briefs · studies · briefings</span></a>
+    <a href="#s7"><span class="n">07</span><span class="t">Safe passage</span><span class="d">back the red cargo up, verifiably</span></a>
+    <a href="#s8"><span class="n">08</span><span class="t">The pre-launch checklist</span><span class="d">confirm it all before you call it</span></a>
+  </nav>
+
+  <!-- 01 -->
+  <section id="s1">
+    <div class="head"><span class="num">01</span><h2>The three fates</h2></div>
+    <p class="lead">Every doc in the fleet has exactly one of three travel fates. Learn these and the rest of the manifest reads itself.</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Fate</th><th>Meaning</th><th>What carries it</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="fate green">🟢 TRAVELS WITH THE SHIP</span></td>
+            <td>Lives inside the <strong>frens.earth git repo</strong> (<code>rtfm/</code>, <code>docs/</code>), committed to <code>main</code>.</td>
+            <td>One <code>git clone</code>. Free, automatic, verifiable by hash.</td>
+          </tr>
+          <tr>
+            <td><span class="fate gold">🟡 SEPARATE REPO</span></td>
+            <td>Lives in <strong>another git repo</strong> (knowledge-engine). Safe — but only if you remember to clone that repo too.</td>
+            <td>A second <code>git clone</code>, on the migration list by name.</td>
+          </tr>
+          <tr>
+            <td><span class="fate red">🔴 NEEDS ITS OWN PASSAGE</span></td>
+            <td>Lives in <strong>no repo at all</strong> — a bare folder or the crew's <code>~/.claude</code> memory. A clone brings <em>none</em> of it.</td>
+            <td>A deliberate, verified copy (07). Nothing else will do.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="call danger">
+      <span class="lab">The headline finding</span>
+      <p><strong>118 of the 166 docs counted here do not travel with a git clone.</strong> That's the crew's memory, all the design briefs, all the studies, and the whole briefings shelf. If the migration plan is "clone the repos," roughly seven-tenths of the fleet's written knowledge stays behind on the old machine. That is exactly the quiet failure this manifest exists to prevent.</p>
+    </div>
+  </section>
+
+  <!-- 02 -->
+  <section id="s2">
+    <div class="head"><span class="num">02</span><h2>The ship's RTFMs</h2><span class="fate green">🟢 TRAVELS WITH THE SHIP</span></div>
+    <p class="lead">The manuals themselves — <code>rtfm/</code> in the frens.earth repo. One house style, one body of work, self-contained HTML that opens anywhere, forever, offline.</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>#</th><th>Doc</th><th>What it is</th><th>Berth</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">001</td><td><a href="001-the-sovereign-box.html">The Sovereign Box</a></td><td>Wipe Windows, install Arch forever, keep it a gaming rig, host the stack — the new home this migration sails toward.</td><td><span class="fate green">ABOARD</span></td></tr>
+          <tr><td class="mono">002</td><td><a href="002-first-deployment.html">Your First Deployment</a></td><td>The git ceremony in arrows — clone → run → deploy, for total beginners.</td><td><span class="fate green">ABOARD</span></td></tr>
+          <tr><td class="mono">003</td><td><a href="003-treasury-rescue.html">Treasury Rescue</a></td><td>BTCPay damage control — locked-out panel, sats "not moving," the lightning sync runbook.</td><td><span class="fate green">ABOARD</span></td></tr>
+          <tr><td class="mono">004</td><td><a href="004-wear-your-own-name.html">Wear Your Own Name</a></td><td>Mask every door behind your brand — DNS doors vs gated rewrites, the whole-fleet masking table.</td><td><span class="fate green">ABOARD</span></td></tr>
+          <tr><td class="mono">005</td><td>Classroom Setups &amp; Management</td><td>Commissioned, not yet written — a listed absence, not a lost doc.</td><td><span class="fate dim">COMMISSIONED</span></td></tr>
+          <tr><td class="mono">006</td><td><a href="006-ship-it.html">Ship It</a></td><td>Deploy from SCAR with your signature — deploy hook, the signed ▲ SHIP button.</td><td><span class="fate green">ABOARD</span></td></tr>
+          <tr><td class="mono">007</td><td><a href="007-the-captains-signoff.html">The Captain's Sign-Off</a></td><td>What to check before your key merges a PR — the sha your signature binds, and how to say "not yet."</td><td><span class="fate green">ABOARD</span></td></tr>
+          <tr><td class="mono">008</td><td><a href="008-the-muster.html">The Muster</a></td><td>Prove each fren really came home before it boards — watchword + key-signed challenge against the roster npub.</td><td><span class="fate gold">UNCOMMITTED</span></td></tr>
+          <tr><td class="mono">009</td><td><a href="009-bringing-the-fleet-home.html">Bringing the Fleet Home</a></td><td>Move the agentic workforce onto the box from 001 — the crew's skills + memory + keys, git'd, with safe passage and rollback. Landed while this manifest was being written; its study draft is <code>studies/fleet-home-guide.html</code> (06).</td><td><span class="fate gold">UNCOMMITTED</span></td></tr>
+          <tr><td class="mono">010</td><td>The Ship's Manifest</td><td>This document. The manifest counts itself.</td><td><span class="fate gold">UNCOMMITTED</span></td></tr>
+          <tr><td class="mono">—</td><td><code>_template.html</code> + <code>README.md</code></td><td>The house template and the index — the gear that keeps new manuals in style.</td><td><span class="fate green">ABOARD</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="call pending">
+      <span class="lab">Honest, as of 14 July 2026</span>
+      <p><strong>008, 009, and 010 exist only in the working tree</strong> — written (009 landed <em>while this manifest was being taken</em>), but not yet committed and merged to <code>main</code>. A clone taken <em>today</em> brings 001–007 and nothing newer. Before the migration is called done, 008 · 009 · 010 must land on <code>main</code> through the signed queue (<a href="007-the-captains-signoff.html">007</a>) — green means <em>merged</em>, not <em>written</em>.</p>
+    </div>
+  </section>
+
+  <!-- 03 -->
+  <section id="s3">
+    <div class="head"><span class="num">03</span><h2>The ship's docs/</h2><span class="fate green">🟢 TRAVELS WITH THE SHIP</span></div>
+    <p class="lead">The specs, standards, and standing orders — <code>docs/</code> in the frens.earth repo. Twenty markdown files; every one rides the clone.</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>File</th><th>What it is</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">artist-registry.md</td><td>The Artist Registry — the brand kit's artist door (<code>/artist</code>).</td></tr>
+          <tr><td class="mono">bb-backlog.md</td><td>Bitcoin Buddy — the admiral's wishlist (GLYPH's round).</td></tr>
+          <tr><td class="mono">bb-rescue-buddy.md</td><td>The Rescue Buddy — why <code>/bb</code> exists.</td></tr>
+          <tr><td class="mono">bft-display.md</td><td>Displaying Bitcoin Time — the house standard every clock obeys.</td></tr>
+          <tr><td class="mono">bft-holidays.md</td><td>Bitcoin Holidays — the official Pac's Arcade calendar, BFT-mapped.</td></tr>
+          <tr><td class="mono">brand-cartridge.md</td><td>The Brand Cartridge — <code>/a/brand</code> goes SCAR (spark for GLYPH).</td></tr>
+          <tr><td class="mono">flagship-uplift.md</td><td>The Flagship Uplift — landing-page commission (GLYPH lead).</td></tr>
+          <tr><td class="mono">ghost-chain-certs.md</td><td>Ghost-Chain Certs — twin mints across the mirror (tabled spark).</td></tr>
+          <tr><td class="mono">glyph-queue.md</td><td>GLYPH's queue — the open design commissions.</td></tr>
+          <tr><td class="mono">house-rules.md</td><td>House Rules — the standing laws of the earthship.</td></tr>
+          <tr><td class="mono">lore-seeds.md</td><td>Lore Seeds — the admiral's words, held for the writing team.</td></tr>
+          <tr><td class="mono">merge-authority.md</td><td>Merge authority — the admiral's signature is the only door into <code>main</code>.</td></tr>
+          <tr><td class="mono">number-one-bridge.md</td><td>The @no1 bridge — Number One on the floor (spec, not build).</td></tr>
+          <tr><td class="mono">operator-console.md</td><td>The Operator Console — a module, not furniture.</td></tr>
+          <tr><td class="mono">ops-todos.md</td><td>SCAR ops to-dos — the standing orders.</td></tr>
+          <tr><td class="mono">scar-fleet-ranks.md</td><td>The SCAR Fleet Guide — arcader ranks (draft for GLYPH).</td></tr>
+          <tr><td class="mono">ships-calendar.md</td><td>The Ship's Calendar — public time for every fren (spec).</td></tr>
+          <tr><td class="mono">spaces-anchoring.md</td><td>On-chain anchoring — the Spaces batch ceremony (A1).</td></tr>
+          <tr><td class="mono">themeable-signin-plugin.md</td><td>Themeable sign-in plugin — the reusable sign-in door.</td></tr>
+          <tr><td class="mono">wardrobe.md</td><td>The Wardrobe — many tags, one front (round-3 spec).</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="call check"><span class="lab">Green means done here</span><p>All twenty are committed on <code>main</code>. Clone the repo and this whole shelf steps off the boat with you. Nothing to do but verify the count on arrival (08).</p></div>
+  </section>
+
+  <!-- 04 -->
+  <section id="s4">
+    <div class="head"><span class="num">04</span><h2>The knowledge-engine docs</h2><span class="fate gold">🟡 SEPARATE REPO</span></div>
+    <p class="lead">The P.O.K.E. engine — the MUD, the verses, the academies — keeps its own manuals in its own repo: <code>C:\dev\pacsarcade\knowledge-engine\docs\</code>. Nineteen files. They travel <strong>only</strong> if that repo is cloned too; a frens.earth clone brings none of them.</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>File</th><th>What it is</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">ARCHITECTURE.md</td><td>The Proof-of-Knowledge Engine — the whole system, drawn once.</td></tr>
+          <tr><td class="mono">CONVENTIONS.md</td><td>The shared contract — how the pieces agree to speak.</td></tr>
+          <tr><td class="mono">SECURITY.md</td><td>The seed-loot mechanic handles real money — threat model &amp; rules.</td></tr>
+          <tr><td class="mono">RUNES.md</td><td>Soulbound class certificates on Bitcoin.</td></tr>
+          <tr><td class="mono">BFT.md</td><td>Bitcoin Federated Time — the engine-side write-up.</td></tr>
+          <tr><td class="mono">ROADMAP.md</td><td>The next heavy lift.</td></tr>
+          <tr><td class="mono">ACADEMY-APLUS.md</td><td>POKE Academy — CompTIA A+ field service track.</td></tr>
+          <tr><td class="mono">ACADEMY-ITIL4.md</td><td>POKE Academy — ITIL 4 Foundation (Fleet Ops v2).</td></tr>
+          <tr><td class="mono">ADMIN-PORTAL-INTEGRATION.md</td><td>POKE node ⇄ admin portal spec (for the SCAR overhaul).</td></tr>
+          <tr><td class="mono">BOT-EXTENSION.md</td><td>Ops bots acting for a server owner.</td></tr>
+          <tr><td class="mono">CORPUS-MESH.md</td><td>The BitTorrent knowledge swarm.</td></tr>
+          <tr><td class="mono">DESIGN-CONSOLE.md</td><td>Design guide — the POKE operator console (and web game).</td></tr>
+          <tr><td class="mono">EXTENSIONS.md</td><td>Plug any world into the POKE engine.</td></tr>
+          <tr><td class="mono">FLEET-OPS.md</td><td>The collective-admin game loop.</td></tr>
+          <tr><td class="mono">LATENCY.md</td><td>Why a federated, meshed Verse still feels instant.</td></tr>
+          <tr><td class="mono">ONBOARDING-WIZARD.md</td><td>From bare metal to a Certified Education Node.</td></tr>
+          <tr><td class="mono">PLAYER-GUIDE-TEMPLATE.md</td><td>"How to play" — the per-node player guide template.</td></tr>
+          <tr><td class="mono">RUNBOOK-frens-earth-live-hookup.md</td><td>frens.earth ⇄ POKE node live hookup runbook.</td></tr>
+          <tr><td class="mono">VERSE-GUIDE.md</td><td>Imagine, build, and dock a verse.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="term">
+      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;the second clone — on the migration list by name</div>
+<pre><span class="p">$</span> git clone <span class="s">&lt;remote&gt;/knowledge-engine</span> ~/dev/pacsarcade/knowledge-engine
+<span class="p">$</span> ls ~/dev/pacsarcade/knowledge-engine/docs | wc -l   <span class="c"># expect 19</span>
+</pre>
+    </div>
+    <div class="call tip"><span class="lab">Also aboard that repo</span><p>Beyond <code>docs/</code>, the knowledge-engine carries the pacBOT skill (its README, ROADMAP, and five reference files), the orchestrator agent personas, and the infra notes — all committed, all riding the same clone. The 19 above are the high-level manuals; the clone brings the rest for free.</p></div>
+  </section>
+
+  <!-- 05 -->
+  <section id="s5">
+    <div class="head"><span class="num">05</span><h2>The crew's memory</h2><span class="fate red">🔴 NEEDS ITS OWN PASSAGE</span></div>
+    <p class="lead">The most valuable and most fragile cargo on this manifest. The crew's working memory — who the Admiral is, the house rules, the brand laws, the whole accumulated judgment of the fleet — lives in <strong>37 files</strong> at:</p>
+    <div class="term">
+      <div class="bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span>&nbsp;where the mind lives — NOT the ship</div>
+<pre><span class="s">C:\Users\pacman\.claude\projects\C--dev-pacsarcade-frens-earth\memory\</span>
+<span class="c">└─ MEMORY.md (the index) + 36 topic files</span>
+</pre>
+    </div>
+    <div class="call danger">
+      <span class="lab">Say it loud: memory does not auto-travel</span>
+      <p>This folder is in <code>~/.claude</code> on the <em>machine</em>, not in any git repo. No clone touches it. No deploy carries it. When the old box is wiped for the new sovereign home (<a href="001-the-sovereign-box.html">001</a>), this folder is simply <strong>gone</strong> unless it's moved deliberately — and with it goes the crew's mind: every standing rule, every hard-won convention, every "we already decided this." <a href="009-bringing-the-fleet-home.html">009</a> makes the same call for the fleet's own skills-and-memory passage; this manifest is where the cargo gets counted. Book its passage first (07), verify it landed, then wipe.</p>
+    </div>
+    <h3>What's in the mind — the 36 entries + the index</h3>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>File</th><th>What it holds</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">MEMORY.md</td><td>The index — the map to everything below.</td></tr>
+          <tr><td class="mono">admiral-profile.md</td><td>Who Pac is — role, domains, ethos, voice, standing rules.</td></tr>
+          <tr><td class="mono">number-one-callsign.md</td><td>"Number One" callsign; "make it so" = proceed.</td></tr>
+          <tr><td class="mono">design-tracks.md</td><td>The three open design tracks + "gold = money only."</td></tr>
+          <tr><td class="mono">frens-brand-standards.md</td><td>Bitcoin orange leads; fren tags are name@space, no leading @.</td></tr>
+          <tr><td class="mono">spaces-node-architecture.md</td><td>A1 anchoring runs against a per-deployment Spaces node.</td></tr>
+          <tr><td class="mono">mud-admin-patterns.md</td><td>Where the MUD admin lives + its conventions.</td></tr>
+          <tr><td class="mono">mission-and-mud-packaging.md</td><td>The north star — preserve knowledge, tie it to the block.</td></tr>
+          <tr><td class="mono">rtfm-knowledge-repo.md</td><td>This very shelf — house style + the Konami magic.</td></tr>
+          <tr><td class="mono">scar-review-signoff.md</td><td>Sign-off = key-signed nostr event; multi-key for high stakes.</td></tr>
+          <tr><td class="mono">pac-continuity.md</td><td>Pac works across machines; how memory persistence works.</td></tr>
+          <tr><td class="mono">house-rules.md</td><td>The absolute Disney ban + standing content/design/ops laws.</td></tr>
+          <tr><td class="mono">scar-merge-authority.md</td><td>Pac's sign-off is the sole merge authority; agents never merge.</td></tr>
+          <tr><td class="mono">hatter-identity.md</td><td>Pac IS the Mad Hatter — the founder myth.</td></tr>
+          <tr><td class="mono">clock-thesis-fiat.md</td><td>The clock's soul — bitcoin eats the fiat ghosts every block.</td></tr>
+          <tr><td class="mono">dw-press.md</td><td>Degen Wonderland Press — masthead, pipeline, signed sign-off.</td></tr>
+          <tr><td class="mono">game-ip-original-only.md</td><td>Original-IP maze-chase only; never Pac-Man/Namco clones.</td></tr>
+          <tr><td class="mono">dark-mode-first.md</td><td>Every artifact defaults to dark; never publish raw .md.</td></tr>
+          <tr><td class="mono">post-hooks-library.md</td><td>36 attention hooks — points into <code>briefings/</code> (06).</td></tr>
+          <tr><td class="mono">school-learning-refs.md</td><td>Free-tutorials shelf — points into <code>briefings/</code> (06).</td></tr>
+          <tr><td class="mono">sovereign-truth-own-node.md</td><td>Block truth from OUR node; mempool.space fallback-only.</td></tr>
+          <tr><td class="mono">dw-countdown-clock.md</td><td>The ornate orrery twin of the BFT clock — moodboard.</td></tr>
+          <tr><td class="mono">bft-time-canonical.md</td><td>ONE time source: bft.ts — every clock imports, never reimplements.</td></tr>
+          <tr><td class="mono">crew-personas.md</td><td>GLYPH / Carroll / Professor ₿ / pacBOT — the crew roster.</td></tr>
+          <tr><td class="mono">samourai-wallet-reference.md</td><td>Samourai distilled for Frens Mobile; never a fee-taking mixer.</td></tr>
+          <tr><td class="mono">spaces-registrar-model.md</td><td>The Registrar desk — hybrid Spaces-native auction model.</td></tr>
+          <tr><td class="mono">design-qa-seat.md</td><td>The QA/design-systems seat — the uniformity gate.</td></tr>
+          <tr><td class="mono">scarlet-lcars.md</td><td>SCARLET's LCARS layout genre — no Star Trek IP, our palette.</td></tr>
+          <tr><td class="mono">scar-origin-brief.md</td><td>SCAR = Sovereign Corps Access Relay — the original vision.</td></tr>
+          <tr><td class="mono">hatter-voice-interludes.md</td><td>Capture Pac's voice for the Hatter's dialogue + DW interludes.</td></tr>
+          <tr><td class="mono">ideas-backlog.md</td><td>~28 recovered asks awaiting prioritization.</td></tr>
+          <tr><td class="mono">ab-time-toggle-spark.md</td><td>Parked spark — the a₿ display toggle; do not build.</td></tr>
+          <tr><td class="mono">dw-clock-handoff.md</td><td>DW-clock skill reviewed; Day-0 = new moon 7 Jan 2027.</td></tr>
+          <tr><td class="mono">time-keeper-seat.md</td><td>The BFT/time-verification seat — audits every clock and stamp.</td></tr>
+          <tr><td class="mono">frens-earth-console-rebuild.md</td><td>Path B — rebuild the console presentation, port the backend.</td></tr>
+          <tr><td class="mono">frens-earth-launch.md</td><td>frens.earth = base template; launch after SCARLET deploys.</td></tr>
+          <tr><td class="mono">briefs-token-renewal.md</td><td>The 90-day briefs GitHub token — renew by ~2026-10-10. <span class="fate red">NOT IN THE INDEX</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="call pending"><span class="lab">Honest, as of 14 July 2026</span><p>One file on disk — <code>briefs-token-renewal.md</code> — has no row in <code>MEMORY.md</code>'s index yet. It still travels if the <em>folder</em> is copied (copy the folder, not the index's idea of the folder), but the index should catch up. Counting files beats trusting indexes; that's why the checklist (08) counts files.</p></div>
+  </section>
+
+  <!-- 06 -->
+  <section id="s6">
+    <div class="head"><span class="num">06</span><h2>The loose docks</h2><span class="fate red">🔴 NEEDS ITS OWN PASSAGE</span></div>
+    <p class="lead">Three whole folders of real work sit in <strong>no git repo at all</strong> — checked with <code>git rev-parse</code> on 14 July 2026, all three answered "not a repository." They are exactly as portable as the hard drive they're on.</p>
+
+    <h3>C:\dev\pacsarcade\design-briefs\ — 30 briefs</h3>
+    <p>The commissioning desk: canonical specs, sparks, and hand-offs the crew builds from.</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>File</th><th>What it is</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">THE-624-EMBER-canonical-spec-…md</td><td>THE 624 EMBER — canonical spec, single source of truth.</td></tr>
+          <tr><td class="mono">ab-time-toggle-proposal.md</td><td>The a₿ time toggle — proposal (spark, parked).</td></tr>
+          <tr><td class="mono">arcade-signer-extension.md</td><td>The Arcade Signer — a nostr key extension worth trusting.</td></tr>
+          <tr><td class="mono">bft-month-names-discussion.md</td><td>BFT month names — the discussion record.</td></tr>
+          <tr><td class="mono">clock-day-zero-genesis-message.md</td><td>The Clock, Day 0 — our genesis message.</td></tr>
+          <tr><td class="mono">degen-wonderland-press-…spec-…md</td><td>DW Press — canonical spec: the imprint and its pipeline.</td></tr>
+          <tr><td class="mono">design-qa-rubric.md</td><td>Design-system QA — the uniformity gate rubric.</td></tr>
+          <tr><td class="mono">dw-countdown-clock-moodboard.md</td><td>DW countdown clock — moodboard and direction.</td></tr>
+          <tr><td class="mono">frens-earth-launch-roadmap.md</td><td>The official launch roadmap + the base template.</td></tr>
+          <tr><td class="mono">frens-ideas-backlog.md</td><td>Ideas &amp; asks recovered from the session logs.</td></tr>
+          <tr><td class="mono">frens-mobile.md</td><td>Frens Mobile — the clock-app team brief.</td></tr>
+          <tr><td class="mono">genesis-message-candidates.md</td><td>Genesis message — candidate drafts.</td></tr>
+          <tr><td class="mono">hatter-voice-and-interludes.md</td><td>The Hatter's voice — from the Admiral's own words.</td></tr>
+          <tr><td class="mono">identity-governance-and-chat-floors.md</td><td>Identity, governance, and the three chat floors.</td></tr>
+          <tr><td class="mono">kha0s-protocol-security-game-…md</td><td>THE KHA0S PROTOCOL — security game + bounty boards.</td></tr>
+          <tr><td class="mono">lightform-studio.md</td><td>Lightform Studio — the web/brand design studio.</td></tr>
+          <tr><td class="mono">mud-home-room-and-bb-pet-…md</td><td>The MUD home room + Bitcoin Buddy in it.</td></tr>
+          <tr><td class="mono">netvar1337-roe-TEMPLATE-…md</td><td>Rules of engagement — Pac's Arcade × NetVar1337 (draft).</td></tr>
+          <tr><td class="mono">onecocreation-web-handoff.md</td><td>onecocreation — web handoff from the Love meeting.</td></tr>
+          <tr><td class="mono">pa-node-tip-endpoint.md</td><td>Plumbing — the node tip endpoint for the DW clock.</td></tr>
+          <tr><td class="mono">pacs-arcade-maze-chase-game.md</td><td>The maze-chase game — original IP, not a clone.</td></tr>
+          <tr><td class="mono">pokemud-aesthetic-bible-…md</td><td>POKEMUD aesthetic bible — "Violet Phosphor."</td></tr>
+          <tr><td class="mono">program-vision-2026-07-08.md</td><td>Program vision capture, 2026-07-08.</td></tr>
+          <tr><td class="mono">round-4-classes-registration-console.md</td><td>Design round 4 — classes, registration, console.</td></tr>
+          <tr><td class="mono">samourai-wallet-reference.md</td><td>Samourai video-channel reference for the wallet phase.</td></tr>
+          <tr><td class="mono">scar-admin-redesign.md</td><td>SCARLET admin redesign — the guiding principle.</td></tr>
+          <tr><td class="mono">scar-status-room.md</td><td>SCAR <code>/a/status</code> — the Status Room briefing.</td></tr>
+          <tr><td class="mono">storefront-merch.md</td><td>Storefront &amp; merch (spark, queued).</td></tr>
+          <tr><td class="mono">template-swatches.md</td><td>Template theme swatches — the RTFM/doc template.</td></tr>
+          <tr><td class="mono">tricolor-pac-recipe-…spec-…md</td><td>Tricolor Pac — the recipe card.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>C:\dev\studies\ — 14 studies &amp; guides</h3>
+    <p>The drafting room: pupil studies, wireframes, review boards — including the source draft of RTFM 009.</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>File</th><th>What it is</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">fleet-home-guide.html</td><td>Bringing the Fleet Home — the sovereign build + crew migration. <strong>The study draft behind <a href="009-bringing-the-fleet-home.html">RTFM 009</a>.</strong></td></tr>
+          <tr><td class="mono">admin-review-index.html</td><td>SCAR/admin pages — review index, Number One → the Admiral.</td></tr>
+          <tr><td class="mono">bft-month-vote.html</td><td>SCARLET decision — name the 13 moons.</td></tr>
+          <tr><td class="mono">clock-study-pupil.html</td><td>THE CLOCK — pupil study (flip-clock + analog).</td></tr>
+          <tr><td class="mono">dw-review-dark.html</td><td>DW Press — editorial review, the BFT clock package.</td></tr>
+          <tr><td class="mono">flagship-format-a-dark-earth.html</td><td>frens.earth flagship — Format A, "The Dark Earth."</td></tr>
+          <tr><td class="mono">flagship-format-b-registration.html</td><td>frens.earth flagship — Format B, "The Registration Ceremony."</td></tr>
+          <tr><td class="mono">genesis-candidates-dark.html</td><td>Genesis message — candidate drafts, dark board.</td></tr>
+          <tr><td class="mono">rtfm-007-briefs-setup.html</td><td>"Your Briefs Folder" — set it up, pull it into SCAR.</td></tr>
+          <tr><td class="mono">scar-lcars-wireframe.html</td><td>SCAR·LET operator console — LCARS wireframe.</td></tr>
+          <tr><td class="mono">scar-redesign-mockup.html</td><td>SCARLET operator console — redesign north star.</td></tr>
+          <tr><td class="mono">scar-redesign-wireframes.html</td><td>SCARLET operator console — clickable wireframe, 6 tabs.</td></tr>
+          <tr><td class="mono">status-board.html</td><td><code>/a/status</code> — the Status Room board.</td></tr>
+          <tr><td class="mono">template-swatches.html</td><td>Template theme swatches — RTFM/doc template.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="call tip"><span class="lab">A numbering collision, noted honestly</span><p><code>studies/rtfm-007-briefs-setup.html</code> wears the number 007, but the ship's 007 is <a href="007-the-captains-signoff.html">The Captain's Sign-Off</a>. The study predates the shelf's numbering and was never boarded. When the studies come aboard (see the consolidation call below), rename it — one fleet, one numbering.</p></div>
+
+    <h3>C:\dev\briefings\ — 37 briefings + a design-refs folder</h3>
+    <p>The research shelf. The crew's memory <strong>points into this folder by name</strong> — <code>post-hooks-library.md</code> and <code>pacs-arcade-school-free-learning.md</code> are both memory-indexed. Lose this folder and two memory entries point at nothing.</p>
+    <div class="cargo">
+      <b>admiral-personality-review</b> · <b>ashigaru-case-brief</b> · <b>bft-almanac-plant-guide</b> · <b>bft-readme-drafts</b> · <b>bft-summary</b> · <b>broadcast-and-relay-research</b> · <b>btc-420-countdown</b> (html) · <b>day-seal-0018-04-15</b> (txt) · <b>day-seal-ceremony</b> · <b>degen-wonderland-delaware</b> · <b>degen-wonderland-lore</b> · <b>entity-structure-research</b> · <b>fourth-wall-merch</b> · <b>historian-persona-proposal</b> · <b>mobile-app-keys-research</b> · <b>newsroom-pipeline</b> · <b>ordinals-runes-training</b> · <b>pacs-arcade-brand-beacons</b> · <b>pacs-arcade-school-free-learning</b> · <b>pacs-arcade-whitepaper</b> · <b>post-hooks-library</b> · <b>presence-and-profile</b> · <b>restructure-bullets-for-counsel</b> · <b>review-badge-standard</b> · <b>rules-and-priorities-review</b> · <b>samourai-law-deepdive</b> · <b>satoshi-unit-design</b> · <b>scar-research-brief</b> (html) · <b>social-calendar-0018</b> · <b>sparks-ledger-0018-04-15</b> · <b>spiral-briefing</b> · <b>standard-time-history-research</b> · <b>task-points-proposal</b> · <b>videogame-history-primer</b> · <b>wallet-product-research</b> · <b>whitepaper-course</b> · <b>x0r-quests-bitcoin-map</b> · + <b>design-refs/</b>
+    </div>
+
+    <div class="call pending">
+      <span class="lab">Consolidation would end this whole section</span>
+      <p>Every red row above is red for one reason: <strong>it lives outside a repo</strong>. The lasting fix isn't a better backup — it's boarding the cargo. Pull <code>design-briefs/</code> and <code>studies/</code> into the ship's repo (or give each its own repo and add it to the clone list in 04), and 81 docs turn green permanently: versioned, hashed, carried by every clone, guarded by the signed queue. The memory is the one deliberate exception — it's per-machine by design (<code>pac-continuity</code> knows this) — which is exactly why it gets its own passage, every time, forever.</p>
+    </div>
+  </section>
+
+  <!-- 07 -->
+  <section id="s7">
+    <div class="head"><span class="num">07</span><h2>Safe passage — book it for the red cargo</h2></div>
+    <p class="lead">Same ceremony as the pre-wipe vault run in <a href="001-the-sovereign-box.html">001</a>: mirror the red cargo to the vault drive, put a second copy on the external Passport, then <em>open files from the copy</em> before trusting it.</p>
+    <div class="term">
+      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;powershell — from the old box, before the wipe</div>
+<pre><span class="c"># 1 · the crew's memory — the mind. First aboard, every time.</span>
+<span class="p">PS&gt;</span> robocopy <span class="s">"$env:USERPROFILE\.claude\projects\C--dev-pacsarcade-frens-earth\memory"</span> `
+        <span class="s">"E:\vault\claude-memory"</span> /MIR /R:2 /W:5 /NP
+
+<span class="c"># 2 · the three loose docks</span>
+<span class="p">PS&gt;</span> robocopy <span class="s">"C:\dev\pacsarcade\design-briefs"</span> <span class="s">"E:\vault\design-briefs"</span> /MIR /R:2 /W:5 /NP
+<span class="p">PS&gt;</span> robocopy <span class="s">"C:\dev\studies"</span>                <span class="s">"E:\vault\studies"</span>       /MIR /R:2 /W:5 /NP
+<span class="p">PS&gt;</span> robocopy <span class="s">"C:\dev\briefings"</span>              <span class="s">"E:\vault\briefings"</span>     /MIR /R:2 /W:5 /NP
+
+<span class="c"># 3 · count the copy against the manifest — numbers, not vibes</span>
+<span class="p">PS&gt;</span> (Get-ChildItem E:\vault\claude-memory  -Filter *.md).Count   <span class="c"># expect 37</span>
+<span class="p">PS&gt;</span> (Get-ChildItem E:\vault\design-briefs  -Filter *.md).Count   <span class="c"># expect 30</span>
+<span class="p">PS&gt;</span> (Get-ChildItem E:\vault\studies        -Filter *.html).Count <span class="c"># expect 14</span>
+<span class="p">PS&gt;</span> (Get-ChildItem E:\vault\briefings).Count                     <span class="c"># expect 38 (37 + design-refs)</span>
+</pre>
+    </div>
+    <div class="term">
+      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;on the new sovereign box — landing the cargo</div>
+<pre><span class="c"># memory goes back to the same relative home under ~/.claude</span>
+<span class="p">$</span> mkdir -p ~/.claude/projects/C--dev-pacsarcade-frens-earth
+<span class="p">$</span> rsync -av /mnt/vault/claude-memory/ \
+      ~/.claude/projects/C--dev-pacsarcade-frens-earth/memory/
+<span class="p">$</span> ls ~/.claude/projects/C--dev-pacsarcade-frens-earth/memory | wc -l  <span class="c"># 37</span>
+</pre>
+    </div>
+    <div class="call check"><span class="lab">The 001 rule applies to docs too</span><p><strong>A backup you haven't restored-from is a rumor.</strong> Open <code>MEMORY.md</code> from the copy. Open three briefs at random. Open the fleet-home guide and see it render. Only then does the red cargo count as boarded.</p></div>
+  </section>
+
+  <!-- 08 -->
+  <section id="s8">
+    <div class="head"><span class="num">08</span><h2>The pre-launch checklist</h2></div>
+    <p class="lead">The Admiral's gangway walk. Every box checked — with counts, not feelings — before the migration is called done. (Ticks save in this browser only; the paper is the ceremony.)</p>
+    <ul class="check" id="prelaunch">
+      <li><input type="checkbox" id="c1"><label for="c1"><strong>The ship's repo is cloned</strong> at the new home and <code>git log</code> shows the latest <code>main</code> — <code>rtfm/</code> and <code>docs/</code> both present.</label></li>
+      <li><input type="checkbox" id="c2"><label for="c2"><strong>The in-flight manuals landed:</strong> 008, 009, and this 010 are merged to <code>main</code> through the signed queue (<a href="007-the-captains-signoff.html">007</a>) — not just written, <em>merged</em>. 005 remains a listed absence.</label></li>
+      <li><input type="checkbox" id="c3"><label for="c3"><strong><code>docs/</code> counts 20</strong> markdown files aboard the new clone.</label></li>
+      <li><input type="checkbox" id="c4"><label for="c4"><strong>The knowledge-engine repo is cloned too</strong> — its <code>docs/</code> counts 19, ARCHITECTURE through VERSE-GUIDE.</label></li>
+      <li><input type="checkbox" id="c5"><label for="c5"><strong>The memory made its passage:</strong> 37 files under the new home's <code>~/.claude/projects/C--dev-pacsarcade-frens-earth/memory/</code>, <code>MEMORY.md</code> opens, and its pointers resolve — including the two that reach into <code>briefings/</code>.</label></li>
+      <li><input type="checkbox" id="c6"><label for="c6"><strong>The loose docks are landed and counted:</strong> design-briefs = 30, studies = 14, briefings = 37 + <code>design-refs/</code>.</label></li>
+      <li><input type="checkbox" id="c7"><label for="c7"><strong>Restore-tested, not just copied:</strong> at least three files opened <em>from the destination</em> in each red location. A backup you haven't restored-from is a rumor.</label></li>
+      <li><input type="checkbox" id="c8"><label for="c8"><strong>The consolidation decision is made</strong> (or deliberately deferred, on the record): board design-briefs + studies into a repo so 81 docs turn green for every future voyage.</label></li>
+      <li><input type="checkbox" id="c9"><label for="c9"><strong>The grand total reconciles:</strong> 166 docs mustered across six locations — or the true count is taken and this manifest is corrected. The manifest serves the cargo, not the other way round.</label></li>
+      <li><input type="checkbox" id="c10"><label for="c10"><strong>The Admiral signs it.</strong> A signed note in SCAR·LET marks the corpus aboard — your key, the block height, on the record (<a href="007-the-captains-signoff.html">007</a>).</label></li>
+    </ul>
+    <div class="call check"><span class="lab">Then, and only then</span><p>Call the migration done. The crew came home (<a href="008-the-muster.html">008</a>), the fleet came home (<a href="009-bringing-the-fleet-home.html">009</a>), and now the <em>library</em> came home — counted, opened, and signed for. Knowledge kept, not erased.</p></div>
+  </section>
+
+  <footer>
+    <b>frens.earth</b> · RTFM 010 · The Ship's Manifest — companion to <a href="001-the-sovereign-box.html">001 · The Sovereign Box</a>, <a href="007-the-captains-signoff.html">007 · The Captain's Sign-Off</a>, <a href="008-the-muster.html">008 · The Muster</a>, and <a href="009-bringing-the-fleet-home.html">009 · Bringing the Fleet Home</a><br>
+    Inventory taken by hand on 14 July 2026 — every folder walked, every file counted; repo status checked with <span class="mono">git rev-parse</span>. Where a doc is absent (005) or unmerged (008 · 009 · 010) the manifest says so instead of inventing it.<br>
+    <span style="opacity:.32">the frens who read to the end find the magic. ↑ ↑ ↓ ↓ … the bosun pipes one word to the whole crew.</span>
+  </footer>
+</div>
+
+<!-- the magic: Konami code (↑↑↓↓←→←→ b a). RTFM rewards the readers. -->
+<div id="rtfm-magic" hidden>
+  <div class="card">
+    <p class="eye">RTFM ▸ you counted every crate</p>
+    <h2>🌱 the magic</h2>
+    <p>You read the whole manifest. Most would have trusted the clone and lost seven-tenths of the library without ever knowing. Not you.</p>
+    <p class="secret">secret word: <b>all-hands</b></p>
+    <p class="foot">Whisper it to the attendant — manifest readers get their tag etched in the next batch. <span class="kbd">Esc</span> to close.</p>
+  </div>
+</div>
+<script>
+  (function () {
+    // the magic
+    var seq = ["arrowup","arrowup","arrowdown","arrowdown","arrowleft","arrowright","arrowleft","arrowright","b","a"];
+    var i = 0, el = document.getElementById("rtfm-magic");
+    if (el) {
+      document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape") { el.hidden = true; return; }
+        var k = e.key.toLowerCase();
+        if (k === seq[i]) { i++; if (i === seq.length) { i = 0; el.hidden = false; } }
+        else { i = (k === seq[0] ? 1 : 0); }
+      });
+      el.addEventListener("click", function (e) { if (e.target === el) el.hidden = true; });
+    }
+    // the gangway walk — ticks persist in this browser only
+    var KEY = "rtfm010-prelaunch";
+    var list = document.getElementById("prelaunch");
+    if (list && window.localStorage) {
+      var saved = {};
+      try { saved = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) {}
+      var boxes = list.querySelectorAll("input[type=checkbox]");
+      boxes.forEach(function (b) {
+        if (saved[b.id]) b.checked = true;
+        b.addEventListener("change", function () {
+          saved[b.id] = b.checked;
+          try { localStorage.setItem(KEY, JSON.stringify(saved)); } catch (e) {}
+        });
+      });
+    }
+  })();
+</script>
+</body>
+</html>
