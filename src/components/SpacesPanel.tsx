@@ -54,11 +54,7 @@ function bftStamp(e: QueuedEntry): string {
 
 function Pill({ ok, children }: { ok: boolean; children: ReactNode }) {
   return (
-    <span
-      className={`inline-block border-2 px-2 py-0.5 font-pixel text-[9px] uppercase ${
-        ok ? "border-neon text-neon glow-neon" : "border-ghost text-ghost"
-      }`}
-    >
+    <span className="pill" data-accent={ok ? "neon" : "ghost"}>
       {children}
     </span>
   );
@@ -137,8 +133,8 @@ export default function SpacesPanel({ space }: { space: string }) {
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-10">
-      <p className="mb-2 font-pixel text-[10px] uppercase tracking-widest text-white/40">
-        OPERATOR CONSOLE ▸ FRENS.EARTH
+      <p className="lcars-eyebrow mb-3" data-accent="cyan">
+        OPERATOR CONSOLE · FRENS.EARTH
       </p>
       <h1 className="mb-3 font-arcade text-4xl text-cyan glow-cyan">SPACES NODE</h1>
       <p className="mb-8 font-mono text-[11px] text-white/50">
@@ -150,11 +146,9 @@ export default function SpacesPanel({ space }: { space: string }) {
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
-            className={`min-h-11 border-2 px-4 py-2 font-pixel text-[10px] uppercase ${
-              tab === t.id
-                ? "border-cyan text-cyan glow-cyan"
-                : "border-edge text-white/50 hover:text-white/80"
-            }`}
+            aria-current={tab === t.id ? "page" : undefined}
+            data-accent="cyan"
+            className={`btn-pill ${tab === t.id ? "btn-pill--solid" : ""}`}
           >
             {t.label}
           </button>
@@ -250,7 +244,7 @@ function NodeTab({
   return (
     <div className="max-w-2xl space-y-6">
       {/* your server — the boxes the admiral asked for */}
-      <div className="border-2 border-edge bg-panel p-4">
+      <div className="console-card p-4" data-accent="cyan">
         <p className="mb-3 font-pixel text-[10px] uppercase tracking-widest text-white/40">
           YOUR SERVER — POINT · SAVE · TEST
         </p>
@@ -262,7 +256,7 @@ function NodeTab({
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             placeholder="http://127.0.0.1:7225"
-            className="mt-1 w-full border-2 border-edge bg-void px-3 py-2 font-mono text-xs text-cyan placeholder:text-white/25 focus:border-cyan focus:outline-none"
+            className="mt-1 w-full rounded-lg border-2 border-edge bg-void px-3 py-2 font-mono text-xs text-cyan placeholder:text-white/25 focus:border-cyan focus:outline-none"
           />
         </label>
         <label className="mt-3 block">
@@ -274,18 +268,19 @@ function NodeTab({
             onChange={(e) => setToken(e.target.value)}
             type="password"
             placeholder={config?.spacesTokenSet ? "••••••••" : "leave empty for a local node"}
-            className="mt-1 w-full border-2 border-edge bg-void px-3 py-2 font-mono text-xs text-white/80 placeholder:text-white/25 focus:border-cyan focus:outline-none"
+            className="mt-1 w-full rounded-lg border-2 border-edge bg-void px-3 py-2 font-mono text-xs text-white/80 placeholder:text-white/25 focus:border-cyan focus:outline-none"
           />
         </label>
         <div className="mt-4 flex flex-wrap items-center gap-2">
-          <button onClick={save} disabled={saving} className="button disabled:opacity-50">
+          <button
+            onClick={save}
+            disabled={saving}
+            data-accent="cyan"
+            className="btn-pill btn-pill--solid"
+          >
             {saving ? "SAVING…" : saved ? "✓ SAVED" : "▶ SAVE & TEST"}
           </button>
-          <button
-            onClick={onTest}
-            disabled={busy}
-            className="min-h-11 border-2 border-cyan px-4 font-pixel text-[9px] uppercase text-cyan hover:glow-cyan disabled:opacity-50"
-          >
+          <button onClick={onTest} disabled={busy} data-accent="cyan" className="btn-pill">
             {busy ? "TESTING…" : "TEST CONNECTION"}
           </button>
         </div>
@@ -293,8 +288,8 @@ function NodeTab({
       </div>
 
       {/* the link, validated */}
-      <div className="border-2 border-edge bg-panel">
-        <div className="border-b-2 border-edge px-4 py-2">
+      <div className="console-card overflow-hidden" data-accent="cyan">
+        <div className="border-b border-edge px-4 py-2.5">
           <p className="font-pixel text-[10px] uppercase tracking-widest text-white/40">NODE LINK</p>
         </div>
         <div className="space-y-3 p-4 font-mono text-xs">
@@ -425,9 +420,10 @@ function AnchorTab({
           <button
             onClick={onReload}
             disabled={busy}
-            className="border-2 border-edge px-3 py-1 font-pixel text-[9px] uppercase text-white/60 hover:text-white/90 disabled:opacity-50"
+            data-accent="cyan"
+            className="btn-pill btn-pill--muted"
           >
-            {busy ? "…" : "RELOAD"}
+            {busy ? "…" : "⟳ RELOAD"}
           </button>
         </div>
         {!queue || queue.length === 0 ? (
@@ -435,7 +431,7 @@ function AnchorTab({
             {busy ? "Reading the queue…" : "No tags queued right now."}
           </p>
         ) : (
-          <div className="border-2 border-edge">
+          <div className="console-card overflow-hidden" data-accent="cyan">
             {queue.map((e) => (
               <div
                 key={e.handle}
@@ -449,11 +445,8 @@ function AnchorTab({
                 <button
                   onClick={() => release(e.handle)}
                   title="release this name back to the pool (queued only)"
-                  className={`min-h-9 border-2 px-2 font-pixel text-[9px] uppercase ${
-                    confirming === e.handle
-                      ? "border-ghost text-ghost"
-                      : "border-edge text-white/40 hover:border-ghost hover:text-ghost"
-                  }`}
+                  data-accent="ghost"
+                  className={`btn-pill ${confirming === e.handle ? "" : "btn-pill--muted"}`}
                 >
                   {confirming === e.handle ? "SURE? 🗑" : "🗑"}
                 </button>
@@ -463,7 +456,7 @@ function AnchorTab({
         )}
       </div>
 
-      <div className="border-l-4 border-pink bg-pink/5 p-4">
+      <div className="rounded-r-xl border-l-4 border-pink bg-pink/5 p-4">
         <p className="font-body text-sm text-white/80">
           <span className="font-pixel text-[10px] text-pink">CEREMONY STEP · </span>
           Run <span className="font-mono text-cyan">subs</span> against the queue above, sign +
@@ -480,7 +473,7 @@ function AnchorTab({
           <input
             value={batchId}
             onChange={(e) => setBatchId(e.target.value)}
-            className="mt-1 w-full border-2 border-edge bg-void px-3 py-2 font-mono text-xs text-cyan focus:border-cyan focus:outline-none"
+            className="mt-1 w-full rounded-lg border-2 border-edge bg-void px-3 py-2 font-mono text-xs text-cyan focus:border-cyan focus:outline-none"
           />
         </label>
         <label className="block">
@@ -492,25 +485,27 @@ function AnchorTab({
             onChange={(e) => setProofsText(e.target.value)}
             rows={5}
             placeholder='[{ "handle": "alice", "proof": "…" }]'
-            className="mt-1 w-full border-2 border-edge bg-void px-3 py-2 font-mono text-xs text-white/80 placeholder:text-white/25 focus:border-cyan focus:outline-none"
+            className="mt-1 w-full rounded-lg border-2 border-edge bg-void px-3 py-2 font-mono text-xs text-white/80 placeholder:text-white/25 focus:border-cyan focus:outline-none"
           />
         </label>
         <button
           onClick={commit}
           disabled={committing}
-          className="button block w-full text-center disabled:opacity-50"
+          data-accent="cyan"
+          className="btn-pill btn-pill--solid flex w-full"
         >
           {committing ? "RECORDING…" : "▶ RECORD BATCH COMMIT"}
         </button>
         {err && <p className="font-pixel text-[10px] uppercase text-ghost">{err}</p>}
         {result && (
-          <div className="border-2 border-neon/50 bg-neon/5 p-4 font-mono text-xs">
+          <div className="rounded-xl border-2 border-neon/50 bg-neon/5 p-4 font-mono text-xs">
             <p className="text-neon glow-neon">✓ {result.committed.length} ETCHED</p>
             {result.committed.length > 0 && (
               <p className="mt-1 text-white/60">{result.committed.join(", ")}</p>
             )}
             {result.skipped.length > 0 && (
-              <p className="mt-2 text-coin">
+              /* ghost, not coin — a skip is a warning; gold stays money-only */
+              <p className="mt-2 text-ghost">
                 SKIPPED: {result.skipped.map((s) => `${s.handle} (${s.reason})`).join(", ")}
               </p>
             )}
@@ -576,7 +571,7 @@ function CeremonyTab({
         <select
           value={certTemplate}
           onChange={(e) => setCertTemplate(e.target.value)}
-          className="mt-1 w-full border-2 border-edge bg-void px-3 py-2 font-mono text-xs text-cyan focus:border-cyan focus:outline-none"
+          className="mt-1 w-full rounded-lg border-2 border-edge bg-void px-3 py-2 font-mono text-xs text-cyan focus:border-cyan focus:outline-none"
         >
           <option value="bft-auto">BFT AUTO — the block picks the case (house default)</option>
           <option value="keepsake">KEEPSAKE — naming-ceremony inscription card</option>
@@ -592,13 +587,14 @@ function CeremonyTab({
           onChange={(e) => setWelcomeMessage(e.target.value)}
           rows={6}
           placeholder="Welcome home, fren — your name is on the block now…"
-          className="mt-1 w-full border-2 border-edge bg-void px-3 py-2 font-body text-sm text-white/80 placeholder:text-white/25 focus:border-cyan focus:outline-none"
+          className="mt-1 w-full rounded-lg border-2 border-edge bg-void px-3 py-2 font-body text-sm text-white/80 placeholder:text-white/25 focus:border-cyan focus:outline-none"
         />
       </label>
       <button
         onClick={save}
         disabled={saving}
-        className="button block w-full text-center disabled:opacity-50"
+        data-accent="cyan"
+        className="btn-pill btn-pill--solid flex w-full"
       >
         {saving ? "SAVING…" : saved ? "✓ SAVED — RIDES THE NEXT CEREMONY" : "SAVE CEREMONY"}
       </button>

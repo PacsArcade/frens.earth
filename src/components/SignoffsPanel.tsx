@@ -37,6 +37,9 @@ interface Signoff {
   detail: string[];
   changes: SignoffChange[];
   rec: string;
+  /** the GitHub page for what's being signed — the captain reads before the key touches it */
+  reviewUrl: string;
+  reviewHint?: string;
   gesture: string;
   status: "open" | "signed";
   comment?: string;
@@ -192,6 +195,25 @@ export default function SignoffsPanel() {
               ))}
             </ul>
 
+            {/* the review door — RTFM 007 rule 3: read the diff BEFORE the key
+                touches it. Every ticket carries its GitHub page; new tab, the
+                console never loses your place. */}
+            <div className="mt-4">
+              <a
+                href={current.reviewUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                data-accent="cyan"
+                className="btn-pill"
+              >
+                ⌕ REVIEW ON GITHUB
+              </a>
+              <p className="mt-1.5 font-mono text-[10px] leading-relaxed text-white/40">
+                {current.reviewHint ?? "opens what you're signing, in a new tab"} — read it before
+                your key touches it.
+              </p>
+            </div>
+
             <div
               className="mt-4 rounded-lg border-l-2 py-1 pl-3"
               style={{ borderColor: "var(--acc)" }}
@@ -248,21 +270,25 @@ export default function SignoffsPanel() {
     : null;
 
   function card(t: Signoff) {
+    /* the card is a DIV so the REVIEW ON GITHUB anchor can ride it — the select
+       gesture and the review door are separate controls (no nested buttons) */
     return (
-      <button
+      <div
         key={t.id}
-        onClick={() => {
-          setSelected(t.id);
-          setErr(null);
-          setOk(null);
-        }}
         data-accent={t.tone}
         className={`console-card console-card--hover flex w-full items-stretch gap-3 overflow-hidden text-left ${
           selected === t.id ? "console-card--active" : ""
         }`}
       >
         <span aria-hidden className="w-1.5 shrink-0" style={{ background: "var(--acc)" }} />
-        <span className="min-w-0 flex-1 p-4">
+        <button
+          onClick={() => {
+            setSelected(t.id);
+            setErr(null);
+            setOk(null);
+          }}
+          className="min-w-0 flex-1 cursor-pointer p-4 text-left"
+        >
           <span className="flex flex-wrap items-center gap-2">
             <span className="font-mono text-[10px] uppercase text-white/30">{t.id}</span>
             {chips(t)}
@@ -274,8 +300,21 @@ export default function SignoffsPanel() {
             {t.title}
           </span>
           <span className="mt-1 block font-body text-sm text-white/55">{t.sum}</span>
+        </button>
+        {/* the review door rides EVERY ticket — read the diff before you sign */}
+        <span className="flex flex-none items-center py-4 pr-4">
+          <a
+            href={t.reviewUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            data-accent="cyan"
+            title={t.reviewHint ?? "opens what you're signing, in a new tab"}
+            className="btn-pill"
+          >
+            ⌕ REVIEW ON GITHUB
+          </a>
         </span>
-      </button>
+      </div>
     );
   }
 
@@ -286,8 +325,8 @@ export default function SignoffsPanel() {
       </p>
       <p className="mb-6 font-body text-sm text-white/55">
         Approvals raised across the fleet, signed from this one desk. Select a ticket to read what
-        you&apos;re signing off — the reader opens on the right with the comment box and the
-        ticket&apos;s own gesture.
+        you&apos;re signing off — the reader opens on the right with the change list, its REVIEW ON
+        GITHUB door, the comment box and the ticket&apos;s own gesture. Read before you sign.
       </p>
 
       {err && <p className="mb-4 font-pixel text-[10px] uppercase text-ghost">{err}</p>}

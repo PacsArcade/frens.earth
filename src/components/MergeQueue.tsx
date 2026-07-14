@@ -143,6 +143,9 @@ export default function MergeQueue({ mode }: { mode?: "approvals" | "testing" })
   const [note, setNote] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
+  /* the repo slug — builds REVIEW ON GITHUB doors for merged cards (their
+     records carry only the PR number, not the PR url) */
+  const [repo, setRepo] = useState<string | null>(null);
   const [changes, setChanges] = useState<Record<number, PrFile[] | "loading">>({});
   const [drafts, setDrafts] = useState<Record<number, string>>({});
   const [noteBusy, setNoteBusy] = useState<number | null>(null);
@@ -173,6 +176,7 @@ export default function MergeQueue({ mode }: { mode?: "approvals" | "testing" })
       setCanExecute(data.canExecute);
       setSetup(data.setup ?? null);
       setExpiresAt(data.tokenExpiresAt ?? null);
+      if (typeof data.repo === "string" && data.repo) setRepo(data.repo);
       if (typeof data.builtAt === "string") setServerBuiltAt(data.builtAt);
     } catch {
       setErr("couldn't reach the app — try again");
@@ -666,6 +670,19 @@ export default function MergeQueue({ mode }: { mode?: "approvals" | "testing" })
             <button onClick={() => toggleNote(x.pr)} className="btn-pill" data-accent="pink">
               ✎ NOTE
             </button>
+            {/* ② SHIP is a signature too — the review door rides this card */}
+            {repo && (
+              <a
+                href={`https://github.com/${repo}/pull/${x.pr}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="open this PR on GitHub and read what ships before you sign"
+                data-accent="cyan"
+                className="btn-pill"
+              >
+                ⌕ REVIEW ON GITHUB
+              </a>
+            )}
             <span className="btn-pill btn-pill--muted" data-accent="neon" aria-disabled>
               ① ✓ MERGED
             </span>
@@ -708,6 +725,18 @@ export default function MergeQueue({ mode }: { mode?: "approvals" | "testing" })
             <button onClick={() => toggleNote(x.pr)} className="btn-pill" data-accent="pink">
               ✎ FEEDBACK
             </button>
+            {repo && (
+              <a
+                href={`https://github.com/${repo}/pull/${x.pr}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="the change on GitHub — what this deploy actually shipped"
+                data-accent="cyan"
+                className="btn-pill"
+              >
+                ⌕ REVIEW ON GITHUB
+              </a>
+            )}
             <a href={`/support?pr=${x.pr}`} className="btn-pill" data-accent="ghost">
               🐛 SUBMIT A BUG
             </a>
@@ -794,13 +823,17 @@ export default function MergeQueue({ mode }: { mode?: "approvals" | "testing" })
                     >
                       {pr.number in drafts ? "▾" : "✎"} NOTE
                     </button>
+                    {/* the review door — never muted: reading the diff on
+                        GitHub is step zero of the signature (RTFM 007 rule 3) */}
                     <a
                       href={pr.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="btn-pill btn-pill--muted"
+                      title="open this PR on GitHub and read the diff before you sign"
+                      data-accent="cyan"
+                      className="btn-pill"
                     >
-                      GITHUB ▸
+                      ⌕ REVIEW ON GITHUB
                     </a>
                     <button
                       onClick={() => authorize(pr)}

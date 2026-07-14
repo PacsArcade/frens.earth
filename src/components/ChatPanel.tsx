@@ -35,11 +35,7 @@ const SOURCE_LABEL: Record<ChatStatus["source"], string> = {
 
 function Pill({ ok, children }: { ok: boolean; children: ReactNode }) {
   return (
-    <span
-      className={`inline-block border-2 px-2 py-0.5 font-pixel text-[9px] uppercase ${
-        ok ? "border-neon text-neon glow-neon" : "border-ghost text-ghost"
-      }`}
-    >
+    <span className="pill" data-accent={ok ? "neon" : "ghost"}>
       {children}
     </span>
   );
@@ -135,8 +131,8 @@ export default function ChatPanel() {
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-10">
-      <p className="mb-2 font-pixel text-[10px] uppercase tracking-widest text-white/40">
-        OPERATOR CONSOLE ▸ FRENS.EARTH
+      <p className="lcars-eyebrow mb-3" data-accent="cyan">
+        OPERATOR CONSOLE · FRENS.EARTH
       </p>
       <h1 className="mb-3 font-arcade text-4xl text-cyan glow-cyan">CHAT FLOOR</h1>
       <p className="mb-8 font-mono text-[11px] text-white/50">
@@ -148,7 +144,7 @@ export default function ChatPanel() {
       <div className="max-w-2xl space-y-6">
         {/* honest state — a fresh deployment hasn't linked its own floor yet */}
         {status && !linked && (
-          <div className="border-2 border-cyan/60 bg-cyan/5 p-4 font-body text-sm text-white/80">
+          <div className="rounded-xl border-2 border-cyan/60 bg-cyan/5 p-4 font-body text-sm text-white/80">
             <p className="mb-2 font-pixel text-[10px] uppercase text-cyan">
               CHAT NODE NOT LINKED YET — POINT IT BELOW
             </p>
@@ -162,7 +158,7 @@ export default function ChatPanel() {
         )}
 
         {/* your floor — the boxes: point, save, test */}
-        <div className="border-2 border-edge bg-panel p-4">
+        <div className="console-card p-4" data-accent="cyan">
           <p className="mb-3 font-pixel text-[10px] uppercase tracking-widest text-white/40">
             YOUR FLOOR — POINT · SAVE · TEST
           </p>
@@ -174,18 +170,19 @@ export default function ChatPanel() {
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               placeholder="https://chat.frens.earth"
-              className="mt-1 w-full border-2 border-edge bg-void px-3 py-2 font-mono text-xs text-cyan placeholder:text-white/25 focus:border-cyan focus:outline-none"
+              className="mt-1 w-full rounded-lg border-2 border-edge bg-void px-3 py-2 font-mono text-xs text-cyan placeholder:text-white/25 focus:border-cyan focus:outline-none"
             />
           </label>
           <div className="mt-4 flex flex-wrap items-center gap-2">
-            <button onClick={save} disabled={saving} className="button disabled:opacity-50">
+            <button
+              onClick={save}
+              disabled={saving}
+              data-accent="cyan"
+              className="btn-pill btn-pill--solid"
+            >
               {saving ? "SAVING…" : saved ? "✓ SAVED" : "▶ SAVE & TEST"}
             </button>
-            <button
-              onClick={loadStatus}
-              disabled={busy}
-              className="min-h-11 border-2 border-cyan px-4 font-pixel text-[9px] uppercase text-cyan hover:glow-cyan disabled:opacity-50"
-            >
+            <button onClick={loadStatus} disabled={busy} data-accent="cyan" className="btn-pill">
               {busy ? "TESTING…" : "TEST CONNECTION"}
             </button>
           </div>
@@ -196,8 +193,8 @@ export default function ChatPanel() {
         </div>
 
         {/* the link, validated */}
-        <div className="border-2 border-edge bg-panel">
-          <div className="border-b-2 border-edge px-4 py-2">
+        <div className="console-card overflow-hidden" data-accent="cyan">
+          <div className="border-b border-edge px-4 py-2.5">
             <p className="font-pixel text-[10px] uppercase tracking-widest text-white/40">
               FLOOR LINK
             </p>
@@ -238,7 +235,13 @@ export default function ChatPanel() {
             frens bounce on to the node above, anonymous visitors meet /login.
             Never the raw node URL. A new tab; links off the console never
             steal your place. */}
-        <a href="/chat" target="_blank" rel="noopener noreferrer" className="button block w-full text-center">
+        <a
+          href="/chat"
+          target="_blank"
+          rel="noopener noreferrer"
+          data-accent="cyan"
+          className="btn-pill btn-pill--solid flex w-full"
+        >
           OPEN THE CHAT ▸
         </a>
         <p className="text-center font-pixel text-[9px] uppercase text-white/40">

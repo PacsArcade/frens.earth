@@ -95,7 +95,7 @@ export default async function AdminConnectionsPage() {
           here (stored write-only). A merge is never live until a ship. */}
       <section id="deploy" className="scroll-mt-20 border-t-2 border-edge/60">
         <div className="mx-auto max-w-3xl px-6 pt-10">
-          <p className="mb-2 font-pixel text-[10px] uppercase tracking-widest text-white/40">
+          <p className="lcars-eyebrow mb-3" data-accent="neon">
             OPERATOR CONSOLE · {CONSOLE_SITE.domain.toUpperCase()}
           </p>
           <h2 className="mb-3 font-arcade text-4xl text-cyan glow-cyan">SHIP</h2>
@@ -108,7 +108,7 @@ export default async function AdminConnectionsPage() {
 
       <section id="torrents" className="scroll-mt-20 border-t-2 border-edge/60">
         <div className="mx-auto max-w-5xl px-6 py-10">
-          <p className="mb-2 font-pixel text-[10px] uppercase tracking-widest text-white/40">
+          <p className="lcars-eyebrow mb-3" data-accent="cyan">
             OPERATOR CONSOLE · {CONSOLE_SITE.domain.toUpperCase()}
           </p>
           <h2 className="mb-3 font-arcade text-4xl text-cyan glow-cyan">TORRENTS</h2>

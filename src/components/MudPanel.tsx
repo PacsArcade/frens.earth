@@ -20,11 +20,7 @@ interface MudStatus {
 
 function Pill({ ok, children }: { ok: boolean; children: ReactNode }) {
   return (
-    <span
-      className={`inline-block border-2 px-2 py-0.5 font-pixel text-[9px] uppercase ${
-        ok ? "border-neon text-neon glow-neon" : "border-ghost text-ghost"
-      }`}
-    >
+    <span className="pill" data-accent={ok ? "neon" : "ghost"}>
       {children}
     </span>
   );
@@ -74,8 +70,8 @@ export default function MudPanel() {
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-10">
-      <p className="mb-2 font-pixel text-[10px] uppercase tracking-widest text-white/40">
-        OPERATOR CONSOLE ▸ FRENS.EARTH
+      <p className="lcars-eyebrow mb-3" data-accent="cyan">
+        OPERATOR CONSOLE · FRENS.EARTH
       </p>
       <h1 className="mb-3 font-arcade text-4xl text-cyan glow-cyan">MUD NODE</h1>
       <p className="mb-8 font-mono text-[11px] text-white/50">
@@ -85,14 +81,10 @@ export default function MudPanel() {
       {error && <p className="mb-4 font-pixel text-[10px] uppercase text-ghost">{error}</p>}
 
       <div className="max-w-2xl space-y-6">
-        <div className="border-2 border-edge bg-panel">
-          <div className="flex items-center justify-between border-b-2 border-edge px-4 py-2">
+        <div className="console-card overflow-hidden" data-accent="cyan">
+          <div className="flex items-center justify-between gap-3 border-b border-edge px-4 py-2.5">
             <p className="font-pixel text-[10px] uppercase tracking-widest text-white/40">NODE LINK</p>
-            <button
-              onClick={load}
-              disabled={busy}
-              className="border-2 border-cyan px-3 py-1 font-pixel text-[9px] uppercase text-cyan hover:glow-cyan disabled:opacity-50"
-            >
+            <button onClick={load} disabled={busy} data-accent="cyan" className="btn-pill">
               {busy ? "TESTING…" : "TEST CONNECTION"}
             </button>
           </div>
@@ -126,9 +118,10 @@ export default function MudPanel() {
           </div>
         </div>
 
+        {/* cyan, not coin — a connect prompt is INFO; gold stays money-only */}
         {!configured && (
-          <div className="border-2 border-coin/60 bg-coin/5 p-4 font-body text-sm text-white/80">
-            <p className="mb-2 font-pixel text-[10px] uppercase text-coin">CONNECT YOUR MUD</p>
+          <div className="rounded-xl border-2 border-cyan/60 bg-cyan/5 p-4 font-body text-sm text-white/80">
+            <p className="mb-2 font-pixel text-[10px] uppercase text-cyan">CONNECT YOUR MUD</p>
             <p className="mb-3">
               The MUD engine runs as its own node (knowledge-engine, admin on{" "}
               <span className="font-mono text-cyan">:4001</span>). Run it, then set{" "}

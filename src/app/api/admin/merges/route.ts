@@ -1,4 +1,5 @@
 import { operatorFromCookieHeader } from "@/lib/operator-auth";
+import { effectiveGithub } from "@/lib/nodeconfig";
 import {
   listOpenPrs,
   listPrFiles,
@@ -42,6 +43,9 @@ export async function GET(request: Request) {
   }
   const auths = await listAuthorizations();
   const canExecute = await mergeExecutionEnabled();
+  /* the repo slug (never the token) — the client builds REVIEW ON GITHUB doors
+     for merged cards, whose records carry only the PR number */
+  const { repo } = await effectiveGithub();
   /* the SERVER's build stamp, read per-request — after a ship swaps the Vercel
      deployment, new requests answer from the fresh build with a newer stamp, so
      the client can flip a merged card MERGED → LIVE by polling (the baked
@@ -49,7 +53,7 @@ export async function GET(request: Request) {
   const builtAt = process.env.NEXT_PUBLIC_BUILD_AT ?? "";
   try {
     const prs = await listOpenPrs();
-    return Response.json({ ok: true, canExecute, prs, auths, builtAt, tokenExpiresAt: tokenExpiration() });
+    return Response.json({ ok: true, canExecute, prs, auths, builtAt, repo, tokenExpiresAt: tokenExpiration() });
   } catch (err) {
     /* Private repo without a token (404), rate limit, or GitHub down — the
        lane still opens with the connect box + the audit log intact. */
@@ -59,6 +63,7 @@ export async function GET(request: Request) {
       prs: [],
       auths,
       builtAt,
+      repo,
       setup: canExecute
         ? `couldn't reach GitHub (${err instanceof Error ? err.message : "error"}) — try again`
         : "connect-github",

@@ -50,6 +50,12 @@ export interface Signoff {
   changes: SignoffChange[];
   /** Number One's read */
   rec: string;
+  /** where to READ what you're signing — the GitHub page for the change.
+      REQUIRED on purpose (RTFM 007 rule 3: the captain reads the diff before
+      the key touches it) — a ticket can't reach the board without one. */
+  reviewUrl: string;
+  /** plain words for what the link opens (repo · file) */
+  reviewHint?: string;
   /** the gesture button's label — what signing actually does */
   gesture: string;
   status: SignoffStatus;
@@ -87,6 +93,8 @@ export const SEED_SIGNOFFS: Signoff[] = [
       { kind: "note", text: "Sign-off also commits the ticket-raiser script that opened this." },
     ],
     rec: "HIGH — approve the rotation plan. Announce the one-time sign-out, rotate + set per-project, redeploy, then revoke the shared keys. Do not defer.",
+    reviewUrl: "https://github.com/PacsArcade/frens.earth",
+    reviewHint: "PacsArcade/frens.earth — the seeded deployment; the ticket-raiser script commits here with this sign-off",
     gesture: "Acknowledge & schedule rotation",
     status: "open",
   },
@@ -107,6 +115,8 @@ export const SEED_SIGNOFFS: Signoff[] = [
       { kind: "note", text: "Repo PacsArcade/pacBOT (public) · 1 line." },
     ],
     rec: "Clean one-liner, matches the sovereign-truth rule. Sign off to commit & push it public.",
+    reviewUrl: "https://github.com/PacsArcade/pacBOT",
+    reviewHint: "PacsArcade/pacBOT (public) · SKILL.md — guardrail #6, the one line changing",
     gesture: "Sign off → commit & push",
     status: "open",
   },
@@ -128,6 +138,9 @@ export const SEED_SIGNOFFS: Signoff[] = [
       { kind: "note", text: "Doc-only · repo pacsarcade/knowledge-engine." },
     ],
     rec: "Consistent with the pacBOT public fix and the sovereign-truth rule. Sign off to commit.",
+    reviewUrl: "https://github.com/pacsarcade/knowledge-engine",
+    reviewHint:
+      "pacsarcade/knowledge-engine · .claude/skills/pacbot/SKILL.md + .claude/skills/hallucination-guardrail/SKILL.md",
     gesture: "Sign off → commit",
     status: "open",
   },
@@ -149,6 +162,8 @@ export const SEED_SIGNOFFS: Signoff[] = [
       { kind: "note", text: "Visual only, no logic · services/mud/server.py (~29 lines)." },
     ],
     rec: "On-brand flair, no logic touched. Sign off to commit.",
+    reviewUrl: "https://github.com/pacsarcade/knowledge-engine",
+    reviewHint: "pacsarcade/knowledge-engine · services/mud/server.py (~29 lines, visual only)",
     gesture: "Sign off → commit",
     status: "open",
   },
