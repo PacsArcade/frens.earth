@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RTFM 011 — The Install</title>
+<style>
+  :root{--bg:#0d1210;--panel:#151d18;--edge:#2f4033;--ink:#e8f2ea;--dim:#9fb3a6;
+    --sprout:#5ef78a;--teal:#53e0d4;--heart:#b795ff;--gold:#f7c948;--ghost:#ff6b6b}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:16px/1.55 ui-monospace,"Cascadia Code","JetBrains Mono",monospace;
+    padding:1.6rem 1rem 5rem;-webkit-text-size-adjust:100%}
+  .wrap{max-width:760px;margin:0 auto}
+  .eyebrow{color:var(--heart);letter-spacing:.2em;font-size:.7rem;text-transform:uppercase}
+  h1{font-size:1.7rem;margin:.3rem 0 .3rem}
+  .sub{color:var(--dim);margin:0 0 1.4rem;font-size:.9rem}
+  h2{font-size:1.05rem;margin:2rem 0 .5rem;color:var(--sprout);border-top:1px solid var(--edge);padding-top:1.2rem}
+  h2 .p{color:var(--teal);font-size:.8rem;letter-spacing:.1em}
+  p{margin:.5rem 0}
+  ol{padding-left:1.3rem} li{margin:.35rem 0}
+  code{background:#0a0f0d;color:var(--gold);padding:.05rem .3rem;border-radius:4px;font-size:.9em;word-break:break-word}
+  pre{background:#0a0f0d;border:1px solid var(--edge);border-radius:8px;padding:.7rem .8rem;overflow-x:auto;margin:.5rem 0}
+  pre code{background:none;color:var(--sprout);padding:0}
+  .danger{border-left:3px solid var(--ghost);background:rgba(255,107,107,.07);padding:.6rem .8rem;border-radius:0 8px 8px 0;margin:.7rem 0;color:#ffd7d7}
+  .danger b{color:var(--ghost)}
+  .tip{border-left:3px solid var(--teal);background:rgba(83,224,212,.06);padding:.6rem .8rem;border-radius:0 8px 8px 0;margin:.7rem 0}
+  .win{color:var(--heart)} .arch{color:var(--sprout)}
+  .foot{color:var(--dim);font-size:.8rem;margin-top:2.4rem;border-top:1px solid var(--edge);padding-top:1rem}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">RTFM · 011 · INSTALL</div>
+  <h1>The Install</h1>
+  <p class="sub">Keys → back up → wipe → Arch → openclaw → restore. Do the phases in order. <span class="win">■ = on Windows now</span> · <span class="arch">■ = on the new Arch machine</span>. When a name/size is unique to your box, I say so — read your own screen.</p>
+
+  <div class="danger"><b>⚠ TWO steps can erase a disk: Clonezilla (Phase 2) and archinstall (Phase 4).</b> Both ask you to pick a disk. Your machine has TWO ~4 TB drives: the <b>NVMe</b> (has Windows — this becomes Arch) and the <b>backup drive</b> (empty-ish — holds the copy). Identify them by <b>size, model, and which one has your data</b> every single time. When unsure, stop.</div>
+
+  <h2><span class="p">PHASE 0</span> · <span class="win">Windows</span> — make two USB sticks</h2>
+  <ol>
+    <li>Get two USB sticks (8 GB+). Download on Windows: <b>Rufus</b> (rufus.ie), the <b>Arch ISO</b> (archlinux.org/download — the .iso), the <b>Clonezilla ISO</b> (clonezilla.org — "alternative stable", amd64 iso).</li>
+    <li>Rufus → select USB #1 → pick the <b>Clonezilla</b> iso → START (accept "DD Image" if asked).</li>
+    <li>Rufus → select USB #2 → pick the <b>Arch</b> iso → START → choose <b>"Write in DD Image mode"</b>.</li>
+  </ol>
+
+  <h2><span class="p">PHASE 1</span> · <span class="win">Windows</span> — plain-file backup (the easy-restore copy)</h2>
+  <p>A Clonezilla image is a sealed full-disk snapshot — hard to pull single files from. So <b>also</b> copy the folders that don't travel with git as normal files. Plug in the 4 TB backup drive (assume it's <code>E:</code> — check in File Explorer). Open <b>PowerShell</b>:</p>
+  <pre><code>robocopy C:\dev E:\backup\dev /E /R:1 /W:1
+robocopy C:\Users\pacman\.claude E:\backup\claude /E /R:1 /W:1</code></pre>
+  <div class="danger"><b>This is the soul of the ship.</b> <code>C:\Users\pacman\.claude</code> is the crew's memory — it is NOT in any repo. If it's not on the backup drive, it's gone forever after Phase 3. Open <code>E:\backup\claude</code> and confirm files are really there before moving on.</div>
+  <p>Copy anything else you care about the same way (e.g. <code>C:\dev\studies</code> is already inside <code>C:\dev</code>, so it's covered).</p>
+
+  <h2><span class="p">PHASE 2</span> · Clonezilla — full-disk safety net</h2>
+  <ol>
+    <li>Leave the backup drive plugged in. Restart. At the maker's logo, tap the <b>boot-menu key</b> (shown on-screen — usually <code>F8</code>, <code>F11</code>, or <code>F12</code>). Pick the Clonezilla USB.</li>
+    <li>Choose <b>Clonezilla live (default)</b> → language → keep keymap → <b>Start Clonezilla</b>.</li>
+    <li><code>device-image</code> → <code>local_dev</code> → press Enter to let it scan → pick the <b>backup drive</b> as where the image is <b>saved</b> (by size/label) → <code>/</code> (top dir).</li>
+    <li><code>savedisk</code> → name it e.g. <code>windows-2026</code> → <b>select the source disk = the NVMe that has Windows</b> (by size + model).</li>
+    <li>Accept defaults (check source, no encryption) → <code>y</code> → <code>y</code>. Let it run (can take a while). At the end: <code>poweroff</code>.</li>
+  </ol>
+  <div class="tip">✅ Now you have BOTH: a browsable file copy (Phase 1) and a full-disk image (Phase 2) on the backup drive. Windows is safe. You can restore the whole thing later if you ever want to.</div>
+
+  <h2><span class="p">PHASE 3</span> · Boot the Arch installer + get online</h2>
+  <ol>
+    <li>Boot-menu key again → pick the <b>Arch</b> USB → "Arch Linux install medium". You land at a black <code>root@archiso ~#</code> prompt.</li>
+    <li><b>WiFi:</b><pre><code>iwctl
+device list</code></pre>
+      If you see a device like <code>wlan0</code>, continue:<pre><code>station wlan0 scan
+station wlan0 get-networks
+station wlan0 connect "YOUR_WIFI_NAME"
+# type your wifi password when asked
+exit
+ping -c3 archlinux.org</code></pre>
+      Replies = you're online.</li>
+    <li><div class="danger"><b>If <code>device list</code> is EMPTY</b>, your WiFi card's driver isn't in the installer (common on brand-new cards). Don't fight it — <b>plug an Ethernet cable</b> from your router into the board. It connects automatically. Test: <code>ping -c3 archlinux.org</code>. (You'll set WiFi up properly after install, in Phase 5.)</div></li>
+  </ol>
+
+  <h2><span class="p">PHASE 4</span> · Install Arch — the guided way</h2>
+  <p>Type:</p><pre><code>archinstall</code></pre>
+  <p>A menu opens (arrow keys, Enter to open, Esc/Tab to go back). Set these:</p>
+  <ol>
+    <li><b>Mirror region</b> → your country.</li>
+    <li><b>Disk configuration</b> → "Partitioning" → <b>Use a best-effort default partition layout</b> → <b>pick the NVMe by size</b> → filesystem <code>ext4</code> → confirm it will <b>wipe that disk</b>. <span class="win"></span><b class="win">← this erases the NVMe. Confirm it's the Windows NVMe, not the backup drive.</b></li>
+    <li><b>Bootloader</b> → <code>systemd-boot</code>.</li>
+    <li><b>Hostname</b> → e.g. <code>frenship</code>.</li>
+    <li><b>Root password</b> → set one you'll remember.</li>
+    <li><b>User account</b> → Add a user (e.g. <code>pac</code>), give it a password, answer <b>yes</b> to "superuser (sudo)".</li>
+    <li><b>Profile</b> → <code>Desktop</code> → <code>KDE Plasma</code> (friendly, looks like Windows). [Choose <code>Minimal</code> only if you want no GUI.]</li>
+    <li><b>Audio</b> → <code>pipewire</code>.</li>
+    <li><b>Graphics driver</b> (if shown) → <b>NVIDIA (proprietary)</b> — you have the 4070 Ti.</li>
+    <li><b>Network configuration</b> → <b>Use NetworkManager</b>. <b class="danger" style="border:0;background:0">← don't skip; this is what makes WiFi work after reboot.</b></li>
+    <li><b>Additional packages</b> → type: <code>git base-devel nodejs npm nano</code></li>
+    <li>Scroll to <b>Install</b> → Enter → confirm. Wait. When it asks about chroot, say <b>no</b>. Then <b>Reboot</b> → <b>pull the USB out</b> as it restarts.</li>
+  </ol>
+
+  <h2><span class="p">PHASE 5</span> · <span class="arch">Arch</span> — first boot</h2>
+  <ol>
+    <li>Log in as your user (<code>pac</code>).</li>
+    <li>WiFi: click the network icon (bottom-right) → your network → password. (Or run <code>nmtui</code> in a terminal.)</li>
+    <li>Open a terminal (Konsole) and update everything:<pre><code>sudo pacman -Syu</code></pre></li>
+    <li>If you installed NVIDIA, reboot once more: <code>reboot</code>.</li>
+  </ol>
+
+  <h2><span class="p">PHASE 6</span> · <span class="arch">Arch</span> — install openclaw</h2>
+  <pre><code>node --version        # need v22.22.3+ / v24.15+ / v25.9+
+sudo npm install -g openclaw@latest
+openclaw onboard --install-daemon</code></pre>
+  <p>Follow the onboarding wizard — it sets up the gateway, a workspace, a messaging channel, and asks for a model provider (point it at a local model later, or a cloud key for now). If <code>node --version</code> is too old: <code>sudo pacman -S nodejs npm</code> and re-check.</p>
+
+  <h2><span class="p">PHASE 7</span> · <span class="arch">Arch</span> — bring the crew + data home</h2>
+  <ol>
+    <li>Plug in the 4 TB backup drive. Find it:<pre><code>lsblk</code></pre> Look for your backup drive by size; note its partition (e.g. <code>sdb1</code>).</li>
+    <li>Mount + copy (swap <code>sdb1</code> for what you saw):<pre><code>sudo mkdir -p /mnt/backup
+sudo mount /dev/sdb1 /mnt/backup
+cp -r /mnt/backup/backup/claude ~/.claude
+mkdir -p ~/dev && cp -r /mnt/backup/backup/dev/* ~/dev/</code></pre></li>
+    <li>Clone the live repos fresh (they don't need the backup):<pre><code>cd ~/dev
+git clone https://github.com/PacsArcade/frens.earth
+# and knowledge-engine, degenwonderland, etc.</code></pre></li>
+  </ol>
+  <div class="tip">Your memory (<code>~/.claude</code>), your studies (the pupil clock etc., under <code>~/dev</code>), and the repos are now all on the new box.</div>
+
+  <h2><span class="p">PHASE 8</span> · <span class="arch">Arch</span> — forge the crew's keys + muster</h2>
+  <p>Each fren needs its own nostr key (RTFM 008). Make them <b>on this machine</b> — they're born where they'll live, never on Windows or a website. Node's already installed:</p>
+  <pre><code>mkdir -p ~/keys && cd ~/keys
+npm init -y >/dev/null 2>&1 && npm i nostr-tools
+# run this ONCE PER FREN, label + save each output somewhere safe:
+node -e "const n=require('nostr-tools');const sk=n.generateSecretKey();console.log('nsec',n.nip19.nsecEncode(sk));console.log('npub',n.nip19.npubEncode(n.getPublicKey(sk)))"</code></pre>
+  <p>Run it for each: <b>Number One, GLYPH, Carroll, Professor ₿, pacBOT, the Time Keeper, the QA seat.</b> Keep every <code>nsec</code> secret (a password manager, or an encrypted file — never in a git repo). Record each <code>npub</code> as that fren's known identity.</p>
+  <div class="danger"><b>The nsec is the fren's soul-key.</b> Anyone with it IS that fren. Keep them off the internet and out of any repo.</div>
+  <p>Then <b>muster</b> (RTFM 008): as you wake each fren in openclaw, ask your watchword and have it sign your challenge with its key. When it answers true — it's home.</p>
+
+  <p class="foot">That's the whole crossing. Do the phases in order, read your own screen at every disk pick, and when in doubt — stop and check, don't guess. Tick tock, Admiral. See you on the other side. ↑↑↓↓←→←→ b a</p>
+</div>
+</body>
+</html>
