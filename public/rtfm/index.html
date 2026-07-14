@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RTFM — Pac's Arcade manuals</title>
+<style>
+  :root{
+    --bg:#0d1210; --panel:#151d18; --edge:#2f4033;
+    --ink:#e8f2ea; --dim:#8fa596;
+    --sprout:#5ef78a; --teal:#53e0d4; --heart:#b795ff; --gold:#f7c948; --ghost:#ff6b6b;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:16px/1.6 ui-monospace,"Cascadia Code","JetBrains Mono",monospace;
+    padding:2rem 1.1rem 4rem;-webkit-text-size-adjust:100%}
+  .wrap{max-width:720px;margin:0 auto}
+  .eyebrow{color:var(--heart);letter-spacing:.22em;font-size:.72rem;text-transform:uppercase}
+  h1{font-size:1.9rem;margin:.3rem 0 .2rem;letter-spacing:.02em}
+  .sub{color:var(--dim);margin:0 0 1.6rem;font-size:.9rem}
+  .magic{color:var(--dim);font-size:.82rem;border-left:2px solid var(--edge);padding:.4rem 0 .4rem .8rem;margin:0 0 1.8rem}
+  a.card{display:block;text-decoration:none;color:inherit;background:var(--panel);
+    border:1px solid var(--edge);border-radius:14px;padding:.9rem 1rem;margin:.55rem 0;
+    transition:border-color .15s,transform .05s}
+  a.card:hover{border-color:var(--sprout)}
+  a.card:active{transform:translateY(1px)}
+  .num{color:var(--teal);font-weight:700;font-size:.8rem;letter-spacing:.1em}
+  .ttl{font-weight:700;margin:.15rem 0 .15rem;font-size:1.02rem}
+  .one{color:var(--dim);font-size:.86rem}
+  .flag{display:inline-block;font-size:.66rem;letter-spacing:.08em;padding:.08rem .4rem;border-radius:999px;margin-left:.4rem;vertical-align:middle}
+  .crew{color:var(--heart);border:1px solid var(--heart)}
+  .foot{color:var(--dim);font-size:.78rem;margin-top:2.4rem;border-top:1px solid var(--edge);padding-top:1rem}
+  code{color:var(--gold)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">Pac's Arcade · frens.earth</div>
+  <h1>RTFM</h1>
+  <p class="sub">Read The F***ing Manual — and it's exactly the point. The frens who read get the good stuff. There's magic in every article for those who look hard enough. (↑↑↓↓←→←→ b a)</p>
+
+  <a class="card" href="001-the-sovereign-box.html"><div class="num">001 · SOVEREIGN BOX</div><div class="ttl">The Sovereign Box</div><div class="one">Wipe Windows, install Arch forever, host the whole stack on your own metal.</div></a>
+  <a class="card" href="002-first-deployment.html"><div class="num">002 · DEPLOY</div><div class="ttl">Your First Deployment</div><div class="one">The git ceremony in arrows — clone → run → deploy, for total beginners.</div></a>
+  <a class="card" href="003-treasury-rescue.html"><div class="num">003 · TREASURY</div><div class="ttl">Treasury Rescue</div><div class="one">BTCPay damage control — locked out, sats "not moving," the Lightning sync runbook.</div></a>
+  <a class="card" href="004-wear-your-own-name.html"><div class="num">004 · BRANDING</div><div class="ttl">Wear Your Own Name</div><div class="one">Mask every door behind your brand — DNS vs gated rewrites, your own floor.</div></a>
+  <a class="card" href="006-ship-it.html"><div class="num">006 · SHIP</div><div class="ttl">Ship It</div><div class="one">Deploy frens.earth from SCAR with your signature — connect, arm, ship.</div></a>
+  <a class="card" href="007-the-captains-signoff.html"><div class="num">007 · SIGNING</div><div class="ttl">The Captain's Sign-Off</div><div class="one">What to check before your key touches a merge — the eight-point muster.</div></a>
+  <a class="card" href="008-the-muster.html"><div class="num">008 · CREW</div><div class="ttl">The Muster <span class="flag crew">crew ops</span></div><div class="one">Proving each fren is really them on arrival — the watchword + the key.</div></a>
+  <a class="card" href="009-bringing-the-fleet-home.html"><div class="num">009 · FLEET</div><div class="ttl">Bringing the Fleet Home <span class="flag crew">crew ops</span></div><div class="one">openclaw + the crew's crossing to the sovereign home. Built on 001.</div></a>
+  <a class="card" href="010-the-ships-manifest.html"><div class="num">010 · MANIFEST</div><div class="ttl">The Ship's Manifest <span class="flag crew">crew ops</span></div><div class="one">Every doc in the fleet, indexed — and which ones travel with the ship.</div></a>
+
+  <p class="foot">Start the home build at <code>001</code>, then read <code>009</code> before you move the crew. Tick tock — the knowledge gets tied to the block too.</p>
+</div>
+</body>
+</html>

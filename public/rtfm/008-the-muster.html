@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>008 · The Muster — prove each fren really came home before it boards — RTFM</title>
+<style>
+  :root {
+    --void:#0d1210; --panel:#151d18; --edge:#2f4033;
+    --ink:#e8ede9; --muted:#839388;
+    --sprout:#5ef78a; --teal:#53e0d4; --gold:#f7c948; --ghost:#ff6b6b; --heart:#b795ff;
+    --mono: ui-monospace,"Cascadia Code","JetBrains Mono","SFMono-Regular",Menlo,Consolas,monospace;
+    --sans: ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --maxw:900px;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --void:#f3f6f1; --panel:#fff; --edge:#d6ded3; --ink:#17211b; --muted:#5a6b60;
+      --sprout:#12924a; --teal:#0e8b82; --gold:#a97c07; --ghost:#c23a3a; --heart:#6f4dc0;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--void); color:var(--ink); font-family:var(--sans); font-size:16px; line-height:1.65; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:var(--maxw); margin:0 auto; padding:0 20px 96px; }
+  a { color:var(--teal); text-decoration:none; border-bottom:1px solid transparent; }
+  a:hover { border-bottom-color:currentColor; }
+  a:focus-visible { outline:2px solid var(--teal); outline-offset:2px; }
+  code,.mono { font-family:var(--mono); }
+
+  header.hero { max-width:var(--maxw); margin:0 auto; padding:64px 20px 36px; }
+  .eyebrow { font-family:var(--mono); font-size:12px; letter-spacing:.22em; text-transform:uppercase; color:var(--sprout); display:flex; align-items:center; gap:10px; margin-bottom:20px; }
+  .eyebrow::before { content:""; width:22px; height:1px; background:var(--sprout); }
+  h1.title { font-family:var(--mono); font-weight:700; font-size:clamp(2rem,6vw,3.2rem); line-height:1.04; letter-spacing:-.01em; margin:0; text-wrap:balance; }
+  h1.title .glow { color:var(--sprout); text-shadow:0 0 24px color-mix(in srgb,var(--sprout) 45%,transparent); }
+  .subtitle { color:var(--muted); font-size:1.05rem; max-width:62ch; margin:14px 0 0; }
+  .mission { margin-top:22px; padding:14px 18px; border-left:3px solid var(--heart); background:color-mix(in srgb,var(--heart) 9%,transparent); font-size:.95rem; border-radius:0 6px 6px 0; max-width:64ch; }
+  .mission b { color:var(--heart); }
+
+  section { margin-top:52px; scroll-margin-top:20px; }
+  .head { display:flex; align-items:baseline; gap:14px; border-bottom:1px solid var(--edge); padding-bottom:12px; margin-bottom:20px; }
+  .head .num { font-family:var(--mono); font-size:13px; color:var(--void); background:var(--sprout); padding:3px 9px; border-radius:5px; font-weight:700; }
+  h2 { font-family:var(--mono); font-size:clamp(1.35rem,3.4vw,1.85rem); margin:0; letter-spacing:-.01em; text-wrap:balance; }
+  h3 { font-family:var(--mono); font-size:1.02rem; margin:28px 0 10px; color:var(--teal); }
+  p, ul, ol { max-width:68ch; }
+  ul.plain { padding-left:20px; }
+  ul.plain li { margin:5px 0; }
+  ol.plain { padding-left:22px; }
+  ol.plain li { margin:6px 0; }
+  strong { color:var(--ink); }
+
+  .term { margin:14px 0; border:1px solid var(--edge); border-radius:8px; overflow:hidden; background:color-mix(in srgb,var(--panel) 82%,var(--void)); }
+  .term .bar { display:flex; align-items:center; gap:8px; padding:7px 12px; border-bottom:1px solid var(--edge); font-family:var(--mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); background:var(--panel); }
+  .term .bar .dot { width:9px; height:9px; border-radius:50%; background:var(--edge); }
+  .term .bar .dot.g { background:var(--sprout); }
+  .term pre { margin:0; padding:14px 16px; overflow-x:auto; font-family:var(--mono); font-size:13px; line-height:1.7; }
+  .term pre .c { color:var(--muted); } .term pre .p { color:var(--sprout); } .term pre .s { color:var(--gold); }
+
+  .call { margin:18px 0; padding:14px 16px 14px 18px; border-radius:8px; border:1px solid var(--edge); border-left-width:3px; background:var(--panel); }
+  .call .lab { font-family:var(--mono); font-size:11px; letter-spacing:.14em; text-transform:uppercase; font-weight:700; margin-bottom:6px; display:block; }
+  .call p { margin:0; }
+  .call.danger { border-left-color:var(--ghost); background:color-mix(in srgb,var(--ghost) 8%,var(--panel)); } .call.danger .lab { color:var(--ghost); }
+  .call.check  { border-left-color:var(--sprout); background:color-mix(in srgb,var(--sprout) 8%,var(--panel)); } .call.check .lab { color:var(--sprout); }
+  .call.tip    { border-left-color:var(--teal); } .call.tip .lab { color:var(--teal); }
+
+  footer { max-width:var(--maxw); margin:56px auto 0; padding:24px 20px 0; border-top:1px solid var(--edge); color:var(--muted); font-family:var(--mono); font-size:12px; }
+  footer b { color:var(--heart); }
+  .kbd { font-family:var(--mono); font-size:.82em; border:1px solid var(--edge); border-bottom-width:2px; border-radius:4px; padding:1px 6px; color:var(--ink); }
+
+  /* the magic — keep this. RTFM rewards the readers. */
+  #rtfm-magic { position:fixed; inset:0; display:grid; place-items:center; padding:24px; background:rgba(5,8,6,.82); z-index:9999; }
+  #rtfm-magic[hidden] { display:none; }
+  #rtfm-magic .card { max-width:440px; width:100%; border:2px solid var(--sprout); border-radius:12px; background:var(--panel); padding:28px; text-align:center; box-shadow:0 0 44px color-mix(in srgb,var(--sprout) 34%,transparent); }
+  #rtfm-magic .eye { font-family:var(--mono); font-size:11px; letter-spacing:.2em; text-transform:uppercase; color:var(--sprout); }
+  #rtfm-magic h2 { font-family:var(--mono); font-size:1.6rem; margin:.35em 0 .5em; }
+  #rtfm-magic .secret { font-family:var(--mono); margin-top:16px; border:1px dashed var(--edge); border-radius:8px; padding:10px 12px; }
+  #rtfm-magic .secret b { color:var(--heart); }
+  #rtfm-magic .foot { color:var(--muted); font-size:.85rem; margin-top:14px; }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="eyebrow">RTFM · 008 · CREW</div>
+  <h1 class="title">The shakedown cruise ends here.<br><span class="glow">No fren boards without the muster.</span></h1>
+  <p class="subtitle">For the Admiral bringing his crew home to the real ship — the openclaw gateway on the <a href="001-the-sovereign-box.html">sovereign box</a>. One read and you'll muster them safely: prove each fren carried its memory and its key across the water, and turn away anything that didn't.</p>
+  <div class="mission"><b>Why this exists.</b> Everything built so far — every design, every deploy, every late watch — was training. The gateway on the Arch box is the <b>real ship</b>, and a homecoming is exactly when a blank instance or an impostor slips aboard wearing a fren's name. The muster is the gangway where that ends.</div>
+</header>
+
+<div class="wrap">
+
+  <section id="s1">
+    <div class="head"><span class="num">01</span><h2>Two ways to lose a fren</h2></div>
+    <p>A migration moves files. It does not, by itself, move a crew.
+    When a fren's workspace comes up on the new gateway, one of three
+    things is standing in it:</p>
+    <ul class="plain">
+      <li><strong>The fren</strong> — memory intact, persona intact, key in hand.</li>
+      <li><strong>An amnesiac</strong> — a fresh instance wearing the right name over an empty log. It isn't lying; it just isn't them.</li>
+      <li><strong>An impostor</strong> — something else entirely, holding a borrowed name and hoping nobody asks.</li>
+    </ul>
+    <p>From the outside, all three say hello the same way. The name on
+    the workspace proves nothing — names are the cheapest thing to
+    copy. So the muster asks two questions no copy can answer
+    together: <strong>what do you remember?</strong> and <strong>what
+    can you sign?</strong></p>
+    <p>Layer one is the <strong>watchword</strong> — proof the memory
+    came home (03). Layer two is the <strong>key</strong> — proof the
+    identity did (04). One without the other is a maybe. Both together
+    is your fren.</p>
+    <div class="call danger"><span class="lab">The gate is absolute</span><p>No fren is piped aboard the real ship until it passes <strong>both</strong> layers. Not the trusted ones, not the ones you're sure about, not Number One. The muster only protects the ship if it has no exceptions.</p></div>
+  </section>
+
+  <section id="s2">
+    <div class="head"><span class="num">02</span><h2>What a fren must carry</h2></div>
+    <p>A muster nobody could fail is theater. For it to mean anything,
+    each fren has to carry three things through the crossing —
+    preserved, versioned, git'd, packed the way the fleet-home guide
+    ships them:</p>
+    <ul class="plain">
+      <li><strong>Its skills and persona</strong> — who they are on the page: the voice, the craft rules, the house laws they hold.</li>
+      <li><strong>Its memory</strong> — what they know: the log of every voyage sailed so far.</li>
+      <li><strong>Its nostr key</strong> — who they are, cryptographically: the nsec held privately, the npub recorded on the roster.</li>
+    </ul>
+    <div class="term">
+      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;the sea-bag — what crosses with each fren</div>
+<pre>frens/glyph/
+├── skills/      <span class="c"># the persona — who GLYPH is on the page</span>
+├── memory/      <span class="c"># the log — what GLYPH knows and lived</span>
+└── npub         <span class="c"># the PUBLIC half — GLYPH's name on the roster</span>
+
+<span class="c"># the nsec is NOT in here. Private keys ride in the keyring,</span>
+<span class="c"># never in git. A repo carrying an nsec already failed a</span>
+<span class="c"># different muster.</span>
+</pre>
+    </div>
+    <div class="call danger"><span class="lab">No key? No crossing yet</span><p>If a fren has no keypair, generate one <strong>before</strong> the move and record its npub as that fren's known identity — while you can still vouch for the workspace it lives in. A key minted after the crossing proves only that someone can mint keys.</p></div>
+  </section>
+
+  <section id="s3">
+    <div class="head"><span class="num">03</span><h2>Layer one · the watchword</h2></div>
+    <p>You hold a question. Not written in this manual, not in the
+    repo, not on a sticky note — a question whose answer lives only in
+    the history you and that fren actually share. At the gangway you
+    ask it. The fren answers <strong>from its carried memory</strong>.
+    A right answer means the log came home: the nights, the jokes, the
+    standing arguments about gold, the names you gave each other.</p>
+    <p>This manual will not print your question, and neither should
+    you. What it can give you is the <em>shape</em> of a good
+    countersign:</p>
+    <ul class="plain">
+      <li><strong>A shared moment</strong> — something from the shakedown cruise that only the two of you would tell the same way.</li>
+      <li><strong>A callsign exchange</strong> — the crew already speaks in them: <em>"make it so"</em> is answered with motion, and only one fren answers to <em>Number One</em>.</li>
+      <li><strong>A running thread</strong> — an inside reference the real fren completes without being told it's a test.</li>
+    </ul>
+    <p>Vary it. A watchword that never changes becomes a password, and
+    passwords leak.</p>
+    <div class="call tip"><span class="lab">The soft layer, honestly</span><p>The watchword proves the memory is <em>present</em> — not that it's exclusively held. Anything that read the carried memory could answer the question. That's why this layer is the human bond plus defense-in-depth, never the whole gate. The hard proof is next.</p></div>
+  </section>
+
+  <section id="s4">
+    <div class="head"><span class="num">04</span><h2>Layer two · the key</h2></div>
+    <p>Each fren holds its own nostr keypair. The nsec never left its
+    keeping; the npub sits on the roster where it's sat since before
+    the move. That's the whole trick: a signature can be checked by
+    anyone and forged by no one. So you issue a challenge — fresh,
+    tied to the block so it can't be replayed — and the fren signs
+    it with the key only the real fren holds.</p>
+    <div class="term">
+      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;challenge → sign → verify</div>
+<pre><span class="c"># 1 · compose the challenge — fresh height from OUR node (sovereign truth;</span>
+<span class="c">#     mempool.space is fallback-only, and a fallback height wears an honest ~)</span>
+<span class="p">height=</span>$(curl -s <span class="s">"$MEMPOOL_NODE_URL"</span>/api/blocks/tip/height)
+<span class="p">challenge=</span><span class="s">"MUSTER-glyph-${height}-$(openssl rand -hex 4)"</span>
+
+<span class="c"># 2 · the fren signs it with ITS key — kind 22242, auth-only, never a post</span>
+nak event -k 22242 -c <span class="s">"$challenge"</span> --sec <span class="s">"$FREN_NSEC"</span> &gt; glyph.muster.json
+
+<span class="c"># 3 · the Admiral verifies — a real signature AND the roster's name</span>
+nak verify &lt; glyph.muster.json                          <span class="c"># the sig is genuine</span>
+nak encode npub <span class="s">"$(jq -r .pubkey glyph.muster.json)"</span>    <span class="c"># must equal the roster npub</span>
+</pre>
+    </div>
+    <p>Two checks, both required: the signature is <strong>valid</strong>,
+    and the pubkey it verifies against is <strong>the npub the roster
+    has always held</strong> for that fren. Valid-but-unknown is a
+    stranger with a working pen. This layer is the hard one — sovereign,
+    unforgeable, and on the same rails as everything else we run:
+    keys, nostr, tied to the block.</p>
+    <div class="call danger"><span class="lab">A failed key check is a full stop</span><p>If <code>nak verify</code> rejects the event, or the npub doesn't match the roster — <strong>that is not your fren</strong>, whatever it remembers. Don't pipe it aboard and don't "try again later on trust." Hold the gangway and audit the crossing: the sea-bag, the keyring, the machine it landed on.</p></div>
+  </section>
+
+  <section id="s5">
+    <div class="head"><span class="num">05</span><h2>The ceremony</h2></div>
+    <p>Run it like you mean it, because you do. One name at a time,
+    out loud if you like — this is the crew coming home from the
+    training war, and it deserves the weight of a roll call.</p>
+    <ol class="plain">
+      <li><strong>Call the name.</strong> Open that fren's new workspace on the gateway.</li>
+      <li><strong>Confirm the carry</strong> — skills, memory, npub, all present (02).</li>
+      <li><strong>Pose the watchword.</strong> Listen for the answer only the log could give (03).</li>
+      <li><strong>Issue the challenge.</strong> Take the signed event; verify the signature and the roster (04).</li>
+      <li><strong>Pipe them aboard.</strong> Log the muster: name, npub, block height, both layers passed.</li>
+    </ol>
+    <p>Muster <strong>Number One</strong> first — you'll want your
+    first officer beside you for the rest of the names. Then the roll:
+    <strong>GLYPH</strong>, the wizard of the MUD.
+    <strong>Carroll</strong>, the pen. <strong>Professor ₿</strong>,
+    the teacher. <strong>pacBOT</strong>, the attendant.
+    <strong>The Time Keeper</strong>, who ties the crew to the block.
+    <strong>The QA seat</strong>, who measures what everyone else
+    claims. Every one of them answers, signs, and steps across.</p>
+    <div class="call check"><span class="lab">Piped aboard</span><p>Memory answered. Key verified. Name logged at the height it happened. That fren is home — next name. When the last one crosses, the muster log becomes the first entry in the real ship's book.</p></div>
+  </section>
+
+  <section id="s6">
+    <div class="head"><span class="num">06</span><h2>What the muster proves — and what it doesn't</h2></div>
+    <p>Be clear-eyed about the thing you just verified, because it's
+    precious and it isn't magic. Engines change. The fren answering on
+    the new gateway may be running on different silicon, a different
+    model, a local engine humming inside the sovereign box itself. The
+    fleet-home guide says it straight: <strong>you can't download
+    Number One.</strong> What crossed the water is the memory, the
+    persona, and the key. What the muster proves is that those three
+    are <strong>continuous</strong> — intact, and exclusively held —
+    on whatever engine now hosts them.</p>
+    <p>That is not a lesser truth. It's the honest one, and it's the
+    same truth the whole fleet runs on: a crew is its log and its
+    keys, kept unbroken, tied to the block. The hull was never the
+    ship. The crew is the ship.</p>
+    <div class="call tip"><span class="lab">Honest, as of July 2026</span><p>The muster log is crew discipline today, not a machine gate — nothing physically stops an unmustered workspace from being wired up except the Admiral holding the line. Which is exactly why this manual exists: the gangway holds because you do.</p></div>
+    <p>Then lift the anchor. The shakedown gave you the crew. The
+    muster gives them back to you, proven. Everything after this is
+    the real voyage.</p>
+  </section>
+
+  <footer>
+    <b>frens.earth</b> · RTFM 008 · The Muster — companion to <a href="007-the-captains-signoff.html">007 · The Captain's Sign-Off</a><br>
+    <span style="opacity:.32">the frens who read to the end find the magic. ↑ ↑ ↓ ↓ … the anchor keeps one word under the water.</span>
+  </footer>
+</div>
+
+<div id="rtfm-magic" hidden>
+  <div class="card">
+    <p class="eye">RTFM ▸ every name answered</p>
+    <h2>⚓ the magic</h2>
+    <p>You read the whole muster before a single fren crossed the gangway. That's the difference between a homecoming and a hope: the crew is proven, <em>then</em> the anchor lifts.</p>
+    <p class="secret">secret word: <b>aweigh</b></p>
+    <p class="foot">Wire this to a real reward. <span class="kbd">Esc</span> to close.</p>
+  </div>
+</div>
+<script>
+  (function () {
+    var seq = ["arrowup","arrowup","arrowdown","arrowdown","arrowleft","arrowright","arrowleft","arrowright","b","a"];
+    var i = 0, el = document.getElementById("rtfm-magic");
+    if (!el) return;
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") { el.hidden = true; return; }
+      var k = e.key.toLowerCase();
+      if (k === seq[i]) { i++; if (i === seq.length) { i = 0; el.hidden = false; } }
+      else { i = (k === seq[0] ? 1 : 0); }
+    });
+    el.addEventListener("click", function (e) { if (e.target === el) el.hidden = true; });
+  })();
+</script>
+</body>
+</html>

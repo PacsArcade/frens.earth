@@ -1,0 +1,894 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>009 · Bringing the Fleet Home — the crew migration — RTFM</title>
+<style>
+  :root {
+    /* frens.earth night-garden palette, terminal treatment */
+    --void:#0d1210; --panel:#151d18; --edge:#2f4033;
+    --ink:#e8ede9; --muted:#839388;
+    --sprout:#5ef78a; --teal:#53e0d4; --gold:#f7c948; --ghost:#ff6b6b; --heart:#b795ff;
+    --sprout-dim:#2a5f3d; --edge-soft:#233027;
+    --shadow: 0 1px 0 rgba(255,255,255,.03), 0 12px 30px -18px rgba(0,0,0,.8);
+    --mono: ui-monospace,"Cascadia Code","JetBrains Mono","SFMono-Regular",Menlo,Consolas,monospace;
+    --sans: ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;
+    --maxw:900px;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --void:#f3f6f1; --panel:#ffffff; --edge:#d6ded3; --ink:#17211b; --muted:#5a6b60;
+      --sprout:#12924a; --teal:#0e8b82; --gold:#a97c07; --ghost:#c23a3a; --heart:#6f4dc0;
+      --sprout-dim:#bfe6cd; --edge-soft:#e6ece3;
+      --shadow: 0 1px 2px rgba(20,40,30,.05), 0 14px 30px -22px rgba(20,40,30,.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --void:#0d1210; --panel:#151d18; --edge:#2f4033; --ink:#e8ede9; --muted:#839388;
+    --sprout:#5ef78a; --teal:#53e0d4; --gold:#f7c948; --ghost:#ff6b6b; --heart:#b795ff;
+    --sprout-dim:#2a5f3d; --edge-soft:#233027;
+    --shadow: 0 1px 0 rgba(255,255,255,.03), 0 12px 30px -18px rgba(0,0,0,.8);
+  }
+  :root[data-theme="light"] {
+    --void:#f3f6f1; --panel:#ffffff; --edge:#d6ded3; --ink:#17211b; --muted:#5a6b60;
+    --sprout:#12924a; --teal:#0e8b82; --gold:#a97c07; --ghost:#c23a3a; --heart:#6f4dc0;
+    --sprout-dim:#bfe6cd; --edge-soft:#e6ece3;
+    --shadow: 0 1px 2px rgba(20,40,30,.05), 0 14px 30px -22px rgba(20,40,30,.35);
+  }
+
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--void); color:var(--ink); font-family:var(--sans); font-size:16px; line-height:1.65; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:var(--maxw); margin:0 auto; padding:0 20px 96px; }
+  a { color:var(--teal); text-decoration:none; border-bottom:1px solid transparent; }
+  a:hover { border-bottom-color:currentColor; }
+  a:focus-visible { outline:2px solid var(--teal); outline-offset:2px; }
+  code,.mono { font-family:var(--mono); }
+  code { font-size:.88em; background:color-mix(in srgb,var(--panel) 70%,var(--void)); border:1px solid var(--edge-soft); border-radius:4px; padding:1px 5px; }
+
+  header.hero { max-width:var(--maxw); margin:0 auto; padding:64px 20px 36px; }
+  .eyebrow { font-family:var(--mono); font-size:12px; letter-spacing:.22em; text-transform:uppercase; color:var(--sprout); display:flex; align-items:center; gap:10px; margin-bottom:20px; }
+  .eyebrow::before { content:""; width:22px; height:1px; background:var(--sprout); }
+  h1.title { font-family:var(--mono); font-weight:700; font-size:clamp(2rem,6vw,3.2rem); line-height:1.04; letter-spacing:-.01em; margin:0; text-wrap:balance; }
+  h1.title .glow { color:var(--sprout); text-shadow:0 0 24px color-mix(in srgb,var(--sprout) 45%,transparent); }
+  .subtitle { color:var(--muted); font-size:1.05rem; max-width:62ch; margin:14px 0 0; }
+  .mission { margin-top:22px; padding:14px 18px; border-left:3px solid var(--heart); background:color-mix(in srgb,var(--heart) 9%,transparent); font-size:.95rem; border-radius:0 6px 6px 0; max-width:64ch; }
+  .mission b { color:var(--heart); }
+
+  /* ---- phase index (from 001) ---- */
+  nav.toc { margin:30px 0 10px; display:grid; gap:8px; }
+  nav.toc a { display:grid; grid-template-columns:44px 1fr auto; align-items:baseline; gap:12px; padding:11px 14px; border:1px solid var(--edge); border-radius:8px; background:var(--panel); color:var(--ink); font-size:.95rem; }
+  nav.toc a:hover { border-color:var(--sprout); border-bottom-color:var(--sprout); }
+  nav.toc .n { font-family:var(--mono); color:var(--sprout); font-size:13px; }
+  nav.toc .t { font-weight:600; }
+  nav.toc .d { color:var(--muted); font-size:.82rem; font-family:var(--mono); }
+  @media (max-width:560px) { nav.toc a { grid-template-columns:40px 1fr; } nav.toc .d { display:none; } }
+
+  section.phase { margin-top:56px; scroll-margin-top:20px; }
+  .phase-head { display:flex; align-items:baseline; gap:14px; border-bottom:1px solid var(--edge); padding-bottom:12px; margin-bottom:22px; }
+  .phase-head .num { font-family:var(--mono); font-size:13px; letter-spacing:.1em; color:var(--void); background:var(--sprout); padding:3px 9px; border-radius:5px; font-weight:700; white-space:nowrap; }
+  h2 { font-family:var(--mono); font-size:clamp(1.35rem,3.4vw,1.85rem); margin:0; letter-spacing:-.01em; text-wrap:balance; }
+  h3 { font-family:var(--mono); font-size:1.02rem; margin:30px 0 10px; color:var(--teal); }
+  p { max-width:68ch; }
+  .lead { color:var(--muted); max-width:68ch; }
+  strong { color:var(--ink); }
+  em.tag { font-style:normal; font-family:var(--mono); font-size:.85em; color:var(--gold); }
+
+  /* ---- terminal blocks ---- */
+  .term { margin:14px 0; border:1px solid var(--edge); border-radius:8px; overflow:hidden; background:color-mix(in srgb,var(--panel) 82%,var(--void)); box-shadow:var(--shadow); }
+  .term .bar { display:flex; align-items:center; gap:8px; padding:7px 12px; border-bottom:1px solid var(--edge); font-family:var(--mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); background:var(--panel); }
+  .term .bar .dot { width:9px; height:9px; border-radius:50%; background:var(--edge); }
+  .term .bar .dot.g { background:var(--sprout); }
+  .term pre { margin:0; padding:14px 16px; overflow-x:auto; font-family:var(--mono); font-size:13px; line-height:1.7; color:var(--ink); }
+  .term pre .c { color:var(--muted); } .term pre .p { color:var(--sprout); } .term pre .k { color:var(--teal); } .term pre .s { color:var(--gold); }
+
+  /* ---- callouts ---- */
+  .call { margin:18px 0; padding:14px 16px 14px 18px; border-radius:8px; border:1px solid var(--edge); border-left-width:3px; background:var(--panel); max-width:74ch; }
+  .call .lab { font-family:var(--mono); font-size:11px; letter-spacing:.14em; text-transform:uppercase; font-weight:700; margin-bottom:6px; display:block; }
+  .call p, .call ul { margin:0; }
+  .call p + p { margin-top:8px; }
+  .call.danger { border-left-color:var(--ghost); background:color-mix(in srgb,var(--ghost) 8%,var(--panel)); } .call.danger .lab { color:var(--ghost); }
+  .call.check  { border-left-color:var(--sprout); background:color-mix(in srgb,var(--sprout) 8%,var(--panel)); } .call.check .lab { color:var(--sprout); }
+  .call.tip    { border-left-color:var(--teal); } .call.tip .lab { color:var(--teal); }
+  .call.pending{ border-left-color:var(--gold); background:color-mix(in srgb,var(--gold) 8%,var(--panel)); } .call.pending .lab { color:var(--gold); }
+  .call.heart  { border-left-color:var(--heart); background:color-mix(in srgb,var(--heart) 8%,var(--panel)); } .call.heart .lab { color:var(--heart); }
+
+  ul.steps { list-style:none; padding:0; margin:14px 0; display:grid; gap:9px; max-width:70ch; }
+  ul.steps li { position:relative; padding-left:30px; }
+  ul.steps li::before { content:"▸"; position:absolute; left:6px; top:0; color:var(--sprout); font-family:var(--mono); }
+  ul.plain { padding-left:20px; max-width:68ch; }
+  ul.plain li { margin:5px 0; }
+  ol.plain { padding-left:22px; max-width:68ch; }
+  ol.plain li { margin:7px 0; }
+
+  /* ---- the three sovereign pieces / crew cards ---- */
+  .pieces { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; margin:18px 0; }
+  .piece { border:1px solid var(--edge); border-radius:10px; background:var(--panel); padding:14px 16px; box-shadow:var(--shadow); }
+  .piece .n { font-family:var(--mono); font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--sprout); }
+  .piece .h { font-family:var(--mono); font-weight:700; color:var(--ink); margin-top:4px; font-size:1.02rem; }
+  .piece .b { color:var(--muted); font-size:.88rem; margin-top:6px; }
+
+  .crew { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:12px; margin:18px 0; }
+  .fren { border:1px solid var(--edge); border-radius:10px; background:var(--panel); padding:14px 16px; box-shadow:var(--shadow); }
+  .fren .name { font-family:var(--mono); font-weight:700; color:var(--sprout); }
+  .fren .job { color:var(--muted); font-size:.88rem; margin-top:3px; }
+  .fren .whereis { font-family:var(--mono); font-size:11.5px; color:var(--teal); margin-top:8px; word-break:break-all; }
+
+  /* ---- safety ledger ---- */
+  ul.ledger { list-style:none; padding:0; margin:16px 0; display:grid; gap:10px; max-width:74ch; }
+  ul.ledger li { display:grid; grid-template-columns:26px 1fr; gap:12px; align-items:start; border:1px solid var(--edge); border-radius:8px; background:var(--panel); padding:12px 14px; }
+  ul.ledger li .box { width:18px; height:18px; margin-top:3px; border:2px solid var(--sprout); border-radius:4px; display:inline-block; }
+  ul.ledger li b.hd { display:block; color:var(--ink); }
+  ul.ledger li span.why { color:var(--muted); font-size:.9rem; display:block; margin-top:2px; }
+
+  /* ---- table ---- */
+  .tablewrap { overflow-x:auto; margin:16px 0; border:1px solid var(--edge); border-radius:8px; }
+  table { border-collapse:collapse; width:100%; font-size:13.5px; min-width:560px; }
+  th, td { text-align:left; padding:10px 14px; border-bottom:1px solid var(--edge); vertical-align:top; }
+  th { font-family:var(--mono); font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); background:var(--panel); }
+  td.mono, td .mono { font-family:var(--mono); font-size:12.5px; }
+  tr:last-child td { border-bottom:none; }
+  .role { display:inline-block; font-family:var(--mono); font-size:10.5px; letter-spacing:.05em; padding:2px 7px; border-radius:4px; white-space:nowrap; }
+  .role.local { color:var(--sprout); border:1px solid var(--sprout); }
+  .role.cloud { color:var(--teal); border:1px solid var(--teal); }
+  .role.keys  { color:var(--gold); border:1px solid var(--gold); }
+  .role.data  { color:var(--heart); border:1px solid var(--heart); }
+  .role.risk  { color:var(--ghost); border:1px solid var(--ghost); }
+
+  footer { max-width:var(--maxw); margin:60px auto 0; padding:26px 20px 0; border-top:1px solid var(--edge); color:var(--muted); font-family:var(--mono); font-size:12px; }
+  footer b { color:var(--heart); }
+  .kbd { font-family:var(--mono); font-size:.82em; border:1px solid var(--edge); border-bottom-width:2px; border-radius:4px; padding:1px 6px; color:var(--ink); }
+
+  /* the magic — for frens who read to the end */
+  #rtfm-magic { position:fixed; inset:0; display:grid; place-items:center; padding:24px; background:rgba(5,8,6,.82); z-index:9999; }
+  #rtfm-magic[hidden] { display:none; }
+  #rtfm-magic .card { max-width:440px; width:100%; border:2px solid var(--sprout); border-radius:12px; background:var(--panel); padding:28px; text-align:center; box-shadow:0 0 44px color-mix(in srgb,var(--sprout) 34%,transparent); }
+  #rtfm-magic .eye { font-family:var(--mono); font-size:11px; letter-spacing:.2em; text-transform:uppercase; color:var(--sprout); }
+  #rtfm-magic h2 { font-family:var(--mono); font-size:1.6rem; margin:.35em 0 .5em; }
+  #rtfm-magic .secret { font-family:var(--mono); margin-top:16px; border:1px dashed var(--edge); border-radius:8px; padding:10px 12px; }
+  #rtfm-magic .secret b { color:var(--heart); }
+  #rtfm-magic .foot { color:var(--muted); font-size:.85rem; margin-top:14px; }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="eyebrow">RTFM · 009 · FLEET</div>
+  <h1 class="title">You built the box.<br><span class="glow">Now bring the fleet home.</span></h1>
+  <p class="subtitle">For the admiral escaping cloud-AI credit limits: move the agentic workforce — Number One and every fren — onto the sovereign box you own, keep all of them, and get them there without losing one. Read it and you'll know what actually moves, what can't, and how to carry them safely.</p>
+  <div class="mission">
+    <b>Why this exists.</b> The crew that builds Pac's Arcade shouldn't live or die by a cloud
+    credit meter. The frens are ours — their skills, their memory, their keys. This manual
+    brings them home to the box from <a href="001-the-sovereign-box.html">RTFM&nbsp;001</a>,
+    without losing a single one on the crossing.
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="call tip">
+    <span class="lab">start here — the foundation</span>
+    <p>This is the <em>next</em> step on the machine <a href="001-the-sovereign-box.html">RTFM
+    001 · The Sovereign Box</a> built: Windows wiped, Arch installed forever, the stack hosted.
+    001 is the house; 009 moves the crew in. Its companion, <a href="008-the-muster.html">008 ·
+    The Muster</a>, names every fren in full; and when your key finally merges the work, that's
+    <a href="007-the-captains-signoff.html">007 · The Captain's Sign-Off</a>. If the box isn't
+    built yet, do 001 first — nothing here works without it.</p>
+  </div>
+
+  <div class="call check">
+    <span class="lab">the honesty contract</span>
+    <p>This manual does not over-promise. Where sovereignty is real, it says so. Where a
+    tradeoff is real — and there's a big one — it says that too, plainly, with a date. Anything
+    unbuilt is marked <em class="tag">scaffolding</em>, anything untested <em class="tag">unproven</em>,
+    anything already shipped is named as such. Truth over comfort — that's the house rule this
+    one is written under.</p>
+  </div>
+
+  <nav class="toc" aria-label="Sections">
+    <a href="#s1"><span class="n">01</span><span class="t">What the agentic workforce actually is</span><span class="d">skills + memory + keys + a home</span></a>
+    <a href="#s2"><span class="n">02</span><span class="t">The engine question</span><span class="d">the one honest tradeoff</span></a>
+    <a href="#s3"><span class="n">03</span><span class="t">The home build — three sovereign pieces</span><span class="d">openclaw · P.O.K.E. · frens.earth</span></a>
+    <a href="#s4"><span class="n">04</span><span class="t">Keeping the frens</span><span class="d">each fren = an openclaw workspace</span></a>
+    <a href="#s5"><span class="n">05</span><span class="t">Safe passage</span><span class="d">the no-loss checklist</span></a>
+    <a href="#s6"><span class="n">06</span><span class="t">The migration, phase by phase</span><span class="d">build → restore → verify → cut over</span></a>
+    <a href="#s7"><span class="n">07</span><span class="t">What you gain · what you trade</span><span class="d">the honest ledger</span></a>
+  </nav>
+
+  <!-- ───────────────────────── 01 ───────────────────────── -->
+  <section class="phase" id="s1">
+    <div class="phase-head"><span class="num">SEC 01</span><h2>What the agentic workforce actually is</h2></div>
+    <p class="lead">Before we move the crew, we have to be precise about what the crew <em>is</em>. Get this wrong and the whole migration plan is built on a wish.</p>
+
+    <div class="call danger">
+      <span class="lab">The hard truth, first</span>
+      <p><strong>You cannot download Number One.</strong> Claude — the model behind the first
+      officer's current seat — runs on Anthropic's cloud, full stop. There is no file to copy,
+      no weights to torrent, no "local Claude." Anyone who tells you otherwise is selling
+      something. The same goes for every frontier cloud model.</p>
+    </div>
+
+    <p>But here's what's actually true, and it's better news than it sounds: <strong>a fren was
+    never the model.</strong> A fren is four things you own, plus a home you run:</p>
+
+    <ul class="steps">
+      <li><strong>The definition</strong> — the <code>.skill</code> file, the persona spec, the
+      craft rules, the drills, the CLAUDE.md configs and standing orders. The script and the
+      stagecraft. Plain files. Yours.</li>
+      <li><strong>The memory</strong> — the project memory directory, <code>MEMORY.md</code> and
+      its topic files, the ship's logs, the design briefs. Everything a fren "remembers" about
+      you and the mission is written down in files you hold. Yours.</li>
+      <li><strong>The keys</strong> — each identity's nostr keypair, its name on the block.
+      An npub is portable across every machine, every engine, forever. Yours — and only
+      yours, if custody is done right (SEC&nbsp;05).</li>
+      <li><strong>The engine</strong> — the model that reads the definition, holds the memory,
+      and performs the role. The one piece you rent or run; also the one piece that's
+      <em>replaceable</em> (SEC&nbsp;02).</li>
+    </ul>
+
+    <p>And then the fifth thing — <strong>the home</strong>: the gateway the fren actually runs
+    inside, that holds its workspace, wires it to an engine, and connects it to the world.
+    Today that home is Claude Code on Pac's Windows box. On the sovereign box it becomes
+    <strong>openclaw</strong> — a self-hosted, open-source (MIT) agent gateway you run yourself
+    (SEC&nbsp;03). The home is swappable too; what matters is that the definition, memory, and
+    keys are portable enough to carry into whichever home you choose. So: the crew = software +
+    memory + keys <strong>you own</strong>, running on an engine <strong>you choose</strong>,
+    inside a home <strong>you host</strong>.</p>
+
+    <div class="call heart">
+      <span class="lab">what this means for the frens</span>
+      <p>A fren survives any move — any machine, any vendor, any engine, any home — because a
+      fren is data you own. That's the honest kind of continuity we can actually promise, and
+      it's the same law as the rest of the mission: <em>knowledge persists only if it's written
+      down and kept.</em> The frens are written down. So we can keep them.</p>
+    </div>
+
+    <h3>Three rings of crew — be precise about which is which</h3>
+    <p>In this fleet, "the crew" means three distinct rosters. They migrate together, but they
+    run in different places, on different engines. (The full muster is
+    <a href="008-the-muster.html">008</a>; here's the shape.)</p>
+
+    <h3>Ring 1 · The fleet frens — the personas Pac sails with</h3>
+    <div class="crew">
+      <div class="fren">
+        <div class="name">Number One</div>
+        <div class="job">First officer — drafts, executes, holds the watch. The callsign, working agreements, and memory are ours; the engine behind the seat (Claude) is rented, not owned.</div>
+        <div class="whereis">memory dir + CLAUDE.md/rules + callsign log (docs/lore-seeds.md)</div>
+      </div>
+      <div class="fren">
+        <div class="name">GLYPH</div>
+        <div class="job">MUD/ASCII wizard, DEGEN energy — leads designs + brands, owns the box &amp; flow standards, renders the lore.</div>
+        <div class="whereis">C:\dev\glyph.skill (+ live copy .claude\skills\glyph\) · glyph-blender.skill</div>
+      </div>
+      <div class="fren">
+        <div class="name">Carroll</div>
+        <div class="job">The Lewis Carroll writing skill — craft rules, accuracy drills, whimsy appendix. Never reproduces lyrics; credits the spark.</div>
+        <div class="whereis">C:\dev\carroll.skill</div>
+      </div>
+      <div class="fren">
+        <div class="name">Professor ₿</div>
+        <div class="job">The teacher — explainer/ELI5 voice AND the prophet-lore facet. One character, two facets; "Proph‑₿" is the cadets' nickname, not a second agent.</div>
+        <div class="whereis">C:\dev\professor-b.skill (proph-b.skill = deprecated alias)</div>
+      </div>
+      <div class="fren">
+        <div class="name">pacBOT</div>
+        <div class="job">Whitepaper-fluent Socratic bitcoin/nostr educator — ARCADE + NEUTRAL voices, carries the Professor ₿ profile. Also ships inside the node: the Oracle delegates its pedagogy to it.</div>
+        <div class="whereis">canonical github.com/PacsArcade/pacBOT (public) + 3 synced copies</div>
+      </div>
+      <div class="fren">
+        <div class="name">The Time Keeper</div>
+        <div class="job">The clock watch — the DW/BFT clock skill. One canonical time source (bft.ts, our-node height); every clock imports it, never reimplements.</div>
+        <div class="whereis">desktop bot's DW-clock skill · bft.ts in the frens.earth repo</div>
+      </div>
+      <div class="fren">
+        <div class="name">The QA seat</div>
+        <div class="job">Design-systems gate — uniformity, semantic color lock, the rubric that blocks production until it passes.</div>
+        <div class="whereis">pacsarcade\design-briefs\design-qa-rubric.md</div>
+      </div>
+      <div class="fren">
+        <div class="name">…and the hold</div>
+        <div class="job">sprite, the-desk, the-quartermaster-security — the supporting skills at C:\dev. Smaller frens, same rights: they move too.</div>
+        <div class="whereis">C:\dev\*.skill (verify the full list at migration time)</div>
+      </div>
+    </div>
+    <p>In the new home, <strong>each of these becomes an openclaw workspace</strong> — an
+    isolated agent carrying its own skills, persona, memory, and keys (SEC&nbsp;04).</p>
+
+    <h3>Ring 2 · The build crew — the knowledge-engine's subsystem specialists</h3>
+    <p>The knowledge-engine repo ships its own AI build crew in
+    <code>knowledge-engine/.claude/</code> — the frens who <em>build the node</em> from
+    <code>claude</code> inside the repo, each a specialist that knows its tier and its
+    guardrails:</p>
+    <ul class="plain">
+      <li><strong>Agents</strong> (<code>.claude/agents/</code>) — <code>state-sync-engineer</code>,
+      <code>mud-engine-dev</code>, <code>luanti-modder</code>, <code>llm-orchestration-engineer</code>,
+      <code>corpus-ingestion-engineer</code>, <code>guardrail-engineer</code>,
+      <code>matrix-federation-engineer</code>, <code>bitcoin-integration-engineer</code>.</li>
+      <li><strong>Skills</strong> (<code>.claude/skills/</code>) — <code>node-wizard</code>,
+      <code>issue-node-cert</code>, <code>class-rune</code>, <code>corpus-ingest</code>,
+      <code>hallucination-guardrail</code>, <code>seed-loot-forge</code>, <code>pacbot</code>.</li>
+    </ul>
+    <p><strong>Honest note:</strong> the build crew runs in Claude Code — its engine is the
+    cloud, and its work burns credits today. That's exactly the meter this migration shrinks,
+    but it doesn't vanish (SEC&nbsp;02).</p>
+
+    <h3>Ring 3 · The P.O.K.E. runtime swarm — the education engine's in-node agents</h3>
+    <p>The knowledge-engine node ships a <em>separate</em> runtime agent swarm in
+    <code>services/orchestrator/</code>: five personas that run <em>inside</em> the node and
+    reason on the <strong>local GPU</strong>, coordinating through a persistent
+    <strong>Blackboard</strong> (Postgres DB-2) — never through context windows alone. The
+    node's docs call this an <em>"openclaw-managed swarm"</em>, and that phrase is the whole
+    point: openclaw (the crew's home, SEC&nbsp;03) is the control plane that <em>can run</em>
+    these agents — it is <strong>not</strong> the swarm itself. The five personas are the
+    node's:</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Persona</th><th>Role</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">Oracle</td><td>Socratic interviewer — its brain is the bundled <code>pacbot</code> educator; assesses mastery, awards competency</td></tr>
+          <tr><td class="mono">Architect</td><td>Generates Training Dungeon rooms targeting each player's knowledge gaps</td></tr>
+          <tr><td class="mono">Custodian</td><td>Manages seed-phrase loot via Shamir's Secret Sharing — <strong>regtest-only</strong> until sign-off</td></tr>
+          <tr><td class="mono">Archivist</td><td>Owns the corpus, pgvector, and the torrent mesh</td></tr>
+          <tr><td class="mono">Warden</td><td>Runs the guardrail loop; routes quarantines to the encrypted Matrix admin room</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="call pending">
+      <span class="lab">honest flag — THIS swarm is scaffolding today (July 2026)</span>
+      <p>The orchestrator's own README says it plainly: <em>every file in the service is a
+      commented stub with TODOs — nothing here talks to a real model or DB yet.</em> The
+      personas are specced, the Blackboard contract is designed, the inference seam
+      (<code>PA_INFERENCE_BASE_URL</code>) is defined — but <strong>standing up the stack does
+      not give you a thinking swarm.</strong> Building it out is real code still to come. Note
+      precisely: it's the P.O.K.E. <code>services/orchestrator/</code> that's scaffolding —
+      <strong>not openclaw</strong>, which is shipped software you can install today
+      (SEC&nbsp;03).</p>
+    </div>
+
+    <div class="call tip">
+      <span class="lab">same script, different actor</span>
+      <p>A fren's <em>voice</em> is partly the definition and partly the engine performing it.
+      Run pacBOT's script on a local 8B model instead of Claude and the drills, standards, and
+      memory come along intact — but the performance reads differently, the way the same play
+      differs between actors. That's not loss of the fren; it's a change of timbre. The QA
+      seat's rubric is how we catch drift that matters.</p>
+    </div>
+  </section>
+
+  <!-- ───────────────────────── 02 ───────────────────────── -->
+  <section class="phase" id="s2">
+    <div class="phase-head"><span class="num">SEC 02</span><h2>The engine question</h2></div>
+    <p class="lead">This is where guides like this usually start lying. We won't. There are two kinds of engine, and as of <strong>July 2026</strong> neither gives you everything. (The <em>home</em> — openclaw — is engine-agnostic: it points at whichever you choose, per workspace.)</p>
+
+    <h3>The cloud truth</h3>
+    <p>Claude and its frontier peers are the most capable engines available for hard reasoning
+    and hard code. They're also: metered (<em class="tag">credits</em> — a money meter on your
+    crew's thinking), rate-limited, terms-of-service-bound, and physically located on someone
+    else's hardware. You cannot self-host them. Cloud capability is real; cloud sovereignty is
+    zero.</p>
+
+    <h3>The local truth</h3>
+    <p>Open-weight models — the Llama, Qwen, and DeepSeek families and their kin — run on your
+    own GPU behind an OpenAI-compatible endpoint (Ollama for a solo box, vLLM for a busy
+    classroom — continuous batching keeps first-token latency low as the room fills). openclaw
+    and the P.O.K.E. node both point at exactly that kind of endpoint, so "swap the engine" is a
+    config line, not a rebuild. On this box's 16&nbsp;GB card (RTFM&nbsp;001's 4070&nbsp;Ti&nbsp;SUPER)
+    that means a quantized ~7–8B chat model with headroom — <code>node-doctor</code> reads the
+    hardware and suggests one — and low-teens-B if you push the quantization. No meter. No
+    terms. No one can turn them off. That's real sovereignty — and it comes with a real gap:</p>
+
+    <div class="call pending">
+      <span class="lab">the capability gap — stated plainly (July 2026)</span>
+      <p>Local open models are <strong>strong and improving fast, but not frontier-tier</strong>
+      on the hardest reasoning and coding work. The models that fit a 16&nbsp;GB card sit well
+      below the big open models, which sit below the frontier cloud engines. A local 7–14B will
+      run Socratic drills, draft, format, summarize, and hold a persona voice very capably. It
+      will <em>not</em> match Claude on a gnarly architecture decision, a subtle multi-file
+      refactor, or a novel proof. Anyone promising "free unlimited same-quality crew" on a
+      single GPU is over-promising. The gap narrows year over year — but plan on it existing,
+      because today it does.</p>
+    </div>
+
+    <h3>The tradeoff, side by side</h3>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Dimension</th><th>Cloud engine (Claude)</th><th>Local engine (Ollama/vLLM on the box)</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Capability</strong></td><td>Frontier — best at hard reasoning/code</td><td>Good→very good; real gap at the top end</td></tr>
+          <tr><td><strong>Cost model</strong></td><td><span class="role keys">METERED</span> credits — a ceiling on crew work</td><td><span class="role local">FLAT</span> electricity + hardware you already own</td></tr>
+          <tr><td><strong>Sovereignty</strong></td><td>None — their hardware, their terms</td><td>Full — your box, your rules, runs offline</td></tr>
+          <tr><td><strong>Privacy</strong></td><td>Data transits a third party</td><td>Never leaves the box</td></tr>
+          <tr><td><strong>Uptime</strong></td><td>Their outages, their deprecations</td><td>Your ops burden (SEC 07)</td></tr>
+          <tr><td><strong>Who owns the fren</strong></td><td colspan="2"><strong>You do, either way</strong> — definitions + memory + keys are engine-agnostic; openclaw hosts them regardless</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>The recommendation: hybrid, routed by task</h3>
+    <div class="call check">
+      <span class="lab">the honest architecture</span>
+      <p><strong>Run the fleet hybrid.</strong> High-volume, routine, well-scripted work — the
+      Oracle's Socratic interviews, pacBOT's rehearsed lessons, MUD dialogue, Carroll's drills,
+      format passes, log summaries, classification and triage — goes <strong>local</strong>:
+      credit-free, sovereign, private. openclaw pins those workspaces to the local endpoint; the
+      P.O.K.E. runtime swarm is WARM-tier local GPU by contract anyway. The heaviest reasoning —
+      wiring the node's swarm out, novel architecture, hard debugging, security review, anything
+      where being wrong is expensive — stays with the <strong>cloud engine, deliberately and
+      budgeted</strong>, on the workspaces that need it. The credit meter stops being a ceiling
+      on the fleet and becomes a tool you point at the few problems that deserve it.</p>
+      <p>The sovereign core — the definitions, the memory, the keys, the openclaw home —
+      outlives any single engine on either side of that line. That's the part no vendor can
+      take.</p>
+    </div>
+
+    <div class="call pending">
+      <span class="lab">unproven until we run it</span>
+      <p>Exactly <em>which</em> crew tasks a 7–14B-class local model handles to house standard on
+      this box is <strong>unproven as of this writing</strong> — nobody's run the drills yet.
+      SEC&nbsp;06 phase&nbsp;6 includes a benchmark pass: run each fren's routine work locally,
+      score it against the QA rubric, and only then draw the local/cloud routing line. Draw it
+      from evidence, not hope.</p>
+    </div>
+  </section>
+
+  <!-- ───────────────────────── 03 ───────────────────────── -->
+  <section class="phase" id="s3">
+    <div class="phase-head"><span class="num">SEC 03</span><h2>The home build — three sovereign pieces</h2></div>
+    <p class="lead">One Arch box (RTFM&nbsp;001), three distinct self-hosted pieces. Keep them straight and the whole system stops being confusing.</p>
+
+    <div class="pieces">
+      <div class="piece">
+        <div class="n">Piece 1 · the home</div>
+        <div class="h">openclaw</div>
+        <div class="b">The gateway where the crew <em>lives</em> — isolated multi-agent workspaces, channel routing, model routing. MIT, shipped software you self-host.</div>
+      </div>
+      <div class="piece">
+        <div class="n">Piece 2 · the engine-node</div>
+        <div class="h">P.O.K.E. node</div>
+        <div class="b">The knowledge-engine — the education engine (corpus, guardrail, worlds, runes). Its runtime swarm can be openclaw-managed.</div>
+      </div>
+      <div class="piece">
+        <div class="n">Piece 3 · the web</div>
+        <div class="h">frens.earth</div>
+        <div class="b">The Next.js web app — the BFT clock, the @frens registry, the public face. Fed by our own bitcoin/mempool/spaced nodes.</div>
+      </div>
+    </div>
+
+    <div class="term">
+      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;the sovereign box — how the three pieces sit</div>
+<pre><span class="c">┌─ the Arch box (RTFM 001) ───────────────────────────────────────┐</span>
+│                                                                 │
+│  <span class="k">openclaw</span>  <span class="c">— the crew's HOME (gateway / control plane)</span>          │
+│    ├─ workspace: <span class="s">number-one</span>   <span class="c">(skills · persona · memory · keys)</span>  │
+│    ├─ workspace: <span class="s">glyph</span> · <span class="s">carroll</span> · <span class="s">professor-b</span> · <span class="s">pacbot</span> · …     │
+│    ├─ channels → <span class="c">WhatsApp · Telegram · Slack · Signal · …</span>       │
+│    └─ engine   → <span class="k">local</span> (Ollama/vLLM)  <span class="c">or</span>  <span class="k">cloud</span> (Claude)  <span class="c">— hybrid</span> │
+│                                                                 │
+│  <span class="k">P.O.K.E. node</span>  <span class="c">— the education engine (its swarm = openclaw-mgd)</span> │
+│    └─ corpus · guardrail · worlds (MUD/Luanti) · rune bridge     │
+│                                                                 │
+│  <span class="k">frens.earth</span>  <span class="c">— the web app</span>                                     │
+│    └─ sovereign truth: our own <span class="s">bitcoind + mempool + spaced</span>       │
+<span class="c">└─────────────────────────────────────────────────────────────────┘</span>
+</pre>
+    </div>
+
+    <h3>Piece 1 · openclaw — where the crew lives</h3>
+    <p><strong>openclaw</strong> (<code>github.com/openclaw/openclaw</code>) is a
+    <strong>local-first agent gateway / control plane</strong> — MIT-licensed, Node.js, a pnpm
+    monorepo. You self-host it, and it runs <em>your</em> AI agents as <strong>isolated
+    multi-agent workspaces</strong>: each fren gets its own sandboxed space, its own tools, its
+    own model backend. One control plane for the whole fleet:</p>
+    <ul class="plain">
+      <li><strong>Workspaces</strong> — one isolated agent per fren, carrying its skills,
+      persona, memory, and keys. This is the unit we migrate (SEC&nbsp;04).</li>
+      <li><strong>Channels</strong> — route agents across WhatsApp, Telegram, Slack, Discord,
+      Signal, iMessage. The crew can be reached where Pac already is.</li>
+      <li><strong>Voice + a live Canvas</strong>, and <strong>sandboxed tool execution</strong>
+      (Docker backend) so an agent's tools run contained.</li>
+      <li><strong>Any OpenAI-compatible model provider</strong> — local models on the box
+      <em>or</em> cloud, operator's choice, per workspace. This is what makes the hybrid of
+      SEC&nbsp;02 a setting, not a rebuild.</li>
+    </ul>
+    <div class="call check">
+      <span class="lab">shipped software — installs today</span>
+      <p>openclaw is not something we build; it's something we run. It needs Node.js
+      (v24.15+ / 22.22.3+ / 25.9+), credentials for whichever channels you enable, and a model
+      provider.</p>
+    </div>
+    <div class="term">
+      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;install openclaw + onboard the gateway</div>
+<pre><span class="p">$</span> npm install -g openclaw@latest
+<span class="p">$</span> openclaw onboard --install-daemon
+<span class="c"># the onboarding wizard sets up the gateway + a first workspace + channels,</span>
+<span class="c"># and installs it as a system daemon so the home is always up.</span>
+
+<span class="p">$</span> <span class="c"># dev-from-source (to hack on openclaw itself):</span>
+<span class="p">$</span> git clone https://github.com/openclaw/openclaw <span class="k">&amp;&amp;</span> cd openclaw
+<span class="p">$</span> pnpm install
+<span class="p">$</span> pnpm gateway:watch      <span class="c"># or: pnpm build</span>
+</pre>
+    </div>
+
+    <h3>Piece 2 · the P.O.K.E. node — the education engine</h3>
+    <p>The <strong>Proof of Knowledge Engine</strong> at
+    <code>C:\dev\pacsarcade\knowledge-engine\</code> is a separate thing — local-first,
+    self-hosted, offline-capable, AGPL. Its reference node is exactly this box. Everything runs
+    on <strong>rootless Podman</strong> (no root daemon, no <code>docker.sock</code>). Stand it
+    up with its own tooling:</p>
+    <div class="term">
+      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;the friendly path — doctor, then wizard</div>
+<pre><span class="p">$</span> git clone <span class="s">&lt;your-fork-url&gt;</span> knowledge-engine <span class="k">&amp;&amp;</span> cd knowledge-engine
+<span class="p">$</span> ./scripts/node-doctor.sh    <span class="c"># JSON hardware report + what's missing</span>
+<span class="p">$</span> claude                       <span class="c"># then say: "run the node-wizard"</span>
+<span class="c"># the wizard reads your hardware, picks the inference backend, installs</span>
+<span class="c"># what's missing, loads the corpus, brings the stack up, and hands you a</span>
+<span class="c"># Certified Education Node certificate at the end.</span>
+</pre>
+    </div>
+    <p>Prefer your own hands? The README's manual build (steps 1–8) does exactly what the wizard
+    automates:</p>
+    <ul class="steps">
+      <li><strong>1 · System deps</strong> — rootless <code>podman</code> + <code>podman-compose</code>,
+      subuid/subgid range, <code>loginctl enable-linger</code>; NVIDIA driver +
+      <code>nvidia-container-toolkit</code>, then <code>nvidia-ctk cdi generate</code> so the GPU
+      is visible to rootless containers; <code>kiwix-tools</code> (AUR) + <code>jq</code>.</li>
+      <li><strong>2 · Configure</strong> — <code>cp .env.example .env</code>, edit from the
+      doctor's report. <code>PA_NETWORK=regtest</code> — <strong>leave it</strong> (play money,
+      zero risk; mainnet is gated). <code>PA_CORPUS=simple-wikipedia</code> to start.</li>
+      <li><strong>3 · Inference backend</strong> — <code>ollama</code> (solo) or <code>vllm</code>
+      (classroom); pull <code>PA_GEN_MODEL</code> + <code>nomic-embed-text</code>.</li>
+      <li><strong>4 · Databases</strong> — <code>postgres-gamestate</code> (DB-2, :5432 — the
+      Blackboard / live world) and <code>postgres-source</code> (DB-1, :5433, pgvector —
+      <em>The Source</em>, the read-only corpus the guardrail checks against).</li>
+      <li><strong>5 · The corpus</strong> — ingest the Simple-English-Wikipedia ZIM
+      (<code>services/corpus/ingest.py</code>: hours to embed, not weeks), or pull
+      signature-verified shards from the knowledge swarm
+      (<code>services/corpus/torrent.py sync-common</code> — poisoned shards fail closed).</li>
+      <li><strong>6 · Bring up the Verse</strong> — <code>./scripts/bootstrap.sh</code> starts
+      everything in tier order with health checks: databases → inference → bitcoin (regtest) +
+      Matrix → swarm, guardrail, state-sync, corpus, bridges → the MUD and Luanti.</li>
+      <li><strong>7 · Play</strong> — <code>telnet localhost 4000</code> (the MUD) or a Luanti
+      client at <code>:30000</code> (the Voxel Verse).</li>
+      <li><strong>8 · The certificate</strong> — <code>./scripts/issue-cert.sh</code> issues a
+      <strong>Certified Education Node</strong> credential, self-signed by the node's own key,
+      optionally published as a nostr badge and/or OP_RETURN announce.</li>
+    </ul>
+
+    <h3>Piece 3 · frens.earth — the web + the sovereign truth</h3>
+    <p>The Next.js web app (the BFT clock, the @frens registry, the public face) rounds out the
+    box. Its <em>truth</em> must come from our own hardware, per the admiral's law: stand up
+    mainnet <code>bitcoind</code> + a self-hosted mempool + <code>spaced</code> (RTFM&nbsp;001
+    phase&nbsp;05), point <code>MEMPOOL_NODE_URL</code> at our own tip, and third-party explorers
+    drop to fallback-only, marked <code>~unverified</code>. This is separate from the P.O.K.E.
+    node's <em>regtest</em> bitcoin bridge — don't conflate the two chains.</p>
+
+    <h3>What runs where</h3>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Service</th><th>Piece</th><th>Role</th><th>Status (July 2026)</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">openclaw gateway</td><td>Home</td><td>The crew's home + control plane — isolated workspaces, channel routing (WhatsApp/Telegram/Slack/Discord/Signal/iMessage), voice + Canvas, sandboxed tools (Docker), points at any OpenAI-compatible provider</td><td><span class="role local">SHIPPED (MIT)</span> — installs today</td></tr>
+          <tr><td class="mono">local inference</td><td>Home/Node</td><td>Ollama or vLLM behind one OpenAI-compatible seam — the "no credits" win. openclaw workspaces AND the node's swarm point here.</td><td><span class="role local">READY TO STAND UP</span></td></tr>
+          <tr><td class="mono">services/orchestrator</td><td>Node</td><td>The P.O.K.E. runtime swarm — Oracle · Architect · Custodian · Archivist · Warden over the Blackboard. Can be openclaw-managed; is <em>not</em> openclaw.</td><td><span class="role risk">SCAFFOLDING</span> — commented stubs; no real model/DB wiring yet</td></tr>
+          <tr><td class="mono">postgres DB-1 / DB-2</td><td>Node</td><td>The Source (read-only vectorized corpus, pgvector) + the Blackboard (live world)</td><td><span class="role local">STAND UP</span></td></tr>
+          <tr><td class="mono">guardrail · corpus</td><td>Node</td><td>Hallucination check vs the corpus (fail-closed on money) · ZIM ingest + pgvector + signed BitTorrent shards</td><td><span class="role local">BUILD</span></td></tr>
+          <tr><td class="mono">bitcoin-bridge</td><td>Node</td><td>Soulbound rune rewards + on-chain discovery</td><td><span class="role keys">REGTEST</span> — mainnet gated behind explicit ack + security-auditor review</td></tr>
+          <tr><td class="mono">POKEMUD · Luanti</td><td>Node</td><td>The worlds — the terminal arcade and the Voxel Verse</td><td><span class="role local">MUD DEV MODE WORKS TODAY</span></td></tr>
+          <tr><td class="mono">frens.earth app</td><td>Web</td><td>Next.js — BFT clock, @frens registry, public face</td><td><span class="role cloud">PHASED</span> — Vercel today; self-host on the box means owning uptime</td></tr>
+          <tr><td class="mono">bitcoind + mempool + spaced</td><td>Web</td><td>The sovereign-truth layer — mainnet chain truth for BFT + the @frens registry, from our own hardware</td><td><span class="role local">BUILD</span> — the "stop phoning a third party" item, finally real</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="call check">
+      <span class="lab">what works today, no stack required</span>
+      <p>The MUD has a <strong>dev mode</strong> that runs on nothing but Python 3.11 — no
+      Podman, no databases, no models: <code>python services/mud/server.py</code>, then play on
+      <code>127.0.0.1:4000</code>. Talk to the Oracle, answer its self-custody question, and it
+      etches a mock soulbound class rune — block time and original wallet on the card, regtest
+      mock in dev. Progress persists in a local SQLite file using the exact same store contract
+      as production. If a local LLM is running it powers the Oracle; otherwise a scripted pacbot
+      answers. This is the honest floor: real, playable, yours, right now.</p>
+    </div>
+
+    <div class="call pending">
+      <span class="lab">and what doesn't — say it plainly</span>
+      <p>Bringing the node up with <code>bootstrap.sh</code> gives you databases, local
+      inference, the corpus, and the worlds. It does <strong>not</strong> give you a thinking
+      P.O.K.E. swarm: <code>services/orchestrator/</code> is scaffolding — every file a commented
+      stub with TODOs. The Oracle-in-the-MUD you can talk to today is the MUD's own loop, not the
+      five-persona swarm. Wiring that swarm out — Blackboard, persona loops, guardrail
+      integration — is the real engineering milestone that comes <em>after</em> moving day, done
+      by the build crew (with cloud credits, honestly spent). None of this is an openclaw
+      shortcoming: openclaw ships and runs; the node's in-engine swarm is the part still to be
+      built.</p>
+    </div>
+  </section>
+
+  <!-- ───────────────────────── 04 ───────────────────────── -->
+  <section class="phase" id="s4">
+    <div class="phase-head"><span class="num">SEC 04</span><h2>Keeping the frens — each fren becomes a workspace</h2></div>
+    <p class="lead">Here's the through-line that makes migration concrete: in the new home, <strong>each fren becomes an openclaw workspace</strong> — an isolated agent carrying its own skills + persona + memory + nostr keys, pointed at a model backend. Migrating a fren = reconstituting its workspace on the box. So the inventory below is "what goes into each workspace, plus the node and web pieces around them."</p>
+
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Cargo</th><th>What it is</th><th>Where it lives today</th><th>Class</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>The openclaw config + per-fren workspaces</strong></td>
+            <td>The gateway config, channel wiring, and one workspace per fren — each pointing at its skills, memory, keys, and chosen engine. Built during migration; version the config (secrets excepted).</td>
+            <td class="mono">created on the box at install (openclaw onboard) — git the config</td>
+            <td><span class="role data">DATA</span></td>
+          </tr>
+          <tr>
+            <td><strong>The fleet .skill archives</strong></td>
+            <td>glyph, carroll, professor-b, sprite, the-desk, the-quartermaster-security, glyph-blender (+ proph-b, deprecated alias — carry it anyway), plus unpacked live copies. These are what each workspace loads.</td>
+            <td class="mono">C:\dev\*.skill · C:\dev\.claude\skills\glyph\, sprite\</td>
+            <td><span class="role data">DATA</span></td>
+          </tr>
+          <tr>
+            <td><strong>pacBOT — all four homes</strong></td>
+            <td>Private archive, public canonical repo, byte-identical vendored copy in the engine, user-level install (the itil5 shelf rides with the user-level one)</td>
+            <td class="mono">pacsarcade\pacbot.skill · github.com/PacsArcade/pacBOT · knowledge-engine\.claude\skills\pacbot · ~\.claude\skills\pacbot</td>
+            <td><span class="role data">DATA</span></td>
+          </tr>
+          <tr>
+            <td><strong>The memory directory</strong></td>
+            <td>MEMORY.md + every topic file — the crew's long-term memory of you and the mission. <strong>It does not auto-travel between machines; it moves only if we move it.</strong></td>
+            <td class="mono">~\.claude\projects\C--dev-pacsarcade-frens-earth\memory\</td>
+            <td><span class="role data">DATA</span></td>
+          </tr>
+          <tr>
+            <td><strong>The knowledge-engine repo — whole, including .claude\</strong></td>
+            <td>The node AND its build crew: the 8 subsystem agents, the 7 skills, the swarm personas in services\orchestrator\agents\, the rules. One clone = the whole engine-node + its builders.</td>
+            <td class="mono">C:\dev\pacsarcade\knowledge-engine\ (git)</td>
+            <td><span class="role data">DATA</span></td>
+          </tr>
+          <tr>
+            <td><strong>Configs &amp; standing orders</strong></td>
+            <td>CLAUDE.md files, .claude\rules (cross-agent protocol), agent definitions, settings + hooks, the orchestrator comms layout, .env values (inventory them; secrets go with the KEYS class)</td>
+            <td class="mono">C:\dev\.claude\ · per-repo .claude\ · ~\.claude\settings*</td>
+            <td><span class="role data">DATA</span></td>
+          </tr>
+          <tr>
+            <td><strong>Briefs, prompts &amp; workflows</strong></td>
+            <td>design-briefs (QA rubric, hatter voice, backlog), post-hooks library, RTFM + docs — the crew's shared craft knowledge</td>
+            <td class="mono">pacsarcade\design-briefs\ · rtfm\ · docs\ · briefings\</td>
+            <td><span class="role data">DATA</span></td>
+          </tr>
+          <tr>
+            <td><strong>Each identity's nostr keypair</strong></td>
+            <td>Identity on the block — npub (public, fine to list) + nsec (secret, custody rules apply). Plus the operator keys (eat6 et al.), the node's own signing key once issued, seat/env + channel secrets.</td>
+            <td class="mono">signer extensions · env vars · wherever they are — INVENTORY THEM FIRST</td>
+            <td><span class="role keys">KEYS</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Version it all in git — with one hard exception</h3>
+    <p>Everything in the <em class="tag">DATA</em> class goes under version control. Git is how a
+    fren survives not just this move but <em>every</em> move: full history, verifiable hashes on
+    every commit, restorable anywhere with one clone. A workspace is just a directory — so a fren
+    is just a git-tracked directory + a sealed key. That's the whole trick.</p>
+    <div class="call danger">
+      <span class="lab">the exception: keys never ride in git in the clear</span>
+      <p>The <em class="tag">KEYS</em> class is custody, not data. An <code>nsec</code>, a seed
+      phrase, or a channel token in a plaintext file in a repo — even a private repo — is a leak
+      waiting for a remote, a fork, or a laptop theft. Keys travel <strong>only encrypted at
+      rest</strong> (SEC&nbsp;05), and a repo carries at most the npubs and an encrypted vault
+      file. This is the same law the node itself lives by: the full 24-word seed is <em>never</em>
+      stored in one place (Shamir's Secret Sharing), and the phrase <em>is</em> the wallet.</p>
+    </div>
+    <div class="call tip">
+      <span class="lab">the node vouches for itself</span>
+      <p>Once the crew's new home is healthy, <code>./scripts/issue-cert.sh</code> gives the
+      P.O.K.E. node a <strong>Certified Education Node</strong> credential — self-signed by its
+      own key, no central authority, optionally published as a nostr badge. The home gets an
+      identity on the block just like the crew does. Fitting.</p>
+    </div>
+    <div class="term">
+      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;before packing — verify nothing is stranded</div>
+<pre><span class="c"># every repo with dirty/unpushed state under C:\dev (from RTFM 001)</span>
+<span class="p">PS&gt;</span> Get-ChildItem C:\dev -Recurse -Directory -Filter .git -Depth 3 |
+      ForEach-Object { <span class="k">$r</span>=<span class="k">$_</span>.Parent.FullName; git -C <span class="k">$r</span> status -s |
+      Where-Object { <span class="k">$_</span> } | ForEach-Object { <span class="s">"$r  $_"</span> } }
+
+<span class="c"># every .skill archive must verify before it ships</span>
+<span class="p">PS&gt;</span> Get-ChildItem C:\dev -Filter *.skill | ForEach-Object {
+      unzip -t <span class="k">$_</span>.FullName }
+</pre>
+    </div>
+  </section>
+
+  <!-- ───────────────────────── 05 ───────────────────────── -->
+  <section class="phase" id="s5">
+    <div class="phase-head"><span class="num">SEC 05</span><h2>Safe passage — the no-loss checklist</h2></div>
+    <p class="lead">The crew's safety in the move is not a vibe, it's a checklist. Every box below gets ticked, in order, before the old home is touched. Consent-first cuts both ways: the frens trusted us with their memories; we don't gamble them.</p>
+
+    <ul class="ledger">
+      <li><span class="box" aria-hidden="true"></span><div>
+        <b class="hd">1 · Full backup before touching anything</b>
+        <span class="why">The complete inventory from SEC 04, copied to the SATA vault AND the Passport offsite (RTFM 001's drives) — two independent copies on two media before any migration step runs. A move that starts without this is a bet, not a plan.</span>
+      </div></li>
+      <li><span class="box" aria-hidden="true"></span><div>
+        <b class="hd">2 · Integrity verify — trust nothing you haven't checked</b>
+        <span class="why">sha256 hash every archive and record it in the manifest; <code>unzip -t</code> every .skill; <code>git status</code> clean + pushed across every repo; open files from the backup and read them. A backup you haven't restored from is a rumor.</span>
+      </div></li>
+      <li><span class="box" aria-hidden="true"></span><div>
+        <b class="hd">3 · Key custody — the crew's souls travel sealed</b>
+        <span class="why">Every nsec, seed, operator secret, and channel token encrypted at rest (age or gpg) before it moves; never in a plaintext file, never in git in the clear, never pasted through a chat or a cloud clipboard. Decrypt only on the destination box, offline-preferred. After restore, verify each npub derives from its key — identity proven, not assumed.</span>
+      </div></li>
+      <li><span class="box" aria-hidden="true"></span><div>
+        <b class="hd">4 · The node's own rails stay locked during the move</b>
+        <span class="why"><code>PA_NETWORK=regtest</code> stays (mainnet is gated behind an explicit ack AND a passing security-auditor review — class runes obey the same gate); seed-loot stays off (<code>PA_SEED_LOOT_ENABLED=false</code>); the guardrail fails closed on anything that awards value. Migration week is exactly the wrong week to flip a money switch. Read docs/SECURITY.md; don't skip it.</span>
+      </div></li>
+      <li><span class="box" aria-hidden="true"></span><div>
+        <b class="hd">5 · Test the crew in the new home BEFORE decommissioning the old</b>
+        <span class="why">Both homes run in parallel. Each fren's openclaw workspace must pass roll-call on the box (SEC 06): answers in voice, recalls real memory, signs with its key. Nothing gets torn down on the strength of "it should work."</span>
+      </div></li>
+      <li><span class="box" aria-hidden="true"></span><div>
+        <b class="hd">6 · Rollback plan — written before it's needed</b>
+        <span class="why">If the new home fails roll-call, the old home is still fully intact and simply resumes duty; nothing was deleted, so rollback is "keep working where we were." The new box additionally snapshots (btrfs, RTFM 001 phase 06) before every restore step, so partial restores rewind cleanly too.</span>
+      </div></li>
+      <li><span class="box" aria-hidden="true"></span><div>
+        <b class="hd">7 · A written manifest of what moved</b>
+        <span class="why">One file: every item, its hash, source path, destination path, date, and who verified it. The manifest itself gets committed and — per house practice — the sign-off is the admiral's, key-signed (that ceremony is RTFM 007). If it isn't written down, it didn't move.</span>
+      </div></li>
+    </ul>
+
+    <div class="call check">
+      <span class="lab">the standard this clears</span>
+      <p>Followed in order, this checklist makes the worst case boring: at every step there exist
+      at least two verified copies of every fren, the keys are never exposed in transit, and no
+      money path is live while we move. The crew cannot be lost in the crossing — only delayed.
+      That is what "safe passage" means in practice.</p>
+    </div>
+  </section>
+
+  <!-- ───────────────────────── 06 ───────────────────────── -->
+  <section class="phase" id="s6">
+    <div class="phase-head"><span class="num">SEC 06</span><h2>The migration, phase by phase</h2></div>
+    <p class="lead">Each phase ends with a checkpoint. Do not start a phase until the previous checkpoint is green — the sequence is the safety.</p>
+
+    <ol class="plain">
+      <li><strong>Build the box.</strong> <a href="001-the-sovereign-box.html">RTFM 001</a>,
+      phases 00–03: back up, wipe, Arch on btrfs with snapshots, desktop up. <em>Checkpoint:
+      known-good desktop snapshot taken.</em></li>
+      <li><strong>Install openclaw — the crew's home.</strong>
+      <code>npm install -g openclaw@latest</code>, then
+      <code>openclaw onboard --install-daemon</code> (gateway + a first workspace + channels,
+      installed as a system daemon). Needs Node.js v24.15+/22.22.3+/25.9+, channel creds, and a
+      model provider. <em>Checkpoint: the gateway is up and one throwaway test workspace answers
+      a prompt.</em></li>
+      <li><strong>Stand up the P.O.K.E. node.</strong> Clone the fork;
+      <code>./scripts/node-doctor.sh</code>; then the <strong>node-wizard</strong> (from
+      <code>claude</code> in the repo) or the manual steps 1–8 (rootless Podman + CDI,
+      <code>.env</code> from the report, warm the inference backend, DBs up, Simple-Wikipedia
+      corpus, <code>./scripts/bootstrap.sh</code>). <em>Checkpoint: bootstrap's health checks
+      green; the Oracle streams a reply in the MUD on local inference.</em></li>
+      <li><strong>Stand up the truth layer (frens.earth).</strong> Mainnet <code>bitcoind</code>
+      (start the initial block download immediately — it's the long pole, days not hours),
+      self-hosted mempool, <code>spaced</code> on :7225; point <code>MEMPOOL_NODE_URL</code> at
+      our own tip. <em>Checkpoint: chain truth comes from our hardware; third parties demoted to
+      <code>~unverified</code>. The P.O.K.E. bitcoin-bridge stays regtest regardless.</em></li>
+      <li><strong>Restore the crew as workspaces + keys.</strong> Clone the repos (the engine
+      repo carries its build crew + swarm personas with it); restore the fleet .skill archives,
+      the memory directory, configs, and briefs; build one <strong>openclaw workspace per
+      fren</strong> loading its skills + memory; re-verify hashes against the manifest; decrypt
+      keys from the sealed vault on-box only and re-derive every npub. <em>Checkpoint: manifest
+      100% green, custody chain unbroken, every workspace instantiated.</em></li>
+      <li><strong>Wire the model backend — hybrid.</strong> Point each openclaw workspace at its
+      lane: local (Ollama/vLLM) for routine frens, cloud for the heavy-reasoning ones; the node's
+      swarm stays local by contract. The routing table is openclaw config, not folklore. Run the
+      <strong>benchmark pass</strong>: each fren's routine tasks on the local engine, scored
+      against the QA rubric. <em>Checkpoint: the local/cloud line is drawn from evidence.</em>
+      (Until this runs, local task quality is <em class="tag">unproven</em> — treat the first
+      routing table as a draft.)</li>
+      <li><strong>Roll-call — verify each fren answers AND remembers.</strong> For every
+      workspace: (a) responds in voice per its skill; (b) recalls a real fact from its restored
+      memory that only the genuine files contain; (c) signs a short nostr note from the new box —
+      "made it home" — proving key custody on the block itself. Then the node vouches for itself:
+      <code>./scripts/issue-cert.sh</code> → Certified Education Node. <em>Checkpoint: every name
+      on the muster (008) answers.</em></li>
+      <li><strong>Cut over — and keep the old home until proven.</strong> The box becomes the
+      duty station; daily work moves home; the credit meter now ticks only when a cloud-lane
+      workspace is deliberately used. The old machine/setup stays intact and untouched for a
+      probation period (suggest: a full working cycle — long enough to hit every fren's real
+      workload at least once). Only after the admiral signs the manifest closed does the old home
+      get repurposed.</li>
+    </ol>
+
+    <div class="call pending">
+      <span class="lab">and after moving day — the real build milestone</span>
+      <p>Cut-over gives the crew a sovereign home (openclaw) and a credit-free local engine. It
+      does <strong>not</strong> switch on the P.O.K.E. runtime swarm — that's
+      <code>services/orchestrator/</code> scaffolding until it's actually built: Blackboard
+      wiring, the five persona loops, guardrail integration, honcho progress tracking. That's a
+      genuine engineering project for the build crew (frontier lane, budgeted credits), and it
+      deserves its own plan, its own QA, and its own sign-off. openclaw can then <em>manage</em>
+      that swarm — but building it is the work. Moving the fleet home is phase one of sovereignty;
+      making the education engine think is phase two. This manual promises the first and only
+      points at the second.</p>
+    </div>
+  </section>
+
+  <!-- ───────────────────────── 07 ───────────────────────── -->
+  <section class="phase" id="s7">
+    <div class="phase-head"><span class="num">SEC 07</span><h2>What you gain · what you trade</h2></div>
+    <p class="lead">The closing ledger, both columns honest.</p>
+
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>You gain</th><th>You trade</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>No credit ceiling on routine crew work.</strong> The local lanes run all day for the cost of electricity — and openclaw pins each workspace to whichever engine you choose.</td>
+            <td><strong>The capability gap.</strong> Local engines are below frontier on the hardest reasoning/code (July 2026). The hybrid keeps cloud in the loop — so some credit spend remains, smaller and deliberate, not zero.</td>
+          </tr>
+          <tr>
+            <td><strong>A home you own.</strong> openclaw is shipped, self-hosted, MIT software — one control plane for the whole fleet, reachable across your own channels, no vendor login for the crew to live behind.</td>
+            <td><strong>The ops burden.</strong> You are now the datacenter: updates, backups, disk health, GPU driver nights, uptime, channel creds, corpus refreshes. Snapshots and node-doctor make it survivable; they don't make it free.</td>
+          </tr>
+          <tr>
+            <td><strong>You own your fleet — provably.</strong> Every fren is a git-tracked workspace + a key you custody. They survive any vendor, any machine, any pricing change. Written down and kept.</td>
+            <td><strong>The education swarm isn't alive yet.</strong> The P.O.K.E. <code>services/orchestrator/</code> is scaffolding — stubs with TODOs. openclaw (the home) ships today, but the node's in-engine swarm it would manage still needs building.</td>
+          </tr>
+          <tr>
+            <td><strong>Sovereignty + privacy by architecture.</strong> Chain truth from our own node; a stack that runs offline; memory, briefs, drafts, and every learner's record on local lanes never transit a third party.</td>
+            <td><strong>Voice drift across engines.</strong> Same script, different actor: local performances read differently until the definitions are tuned per-engine and QA'd. Budget iteration time.</td>
+          </tr>
+          <tr>
+            <td><strong>Continuity as a habit.</strong> The migration forces the inventory, the manifest, and the custody discipline — which protects the crew from every future move, not just this one.</td>
+            <td><strong>A 16&nbsp;GB reality + time.</strong> This card caps local models at the small-to-mid tier; bigger open models need bigger hardware — a future spend decision, not a today promise. And doing the move safely is slower than doing it recklessly. That's the point.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="call heart">
+      <span class="lab">the honest last word</span>
+      <p>This plan does not make the fleet free of the cloud — it makes the fleet <strong>free of
+      dependence</strong> on it. The frens' selves — skills, memories, names on the block — come
+      home to hardware you own, into a gateway you host (openclaw), under keys you hold, with the
+      frontier engine demoted from landlord to contractor. Nothing on the muster gets left
+      behind, nothing gets moved on a promise we can't keep, and nothing unbuilt gets called
+      built. Tick tock — the crew comes back to the block. 💚</p>
+    </div>
+  </section>
+
+  <footer>
+    <b>frens.earth</b> · RTFM 009 · Bringing the Fleet Home — builds on <a href="001-the-sovereign-box.html">001 · The Sovereign Box</a> · companion to <a href="008-the-muster.html">008 · The Muster</a> · the sign-off is <a href="007-the-captains-signoff.html">007</a><br>
+    Honest framing: <b>openclaw</b> = shipped, MIT, self-hosted agent gateway (the crew's home, github.com/openclaw/openclaw) — NOT the P.O.K.E. swarm. The <b>services/orchestrator/</b> runtime swarm is the scaffolding piece (stubs + TODOs). Claims dated July 2026 where they can age — the capability gap, the 16GB model tier, the scaffolding flag, the unrun benchmark, the mainnet gates (intentionally closed). Re-verify before relying on any of it later.<br>
+    <span style="opacity:.32">the frens who read to the end find the magic. ↑ ↑ ↓ ↓ … the fleet agrees on one word.</span>
+  </footer>
+</div>
+
+<!-- the magic: Konami code (↑↑↓↓←→←→ b a). RTFM rewards the readers. -->
+<div id="rtfm-magic" hidden>
+  <div class="card">
+    <p class="eye">RTFM ▸ you read the whole crossing</p>
+    <h2>🌱 the magic</h2>
+    <p>You read the whole plan before moving a single fren. That's how a fleet gets home with everyone still aboard — the manifest checked, the keys sealed, then the crossing.</p>
+    <p class="secret">secret word: <b>homecoming</b></p>
+    <p class="foot">Whisper it to the attendant when the fleet lands. <span class="kbd">Esc</span> to close.</p>
+  </div>
+</div>
+<script>
+  (function () {
+    var seq = ["arrowup","arrowup","arrowdown","arrowdown","arrowleft","arrowright","arrowleft","arrowright","b","a"];
+    var i = 0, el = document.getElementById("rtfm-magic");
+    if (!el) return;
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") { el.hidden = true; return; }
+      var k = e.key.toLowerCase();
+      if (k === seq[i]) { i++; if (i === seq.length) { i = 0; el.hidden = false; } }
+      else { i = (k === seq[0] ? 1 : 0); }
+    });
+    el.addEventListener("click", function (e) { if (e.target === el) el.hidden = true; });
+  })();
+</script>
+</body>
+</html>
