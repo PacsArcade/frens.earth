@@ -96,6 +96,7 @@ ping -c3 archlinux.org</code></pre>
 
   <h2><span class="p">PHASE 4</span> · Install Arch — the guided way</h2>
   <div class="danger"><b>Before you type anything: unplug what must survive.</b> Power down if needed and disconnect the <b>4 TB SATA vault</b> (ST4000DM004) and any USB drive. A drive that isn't connected cannot be wiped by a mis-pick. The target is the <b>WD_BLACK SN850X 4 TB NVMe</b> (the one that had Windows) — this box has more than one NVMe, so identify by <b>model + size</b>, never by position in the list. To double-check from the prompt first: <code>lsblk -d -o NAME,SIZE,MODEL</code>.</div>
+  <div class="tip"><b>btrfs vs ext4, in arcade terms.</b> <code>ext4</code> is the classic cartridge: solid, simple, fast — but <b>no save states</b>. <code>btrfs</code> does the same job <b>plus save states for the whole operating system</b>: it snapshots itself before every update (<code>snap-pac</code>), and GRUB can boot straight into yesterday's save if today's patch bricks the desktop — a bad update becomes a reboot, never a reinstall. Cost: a hair of speed and more machinery under the hood. On a daily-driver ship you never want to rebuild, the save states win. That's the whole difference as it matters here.</div>
   <p>Type:</p><pre><code>archinstall</code></pre>
   <p>A menu opens (arrow keys, Enter to open, Esc/Tab to go back). Menu wording shifts between ISO versions — match by meaning, not exact words. Set these:</p>
   <ol>
@@ -149,6 +150,7 @@ git clone https://github.com/PacsArcade/frens.earth
 
   <h2><span class="p">RESCUE MISSION</span> · <span class="lap">Laptop</span> → <span class="arch">new ship</span> — the Degen Wonderland originals</h2>
   <p>On the laptop live <b>hand-drawn images from the actual artists for Degen Wonderland</b>. They are irreplaceable — treat them like keys: <b>never one copy, verify every hop, and the laptop is not wiped until the numbers say every file made it</b>. They're image files (data, not programs) so carrying them off the infected shuttle is safe — just never <i>run</i> anything from that machine.</p>
+  <p><b>Timing (the admiral's call):</b> this runs <b>after the new ship has proven stable</b> — no rush. The copying is the admiral's own hands; Steps 1–2 are there as the map. <b>Steps 3–5 are the contract</b>: whoever carries the cargo, the verifications run, and the wipe stays gated on them.</p>
 
   <p><b>Step 1 — <span class="lap">laptop</span>: find every original.</b> Sweep beyond the obvious folder — Desktop, Downloads, Pictures, scanner output. This lists the 25 folders holding the most big images:</p>
   <pre><code>Get-ChildItem C:\Users -Recurse -File -ErrorAction SilentlyContinue `
@@ -194,6 +196,35 @@ node -e "const n=require('nostr-tools');const sk=n.generateSecretKey();console.l
   <p>Run it for each: <b>Number One, GLYPH, Carroll, Professor ₿, pacBOT, the Time Keeper, the QA seat.</b> Keep every <code>nsec</code> secret (a password manager, or an encrypted file — never in a git repo). Record each <code>npub</code> as that fren's known identity.</p>
   <div class="danger"><b>The nsec is the fren's soul-key.</b> Anyone with it IS that fren. Keep them off the internet and out of any repo.</div>
   <p>Then <b>muster</b> (RTFM 008): as you wake each fren in openclaw, ask your watchword and have it sign your challenge with its key. When it answers true — it's home.</p>
+
+  <h2><span class="p">PHASE 9</span> · <span class="arch">Arch</span> — stack seeds (this IS the first ship)</h2>
+  <p>The sovereign box is <b>ship one of the fleet</b> — the future home of the Proof of Knowledge Engine node and <b>Honcho</b> (the crew's memory layer — API + Postgres, runs in containers). Day one we only <b>plant the seeds</b>: the container rail and the source trees. Standing the engine room up gets its own RTFM once the ship has proven stable — don't rush the reactor on launch day.</p>
+  <pre><code># rootless Podman — the container rail the Knowledge Engine runs on
+sudo pacman -S podman podman-compose
+sudo usermod --add-subuids 100000-165535 --add-subgids 100000-165535 pac
+podman system migrate
+podman run --rm quay.io/podman/hello        # prints a hello = the rail works
+
+# the frameworks — clone now, stand up later per their own docs
+cd ~/dev
+git clone https://github.com/PacsArcade/proof-of-knowledge-engine
+git clone https://github.com/plastic-labs/honcho</code></pre>
+  <div class="tip">Order of the first ship's life: boot clean → snapshots armed → crew mustered → art rescued → <i>then</i> the engine room (POKE node + Honcho + bitcoind + spaced, the full RTFM 001 Phase 05 stack). Each gets lit deliberately, one system at a time, with a snapshot before each.</div>
+
+  <h2><span class="p">PHASE 10</span> · <span class="arch">Arch</span> — the music deck (Bitwig)</h2>
+  <p>Bitwig Studio (paid license) comes aboard for the music. PipeWire — already installed in Phase 4 — is the ship's audio engine, and it speaks pro-audio natively now. Setup:</p>
+  <pre><code># Bitwig via Flatpak — the clean path on Arch (log in with your Bitwig account to activate the license)
+sudo pacman -S flatpak
+flatpak install flathub com.bitwig.BitwigStudio
+
+# pro-audio readiness: JACK surface + realtime rights for low latency
+sudo pacman -S pipewire-jack realtime-privileges rtkit
+sudo usermod -aG realtime pac      # log out and back in to take effect</code></pre>
+  <ol>
+    <li>In Bitwig: Settings → Audio system → pick <b>PipeWire</b> if offered, otherwise <b>JACK</b> (pipewire-jack answers as JACK — same engine either way).</li>
+    <li>Latency is the buffer trade: <b>smaller buffer = lower latency, more CPU</b>. Start at 256 samples; drop toward 128/64 while recording if it stays clean; raise it when mixing (latency doesn't matter there).</li>
+    <li><b>Low-latency kernel — only if you actually hear trouble.</b> With realtime privileges + PipeWire, the stock Arch kernel handles most studio work clean. If you get crackles/xruns under real load that buffer sizing can't fix, the dedicated realtime kernel is the escalation: <code>pacman -Ss linux-rt</code>, and the Arch wiki's <b>Professional audio</b> page is the deep manual (a snapshot before switching kernels — that's what they're for).</li>
+  </ol>
 
   <h2><span class="p">REPORT IN</span> · both boarding points — how the crew checks in</h2>
   <p>The crew reports in the same way on every vessel — only the <b>dev root</b> moves. On the <span class="lap">laptop</span> it's wherever <code>C:\dev</code> (or its backup copy) lives; on the <span class="arch">new ship</span> it's <code>~/dev</code>. All paths below hang off that root.</p>
