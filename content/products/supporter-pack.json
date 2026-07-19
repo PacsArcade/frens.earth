@@ -1,0 +1,16 @@
+{
+  "slug": "supporter-pack",
+  "title": "SUPPORTER PACK",
+  "tagline": "PLACEHOLDER — the first real shelf item awaits the admiral's catalog",
+  "priceSats": 21000,
+  "kind": "digital",
+  "status": "draft",
+  "summary": "Draft sample so the shelf renders in dev. Not a real offer — price and copy are placeholders pending Pac's blessing.",
+  "story": [
+    "This file exists to prove the content layer end to end.",
+    "Replace it with the real first product before flipping status to live."
+  ],
+  "image": null,
+  "delivery": "a thank-you from the arcade + your fren tag on the supporters wall (draft copy)",
+  "supply": null
+}
