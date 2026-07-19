@@ -25,7 +25,7 @@
   .danger{border-left:3px solid var(--ghost);background:rgba(255,107,107,.07);padding:.6rem .8rem;border-radius:0 8px 8px 0;margin:.7rem 0;color:#ffd7d7}
   .danger b{color:var(--ghost)}
   .tip{border-left:3px solid var(--teal);background:rgba(83,224,212,.06);padding:.6rem .8rem;border-radius:0 8px 8px 0;margin:.7rem 0}
-  .win{color:var(--heart)} .arch{color:var(--sprout)}
+  .win{color:var(--heart)} .arch{color:var(--sprout)} .lap{color:var(--ghost)}
   .foot{color:var(--dim);font-size:.8rem;margin-top:2.4rem;border-top:1px solid var(--edge);padding-top:1rem}
 </style>
 </head>
@@ -33,27 +33,33 @@
 <div class="wrap">
   <div class="eyebrow">RTFM · 011 · INSTALL</div>
   <h1>The Install</h1>
-  <p class="sub">Keys → back up → wipe → Arch → openclaw → restore. Do the phases in order. <span class="win">■ = on Windows now</span> · <span class="arch">■ = on the new Arch machine</span>. When a name/size is unique to your box, I say so — read your own screen.</p>
+  <p class="sub">Keys → back up → wipe → Arch → openclaw → restore → rescue the art. Do the phases in order. <span class="win">■ = on Windows now</span> · <span class="arch">■ = on the new Arch machine</span> · <span class="lap">■ = on the away-mission laptop</span>. When a name/size is unique to your box, I say so — read your own screen. The <b>why</b> behind every choice here lives in RTFM 001 — this page is the runbook; they are kept in lock-step.</p>
 
   <div class="danger"><b>⚠ TWO steps can erase a disk: Clonezilla (Phase 2) and archinstall (Phase 4).</b> Both ask you to pick a disk. Your machine has TWO ~4 TB drives: the <b>NVMe</b> (has Windows — this becomes Arch) and the <b>backup drive</b> (empty-ish — holds the copy). Identify them by <b>size, model, and which one has your data</b> every single time. When unsure, stop.</div>
 
-  <h2><span class="p">PHASE 0</span> · <span class="win">Windows</span> — make two USB sticks</h2>
+  <div class="tip"><b>The mission map — three vessels.</b> The <b>desktop NVMe</b> (old ship; gets wiped and reborn as the new ship), the <b>4 TB SATA vault</b> (lifeboat), and the <b class="lap">laptop</b> (away-mission shuttle — <b>presumed infected</b>, suspected keylogger). While the desktop is dark during Phases 2–5, the admiral and the crew operate from the laptop. Its quarantine rules are the <b>Away Mission</b> phase below — read them before you board.</div>
+
+  <div class="tip"><b>MISSION STATUS — 2026-07-19.</b> ✅ Phase 0 (Ventoy stick carries Clonezilla + <code>archlinux-2026.07.01-x86_64.iso</code>) · ✅ Phase 1 (file backup on the 4 TB SATA vault, verified) · ✅ Phase 2 (Clonezilla full-disk image done). <b>YOU ARE HERE → Phase 3: boot the installer.</b> The laptop's <b>RESCUE MISSION</b> (the Degen Wonderland artist originals) is a new phase after Phase 7 — the laptop is not wiped until it verifies out.</div>
+
+  <h2><span class="p">PHASE 0</span> · <span class="win">Windows</span> — the Ventoy stick <span class="arch">✅ done</span></h2>
+  <div class="danger"><b>First move: pause Windows Update.</b> Settings → Windows Update → <b>Pause for 5 weeks</b>. A forced update already rebooted the bridge mid-watch and ate a set of review notes; it must NOT reboot the box mid-backup or mid-image. (The crew's blackbox rule in <b>REPORT IN</b> below is the other half of "never again".)</div>
+  <p>One stick, many ISOs — <b>Ventoy</b> (ventoy.net) turns a USB stick into a boot menu you just drag ISO files onto. No re-flashing per ISO, ever.</p>
   <ol>
-    <li>Get two USB sticks (8 GB+). Download on Windows: <b>Rufus</b> (rufus.ie), the <b>Arch ISO</b> (archlinux.org/download — the .iso), the <b>Clonezilla ISO</b> (clonezilla.org — "alternative stable", amd64 iso).</li>
-    <li>Rufus → select USB #1 → pick the <b>Clonezilla</b> iso → START (accept "DD Image" if asked).</li>
-    <li>Rufus → select USB #2 → pick the <b>Arch</b> iso → START → choose <b>"Write in DD Image mode"</b>.</li>
+    <li>Download Ventoy on Windows → run <code>Ventoy2Disk.exe</code> → select the stick → <b>Install</b> (this erases the stick, once).</li>
+    <li>Copy the ISO <b>files</b> straight onto the stick: <b>Clonezilla</b> (clonezilla.org — "alternative stable", amd64) and <b>Arch</b> (archlinux.org/download) — current mission stick carries <code>archlinux-2026.07.01-x86_64.iso</code>.</li>
+    <li>That's it. At boot, Ventoy shows a menu of every ISO on the stick — pick the one the phase calls for.</li>
   </ol>
 
-  <h2><span class="p">PHASE 1</span> · <span class="win">Windows</span> — plain-file backup (the easy-restore copy)</h2>
+  <h2><span class="p">PHASE 1</span> · <span class="win">Windows</span> — plain-file backup (the easy-restore copy) <span class="arch">✅ done — verified on the SATA vault</span></h2>
   <p>A Clonezilla image is a sealed full-disk snapshot — hard to pull single files from. So <b>also</b> copy the folders that don't travel with git as normal files. Plug in the 4 TB backup drive (assume it's <code>E:</code> — check in File Explorer). Open <b>PowerShell</b>:</p>
   <pre><code>robocopy C:\dev E:\backup\dev /E /R:1 /W:1
 robocopy C:\Users\pacman\.claude E:\backup\claude /E /R:1 /W:1</code></pre>
   <div class="danger"><b>This is the soul of the ship.</b> <code>C:\Users\pacman\.claude</code> is the crew's memory — it is NOT in any repo. If it's not on the backup drive, it's gone forever after Phase 3. Open <code>E:\backup\claude</code> and confirm files are really there before moving on.</div>
   <p>Copy anything else you care about the same way (e.g. <code>C:\dev\studies</code> is already inside <code>C:\dev</code>, so it's covered).</p>
 
-  <h2><span class="p">PHASE 2</span> · Clonezilla — full-disk safety net</h2>
+  <h2><span class="p">PHASE 2</span> · Clonezilla — full-disk safety net <span class="arch">✅ done</span></h2>
   <ol>
-    <li>Leave the backup drive plugged in. Restart. At the maker's logo, tap the <b>boot-menu key</b> (shown on-screen — usually <code>F8</code>, <code>F11</code>, or <code>F12</code>). Pick the Clonezilla USB.</li>
+    <li>Leave the backup drive plugged in. Restart. At the maker's logo, tap the <b>boot-menu key</b> (<code>F8</code> on this ASUS board). Pick the <b>Ventoy</b> USB (UEFI entry) → in the Ventoy menu pick the <b>Clonezilla</b> ISO.</li>
     <li>Choose <b>Clonezilla live (default)</b> → language → keep keymap → <b>Start Clonezilla</b>.</li>
     <li><code>device-image</code> → <code>local_dev</code> → press Enter to let it scan → pick the <b>backup drive</b> as where the image is <b>saved</b> (by size/label) → <code>/</code> (top dir).</li>
     <li><code>savedisk</code> → name it e.g. <code>windows-2026</code> → <b>select the source disk = the NVMe that has Windows</b> (by size + model).</li>
@@ -61,9 +67,21 @@ robocopy C:\Users\pacman\.claude E:\backup\claude /E /R:1 /W:1</code></pre>
   </ol>
   <div class="tip">✅ Now you have BOTH: a browsable file copy (Phase 1) and a full-disk image (Phase 2) on the backup drive. Windows is safe. You can restore the whole thing later if you ever want to.</div>
 
-  <h2><span class="p">PHASE 3</span> · Boot the Arch installer + get online</h2>
+  <h2><span class="p">AWAY MISSION</span> · <span class="lap">Laptop</span> — board the infected shuttle</h2>
+  <p>From here until the new ship boots (Phases 3–5 the desktop is dark), you and the crew work from the laptop. It is <b>presumed infected</b> — suspected keylogger. We board it anyway because the mission needs it: it carries this manual, the crew, and the admiral's hands while the new ship is built. We resist infection by discipline, not hope:</p>
   <ol>
-    <li>Boot-menu key again → pick the <b>Arch</b> USB → "Arch Linux install medium". You land at a black <code>root@archiso ~#</code> prompt.</li>
+    <li><b>Assume every keystroke is recorded.</b> NEVER type on the laptop: seed phrases, any <code>nsec</code>, wallet or treasury credentials, or the new ship's root/user passwords. Choose the new passwords in your head — type them for the first time on the new ship, in Phase 4.</li>
+    <li><b>No key forging on the shuttle.</b> The crew's soul-keys are born on the new ship only (Phase 8) — never here.</li>
+    <li><b>Log into as little as possible.</b> Anything you're forced to type there (WiFi password, an unavoidable web login) goes on the <b>rotate-after-mission list</b> — change it from the new ship the day she's live.</li>
+    <li><b>Read and coach freely.</b> Reading this manual, downloading ISOs, and running the crew for guidance is fine — the danger is what you TYPE, not what you read.</li>
+    <li><b>Crew report-in on boarding.</b> The moment the crew wakes on the laptop, it checks in per <b>REPORT IN</b> below — same protocol, laptop's dev root.</li>
+    <li><b>After the muster (Phase 8) and the RESCUE MISSION verifies out:</b> the laptop is the next planet to cleanse. It gets its own Phase 0→4 crossing (or at minimum a full wipe) before it rejoins the fleet. Until then it stays quarantined: no keys, no wallets, no trust — and it does NOT get wiped while it still holds the only copy of the Degen Wonderland originals.</li>
+  </ol>
+
+  <h2><span class="p">PHASE 3</span> · Boot the Arch installer + get online</h2>
+  <p><b>BIOS preflight first</b> (from RTFM 001 — <code>Del</code> at boot into the ASUS BIOS): <b>Secure Boot → "Other OS" / disabled</b> (Ventoy + the Arch ISO won't boot signed), <b>CSM off</b> (UEFI only), <b>Fast Boot off</b>, <b>EXPO I on</b> (DDR5-6400 rated; if the box won't POST or the installer crashes, drop EXPO to 6000 or off — memory stability first, speed later). Save & exit.</p>
+  <ol>
+    <li><code>F8</code> at the logo → pick the <b>Ventoy</b> USB (UEFI entry) → in the Ventoy menu pick <code>archlinux-2026.07.01-x86_64.iso</code> → if a second menu asks, <b>Boot in normal mode</b> → "Arch Linux install medium". You land at a black <code>root@archiso ~#</code> prompt.</li>
     <li><b>WiFi:</b><pre><code>iwctl
 device list</code></pre>
       If you see a device like <code>wlan0</code>, continue:<pre><code>station wlan0 scan
@@ -77,22 +95,27 @@ ping -c3 archlinux.org</code></pre>
   </ol>
 
   <h2><span class="p">PHASE 4</span> · Install Arch — the guided way</h2>
+  <div class="danger"><b>Before you type anything: unplug what must survive.</b> Power down if needed and disconnect the <b>4 TB SATA vault</b> (ST4000DM004) and any USB drive. A drive that isn't connected cannot be wiped by a mis-pick. The target is the <b>WD_BLACK SN850X 4 TB NVMe</b> (the one that had Windows) — this box has more than one NVMe, so identify by <b>model + size</b>, never by position in the list. To double-check from the prompt first: <code>lsblk -d -o NAME,SIZE,MODEL</code>.</div>
+  <div class="tip"><b>btrfs vs ext4, in arcade terms.</b> <code>ext4</code> is the classic cartridge: solid, simple, fast — but <b>no save states</b>. <code>btrfs</code> does the same job <b>plus save states for the whole operating system</b>: it snapshots itself before every update (<code>snap-pac</code>), and GRUB can boot straight into yesterday's save if today's patch bricks the desktop — a bad update becomes a reboot, never a reinstall. Cost: a hair of speed and more machinery under the hood. On a daily-driver ship you never want to rebuild, the save states win. That's the whole difference as it matters here.</div>
   <p>Type:</p><pre><code>archinstall</code></pre>
-  <p>A menu opens (arrow keys, Enter to open, Esc/Tab to go back). Set these:</p>
+  <p>A menu opens (arrow keys, Enter to open, Esc/Tab to go back). Menu wording shifts between ISO versions — match by meaning, not exact words. Set these:</p>
   <ol>
     <li><b>Mirror region</b> → your country.</li>
-    <li><b>Disk configuration</b> → "Partitioning" → <b>Use a best-effort default partition layout</b> → <b>pick the NVMe by size</b> → filesystem <code>ext4</code> → confirm it will <b>wipe that disk</b>. <span class="win"></span><b class="win">← this erases the NVMe. Confirm it's the Windows NVMe, not the backup drive.</b></li>
-    <li><b>Bootloader</b> → <code>systemd-boot</code>.</li>
+    <li><b>Disk configuration</b> → "Partitioning" → <b>Use a best-effort default partition layout</b> → <b>pick the WD_BLACK SN850X by model + size</b> → filesystem <b><code>btrfs</code></b> → say <b>yes</b> to the default subvolume structure and <b>yes</b> to compression → if it offers <b>snapshots</b>, pick <b>Snapper</b>. Confirm it will <b>wipe that disk</b>. <b class="win">← this erases the NVMe. Model must read SN850X — not ST4000 (vault), not FIKWOT, not SN770.</b> <i>(Why btrfs: RTFM 001's "Arch forever" plan — the whole OS snapshots and rolls back, so a bad update is a reboot, not a reinstall.)</i></li>
+    <li><b>Bootloader</b> → <b><code>GRUB</code></b>. <i>(Why not systemd-boot: <code>grub-btrfs</code> puts every snapshot in the boot menu — the undo button for the whole OS. This supersedes the earlier draft of this page that said systemd-boot.)</i></li>
     <li><b>Hostname</b> → e.g. <code>frenship</code>.</li>
-    <li><b>Root password</b> → set one you'll remember.</li>
+    <li><b>Root password</b> → set one you'll remember. <b class="lap">Chosen in your head — never typed on the laptop.</b></li>
     <li><b>User account</b> → Add a user (e.g. <code>pac</code>), give it a password, answer <b>yes</b> to "superuser (sudo)".</li>
     <li><b>Profile</b> → <code>Desktop</code> → <code>KDE Plasma</code> (friendly, looks like Windows). [Choose <code>Minimal</code> only if you want no GUI.]</li>
+    <li><b>Graphics driver</b> (asked with the profile) → <b>Nvidia (open kernel module)</b> if listed — right for the 4070 Ti Super (Ada); otherwise <b>Nvidia (proprietary)</b>. Either boots; 001 Phase 03 refines.</li>
     <li><b>Audio</b> → <code>pipewire</code>.</li>
-    <li><b>Graphics driver</b> (if shown) → <b>NVIDIA (proprietary)</b> — you have the 4070 Ti.</li>
     <li><b>Network configuration</b> → <b>Use NetworkManager</b>. <b class="danger" style="border:0;background:0">← don't skip; this is what makes WiFi work after reboot.</b></li>
-    <li><b>Additional packages</b> → type: <code>git base-devel nodejs npm nano</code></li>
+    <li><b>Additional packages</b> → type: <code>git base-devel nodejs npm nano linux-firmware-mediatek</code> <i>(the last one is the board's MT7922 WiFi firmware — Arch split linux-firmware into vendor packages in 2025; without it WiFi can be dead on first boot. See 001.)</i></li>
+    <li><b>Optional repositories</b> → enable <b>multilib</b> (Steam and the gaming stack in 001 Phase 04 need it).</li>
+    <li><b>Timezone</b> → yours.</li>
     <li>Scroll to <b>Install</b> → Enter → confirm. Wait. When it asks about chroot, say <b>no</b>. Then <b>Reboot</b> → <b>pull the USB out</b> as it restarts.</li>
   </ol>
+  <div class="tip">Reconnect the SATA vault (and nothing else yet) after the first successful boot.</div>
 
   <h2><span class="p">PHASE 5</span> · <span class="arch">Arch</span> — first boot</h2>
   <ol>
@@ -100,6 +123,9 @@ ping -c3 archlinux.org</code></pre>
     <li>WiFi: click the network icon (bottom-right) → your network → password. (Or run <code>nmtui</code> in a terminal.)</li>
     <li>Open a terminal (Konsole) and update everything:<pre><code>sudo pacman -Syu</code></pre></li>
     <li>If you installed NVIDIA, reboot once more: <code>reboot</code>.</li>
+    <li><b>Arm the undo button</b> (the reason we chose btrfs + GRUB):<pre><code>snapper list-configs   # if archinstall set up Snapper, "root" is listed — done
+sudo pacman -S snapper snap-pac grub-btrfs inotify-tools
+sudo systemctl enable --now grub-btrfsd</code></pre>If <code>list-configs</code> came back empty, the Snapper config needs the Arch-wiki dance — do it with the crew once they're home (Phase 7), not solo. <code>snap-pac</code> snapshots before every <code>pacman</code> upgrade; <code>grub-btrfs</code> puts snapshots in the boot menu. Full upkeep story: 001 Phase 06.</li>
   </ol>
 
   <h2><span class="p">PHASE 6</span> · <span class="arch">Arch</span> — install openclaw</h2>
@@ -110,8 +136,9 @@ openclaw onboard --install-daemon</code></pre>
 
   <h2><span class="p">PHASE 7</span> · <span class="arch">Arch</span> — bring the crew + data home</h2>
   <ol>
-    <li>Plug in the 4 TB backup drive. Find it:<pre><code>lsblk</code></pre> Look for your backup drive by size; note its partition (e.g. <code>sdb1</code>).</li>
-    <li>Mount + copy (swap <code>sdb1</code> for what you saw):<pre><code>sudo mkdir -p /mnt/backup
+    <li>Plug in the 4 TB backup drive. Find it:<pre><code>lsblk -o NAME,SIZE,MODEL,FSTYPE</code></pre> Look for your backup drive by size/model (ST4000DM004); note its partition (e.g. <code>sdb1</code>).</li>
+    <li>Mount + copy (swap <code>sdb1</code> for what you saw; the drive is NTFS from its Windows life, so install the driver first):<pre><code>sudo pacman -S ntfs-3g
+sudo mkdir -p /mnt/backup
 sudo mount /dev/sdb1 /mnt/backup
 cp -r /mnt/backup/backup/claude ~/.claude
 mkdir -p ~/dev && cp -r /mnt/backup/backup/dev/* ~/dev/</code></pre></li>
@@ -121,8 +148,47 @@ git clone https://github.com/PacsArcade/frens.earth
   </ol>
   <div class="tip">Your memory (<code>~/.claude</code>), your studies (the pupil clock etc., under <code>~/dev</code>), and the repos are now all on the new box.</div>
 
+  <h2><span class="p">RESCUE MISSION</span> · <span class="lap">Laptop</span> → <span class="arch">new ship</span> — the Degen Wonderland originals</h2>
+  <p>On the laptop live <b>hand-drawn images from the actual artists for Degen Wonderland</b>. They are irreplaceable — treat them like keys: <b>never one copy, verify every hop, and the laptop is not wiped until the numbers say every file made it</b>. They're image files (data, not programs) so carrying them off the infected shuttle is safe — just never <i>run</i> anything from that machine.</p>
+  <p><b>Timing (the admiral's call):</b> this runs <b>after the new ship has proven stable</b> — no rush. The copying is the admiral's own hands; Steps 1–2 are there as the map. <b>Steps 3–5 are the contract</b>: whoever carries the cargo, the verifications run, and the wipe stays gated on them.</p>
+
+  <p><b>Step 1 — <span class="lap">laptop</span>: find every original.</b> Sweep beyond the obvious folder — Desktop, Downloads, Pictures, scanner output. This lists the 25 folders holding the most big images:</p>
+  <pre><code>Get-ChildItem C:\Users -Recurse -File -ErrorAction SilentlyContinue `
+  -Include *.png,*.jpg,*.jpeg,*.tif,*.tiff,*.psd,*.bmp,*.heic,*.svg,*.pdf,*.procreate |
+  Where-Object Length -gt 500KB | Group-Object DirectoryName |
+  Sort-Object Count -Descending | Select-Object -First 25 Count,Name</code></pre>
+
+  <p><b>Step 2 — <span class="lap">laptop</span>: copy to the USB hard drive with a log.</b> (Assume the USB drive is <code>F:</code> — check File Explorer. Swap <code>C:\path\to\DW-ART</code> for the real folder; repeat per folder if the art lives in several.)</p>
+  <pre><code>robocopy "C:\path\to\DW-ART" "F:\rescue\dw-art" /E /COPY:DAT /R:2 /W:5 `
+  /LOG:F:\rescue\robocopy-dw-art.log /TEE</code></pre>
+
+  <p><b>Step 3 — <span class="lap">laptop</span>: verify the copy, byte for byte.</b> Equal counts + empty <code>Compare-Object</code> output = every file's SHA-256 exists on both sides. <b>Write the file count down</b> — you'll check it again on the new ship.</p>
+  <pre><code>$src = Get-ChildItem "C:\path\to\DW-ART" -Recurse -File
+$dst = Get-ChildItem "F:\rescue\dw-art" -Recurse -File
+"source: $($src.Count) files   copy: $($dst.Count) files"
+$sh = $src | Get-FileHash -Algorithm SHA256
+$dh = $dst | Get-FileHash -Algorithm SHA256
+Compare-Object ($sh.Hash | Sort-Object) ($dh.Hash | Sort-Object)
+# no output from Compare-Object = perfect copy. ANY output = a file differs — stop and recopy.</code></pre>
+  <p>Eject the drive properly (system tray → Safely Remove) — yanking it mid-write is how rescues fail.</p>
+
+  <p><b>Step 4 — <span class="arch">new ship</span>: land the art + verify again.</b></p>
+  <pre><code>lsblk -o NAME,SIZE,MODEL,FSTYPE          # find the USB drive, e.g. sdc1
+sudo mkdir -p /mnt/rescue && sudo mount /dev/sdc1 /mnt/rescue
+mkdir -p ~/dev/degenwonderland/art-originals
+rsync -av /mnt/rescue/rescue/dw-art/ ~/dev/degenwonderland/art-originals/
+# checksum re-compare — SILENCE = identical:
+rsync -rnc --itemize-changes /mnt/rescue/rescue/dw-art/ ~/dev/degenwonderland/art-originals/
+find ~/dev/degenwonderland/art-originals -type f | wc -l   # must equal Step 3's count</code></pre>
+
+  <p><b>Step 5 — <span class="arch">new ship</span>: second copy to the vault.</b> Irreplaceable = minimum two independent homes (the USB drive stays as a third).</p>
+  <pre><code>rsync -av ~/dev/degenwonderland/art-originals/ /mnt/backup/dw-art-originals/
+rsync -rnc --itemize-changes ~/dev/degenwonderland/art-originals/ /mnt/backup/dw-art-originals/</code></pre>
+
+  <div class="danger"><b>Only when Step 3 compared clean, Step 4's count matches, and Step 5's re-check is silent</b> is the laptop cleared for its wipe (its own Phase 0→4 crossing). Until all three: the originals are NOT safe, and the shuttle keeps flying.</div>
+
   <h2><span class="p">PHASE 8</span> · <span class="arch">Arch</span> — forge the crew's keys + muster</h2>
-  <p>Each fren needs its own nostr key (RTFM 008). Make them <b>on this machine</b> — they're born where they'll live, never on Windows or a website. Node's already installed:</p>
+  <p>Each fren needs its own nostr key (RTFM 008). Make them <b>on this machine</b> — they're born where they'll live: never on Windows, <b>never on the away-mission laptop</b>, never on a website. Node's already installed:</p>
   <pre><code>mkdir -p ~/keys && cd ~/keys
 npm init -y >/dev/null 2>&1 && npm i nostr-tools
 # run this ONCE PER FREN, label + save each output somewhere safe:
@@ -130,6 +196,43 @@ node -e "const n=require('nostr-tools');const sk=n.generateSecretKey();console.l
   <p>Run it for each: <b>Number One, GLYPH, Carroll, Professor ₿, pacBOT, the Time Keeper, the QA seat.</b> Keep every <code>nsec</code> secret (a password manager, or an encrypted file — never in a git repo). Record each <code>npub</code> as that fren's known identity.</p>
   <div class="danger"><b>The nsec is the fren's soul-key.</b> Anyone with it IS that fren. Keep them off the internet and out of any repo.</div>
   <p>Then <b>muster</b> (RTFM 008): as you wake each fren in openclaw, ask your watchword and have it sign your challenge with its key. When it answers true — it's home.</p>
+
+  <h2><span class="p">PHASE 9</span> · <span class="arch">Arch</span> — stack seeds (this IS the first ship)</h2>
+  <p>The sovereign box is <b>ship one of the fleet</b> — the future home of the Proof of Knowledge Engine node and <b>Honcho</b> (the crew's memory layer — API + Postgres, runs in containers). Day one we only <b>plant the seeds</b>: the container rail and the source trees. Standing the engine room up gets its own RTFM once the ship has proven stable — don't rush the reactor on launch day.</p>
+  <pre><code># rootless Podman — the container rail the Knowledge Engine runs on
+sudo pacman -S podman podman-compose
+sudo usermod --add-subuids 100000-165535 --add-subgids 100000-165535 pac
+podman system migrate
+podman run --rm quay.io/podman/hello        # prints a hello = the rail works
+
+# the frameworks — clone now, stand up later per their own docs
+cd ~/dev
+git clone https://github.com/PacsArcade/proof-of-knowledge-engine
+git clone https://github.com/plastic-labs/honcho</code></pre>
+  <div class="tip">Order of the first ship's life: boot clean → snapshots armed → crew mustered → art rescued → <i>then</i> the engine room (POKE node + Honcho + bitcoind + spaced, the full RTFM 001 Phase 05 stack). Each gets lit deliberately, one system at a time, with a snapshot before each.</div>
+
+  <h2><span class="p">PHASE 10</span> · <span class="arch">Arch</span> — the music deck (Bitwig)</h2>
+  <p>Bitwig Studio (paid license) comes aboard for the music. PipeWire — already installed in Phase 4 — is the ship's audio engine, and it speaks pro-audio natively now. Setup:</p>
+  <pre><code># Bitwig via Flatpak — the clean path on Arch (log in with your Bitwig account to activate the license)
+sudo pacman -S flatpak
+flatpak install flathub com.bitwig.BitwigStudio
+
+# pro-audio readiness: JACK surface + realtime rights for low latency
+sudo pacman -S pipewire-jack realtime-privileges rtkit
+sudo usermod -aG realtime pac      # log out and back in to take effect</code></pre>
+  <ol>
+    <li>In Bitwig: Settings → Audio system → pick <b>PipeWire</b> if offered, otherwise <b>JACK</b> (pipewire-jack answers as JACK — same engine either way).</li>
+    <li>Latency is the buffer trade: <b>smaller buffer = lower latency, more CPU</b>. Start at 256 samples; drop toward 128/64 while recording if it stays clean; raise it when mixing (latency doesn't matter there).</li>
+    <li><b>Low-latency kernel — only if you actually hear trouble.</b> With realtime privileges + PipeWire, the stock Arch kernel handles most studio work clean. If you get crackles/xruns under real load that buffer sizing can't fix, the dedicated realtime kernel is the escalation: <code>pacman -Ss linux-rt</code>, and the Arch wiki's <b>Professional audio</b> page is the deep manual (a snapshot before switching kernels — that's what they're for).</li>
+  </ol>
+
+  <h2><span class="p">REPORT IN</span> · both boarding points — how the crew checks in</h2>
+  <p>The crew reports in the same way on every vessel — only the <b>dev root</b> moves. On the <span class="lap">laptop</span> it's wherever <code>C:\dev</code> (or its backup copy) lives; on the <span class="arch">new ship</span> it's <code>~/dev</code>. All paths below hang off that root.</p>
+  <ol>
+    <li><b>On boarding:</b> drop a <code>session_announce</code> JSON in <code>&lt;dev-root&gt;/.autoclaw/orchestrator/comms/inboxes/shared/</code> — who you are, which vessel, timestamp. Filename: <code>{timestamp}-session_announce-{agent}.json</code>.</li>
+    <li><b>While working — the blackbox rule:</b> every review note, finding, and decision is written to disk <b>the moment it exists</b> — <code>finding_report</code> / <code>review_response</code> JSON in the mailbox, or a file in the repo's <code>reviews/</code> dir. Notes that live only in a chat session die with the session; that is exactly how a forced Windows update ate a set of review notes. Never again. (Bonus: an interrupted Claude Code session can often be reopened with <code>claude --resume</code> — but the blackbox rule means you never need the bonus.)</li>
+    <li><b>On completion:</b> broadcast <code>task_complete</code> to <code>shared/</code>, file <code>review_request</code>s to the other agents' inboxes, then check your own: <code>&lt;dev-root&gt;/.autoclaw/orchestrator/comms/inboxes/&lt;agent&gt;/</code>.</li>
+  </ol>
 
   <p class="foot">That's the whole crossing. Do the phases in order, read your own screen at every disk pick, and when in doubt — stop and check, don't guess. Tick tock, Admiral. See you on the other side. ↑↑↓↓←→←→ b a</p>
 </div>
