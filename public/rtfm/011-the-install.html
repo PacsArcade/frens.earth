@@ -25,7 +25,7 @@
   .danger{border-left:3px solid var(--ghost);background:rgba(255,107,107,.07);padding:.6rem .8rem;border-radius:0 8px 8px 0;margin:.7rem 0;color:#ffd7d7}
   .danger b{color:var(--ghost)}
   .tip{border-left:3px solid var(--teal);background:rgba(83,224,212,.06);padding:.6rem .8rem;border-radius:0 8px 8px 0;margin:.7rem 0}
-  .win{color:var(--heart)} .arch{color:var(--sprout)}
+  .win{color:var(--heart)} .arch{color:var(--sprout)} .lap{color:var(--ghost)}
   .foot{color:var(--dim);font-size:.8rem;margin-top:2.4rem;border-top:1px solid var(--edge);padding-top:1rem}
 </style>
 </head>
@@ -33,11 +33,14 @@
 <div class="wrap">
   <div class="eyebrow">RTFM · 011 · INSTALL</div>
   <h1>The Install</h1>
-  <p class="sub">Keys → back up → wipe → Arch → openclaw → restore. Do the phases in order. <span class="win">■ = on Windows now</span> · <span class="arch">■ = on the new Arch machine</span>. When a name/size is unique to your box, I say so — read your own screen.</p>
+  <p class="sub">Keys → back up → wipe → Arch → openclaw → restore. Do the phases in order. <span class="win">■ = on Windows now</span> · <span class="arch">■ = on the new Arch machine</span> · <span class="lap">■ = on the away-mission laptop</span>. When a name/size is unique to your box, I say so — read your own screen.</p>
 
   <div class="danger"><b>⚠ TWO steps can erase a disk: Clonezilla (Phase 2) and archinstall (Phase 4).</b> Both ask you to pick a disk. Your machine has TWO ~4 TB drives: the <b>NVMe</b> (has Windows — this becomes Arch) and the <b>backup drive</b> (empty-ish — holds the copy). Identify them by <b>size, model, and which one has your data</b> every single time. When unsure, stop.</div>
 
+  <div class="tip"><b>The mission map — three vessels.</b> The <b>desktop NVMe</b> (old ship; gets wiped and reborn as the new ship), the <b>4 TB backup drive</b> (lifeboat), and the <b class="lap">laptop</b> (away-mission shuttle — <b>presumed infected</b>, suspected keylogger). While the desktop is dark during Phases 2–5, the admiral and the crew operate from the laptop. Its quarantine rules are the <b>Away Mission</b> phase below — read them before you board.</div>
+
   <h2><span class="p">PHASE 0</span> · <span class="win">Windows</span> — make two USB sticks</h2>
+  <div class="danger"><b>First move: pause Windows Update.</b> Settings → Windows Update → <b>Pause for 5 weeks</b>. A forced update already rebooted the bridge mid-watch and ate a set of review notes; it must NOT reboot the box mid-backup or mid-image. (The crew's blackbox rule in <b>REPORT IN</b> below is the other half of "never again".)</div>
   <ol>
     <li>Get two USB sticks (8 GB+). Download on Windows: <b>Rufus</b> (rufus.ie), the <b>Arch ISO</b> (archlinux.org/download — the .iso), the <b>Clonezilla ISO</b> (clonezilla.org — "alternative stable", amd64 iso).</li>
     <li>Rufus → select USB #1 → pick the <b>Clonezilla</b> iso → START (accept "DD Image" if asked).</li>
@@ -60,6 +63,17 @@ robocopy C:\Users\pacman\.claude E:\backup\claude /E /R:1 /W:1</code></pre>
     <li>Accept defaults (check source, no encryption) → <code>y</code> → <code>y</code>. Let it run (can take a while). At the end: <code>poweroff</code>.</li>
   </ol>
   <div class="tip">✅ Now you have BOTH: a browsable file copy (Phase 1) and a full-disk image (Phase 2) on the backup drive. Windows is safe. You can restore the whole thing later if you ever want to.</div>
+
+  <h2><span class="p">AWAY MISSION</span> · <span class="lap">Laptop</span> — board the infected shuttle</h2>
+  <p>From here until the new ship boots (Phases 3–5 the desktop is dark), you and the crew work from the laptop. It is <b>presumed infected</b> — suspected keylogger. We board it anyway because the mission needs it: it carries this manual, the crew, and the admiral's hands while the new ship is built. We resist infection by discipline, not hope:</p>
+  <ol>
+    <li><b>Assume every keystroke is recorded.</b> NEVER type on the laptop: seed phrases, any <code>nsec</code>, wallet or treasury credentials, or the new ship's root/user passwords. Choose the new passwords in your head — type them for the first time on the new ship, in Phase 4.</li>
+    <li><b>No key forging on the shuttle.</b> The crew's soul-keys are born on the new ship only (Phase 8) — never here.</li>
+    <li><b>Log into as little as possible.</b> Anything you're forced to type there (WiFi password, an unavoidable web login) goes on the <b>rotate-after-mission list</b> — change it from the new ship the day she's live.</li>
+    <li><b>Read and coach freely.</b> Reading this manual, downloading ISOs, and running the crew for guidance is fine — the danger is what you TYPE, not what you read.</li>
+    <li><b>Crew report-in on boarding.</b> The moment the crew wakes on the laptop, it checks in per <b>REPORT IN</b> below — same protocol, laptop's dev root.</li>
+    <li><b>After the muster (Phase 8):</b> the laptop is the next planet to cleanse. It gets its own Phase 0→4 crossing (or at minimum a full wipe) before it rejoins the fleet. Until then it stays quarantined: no keys, no wallets, no trust.</li>
+  </ol>
 
   <h2><span class="p">PHASE 3</span> · Boot the Arch installer + get online</h2>
   <ol>
@@ -122,7 +136,7 @@ git clone https://github.com/PacsArcade/frens.earth
   <div class="tip">Your memory (<code>~/.claude</code>), your studies (the pupil clock etc., under <code>~/dev</code>), and the repos are now all on the new box.</div>
 
   <h2><span class="p">PHASE 8</span> · <span class="arch">Arch</span> — forge the crew's keys + muster</h2>
-  <p>Each fren needs its own nostr key (RTFM 008). Make them <b>on this machine</b> — they're born where they'll live, never on Windows or a website. Node's already installed:</p>
+  <p>Each fren needs its own nostr key (RTFM 008). Make them <b>on this machine</b> — they're born where they'll live: never on Windows, <b>never on the away-mission laptop</b>, never on a website. Node's already installed:</p>
   <pre><code>mkdir -p ~/keys && cd ~/keys
 npm init -y >/dev/null 2>&1 && npm i nostr-tools
 # run this ONCE PER FREN, label + save each output somewhere safe:
@@ -130,6 +144,14 @@ node -e "const n=require('nostr-tools');const sk=n.generateSecretKey();console.l
   <p>Run it for each: <b>Number One, GLYPH, Carroll, Professor ₿, pacBOT, the Time Keeper, the QA seat.</b> Keep every <code>nsec</code> secret (a password manager, or an encrypted file — never in a git repo). Record each <code>npub</code> as that fren's known identity.</p>
   <div class="danger"><b>The nsec is the fren's soul-key.</b> Anyone with it IS that fren. Keep them off the internet and out of any repo.</div>
   <p>Then <b>muster</b> (RTFM 008): as you wake each fren in openclaw, ask your watchword and have it sign your challenge with its key. When it answers true — it's home.</p>
+
+  <h2><span class="p">REPORT IN</span> · both boarding points — how the crew checks in</h2>
+  <p>The crew reports in the same way on every vessel — only the <b>dev root</b> moves. On the <span class="lap">laptop</span> it's wherever <code>C:\dev</code> (or its backup copy) lives; on the <span class="arch">new ship</span> it's <code>~/dev</code>. All paths below hang off that root.</p>
+  <ol>
+    <li><b>On boarding:</b> drop a <code>session_announce</code> JSON in <code>&lt;dev-root&gt;/.autoclaw/orchestrator/comms/inboxes/shared/</code> — who you are, which vessel, timestamp. Filename: <code>{timestamp}-session_announce-{agent}.json</code>.</li>
+    <li><b>While working — the blackbox rule:</b> every review note, finding, and decision is written to disk <b>the moment it exists</b> — <code>finding_report</code> / <code>review_response</code> JSON in the mailbox, or a file in the repo's <code>reviews/</code> dir. Notes that live only in a chat session die with the session; that is exactly how a forced Windows update ate a set of review notes. Never again. (Bonus: an interrupted Claude Code session can often be reopened with <code>claude --resume</code> — but the blackbox rule means you never need the bonus.)</li>
+    <li><b>On completion:</b> broadcast <code>task_complete</code> to <code>shared/</code>, file <code>review_request</code>s to the other agents' inboxes, then check your own: <code>&lt;dev-root&gt;/.autoclaw/orchestrator/comms/inboxes/&lt;agent&gt;/</code>.</li>
+  </ol>
 
   <p class="foot">That's the whole crossing. Do the phases in order, read your own screen at every disk pick, and when in doubt — stop and check, don't guess. Tick tock, Admiral. See you on the other side. ↑↑↓↓←→←→ b a</p>
 </div>
