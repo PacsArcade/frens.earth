@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Press_Start_2P, Roboto } from "next/font/google";
 import localFont from "next/font/local";
 import { CRTOverlay, EASY_MODE_BOOT_SCRIPT } from "@pacsarcade/arcade-ui";
@@ -36,6 +36,23 @@ export const metadata: Metadata = {
   title: "Claim your fren tag — frens.earth",
   description:
     "Free sovereign bitcoin handles. Your name, your keys — verifiable on nostr today, permanent on Bitcoin at the next batch. Made with love at Pac's Arcade 💜",
+  /* Module 6 — installable on the home screen; iOS reads these, the
+     manifest (src/app/manifest.ts) covers the rest */
+  appleWebApp: {
+    capable: true,
+    title: "frens.earth",
+    statusBarStyle: "black-translucent",
+  },
+};
+
+/* One phone contract for every surface: real device width, no forced zoom
+   lock (pinch stays — accessibility), edge-to-edge under the notch, and the
+   browser chrome tinted the house void. */
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#0d1210",
 };
 
 export default function RootLayout({

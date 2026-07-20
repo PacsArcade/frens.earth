@@ -119,7 +119,7 @@ export default function OrderStatus({ orderId }: { orderId: string }) {
         <button
           onClick={recharge}
           disabled={busy}
-          className="mt-4 border border-yellow-500 px-4 py-2 text-sm font-bold tracking-widest text-yellow-400 disabled:opacity-40"
+          className="mt-4 min-h-11 touch-manipulation border border-yellow-500 px-4 py-2 text-sm font-bold tracking-widest text-yellow-400 disabled:opacity-40"
         >
           {busy ? "MINTING…" : "MINT A FRESH INVOICE"}
         </button>

@@ -69,12 +69,13 @@ export default function BuyPanel({ item, railLive }: { item: StoreItem; railLive
       {gated && (
         <p className="mt-2 text-xs text-cyan-300">unlocks for your tag — sign in before buying.</p>
       )}
+      {/* text-base on touch = 16px, so iOS doesn't zoom-jump on focus */}
       <label className="mt-4 block text-xs text-neutral-400">
         email for your receipt (optional)
         <input
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="mt-1 w-full border border-neutral-700 bg-black px-2 py-1 text-sm"
+          className="mt-1 w-full border border-neutral-700 bg-black px-2 py-2 text-base sm:text-sm"
           type="email"
         />
       </label>
@@ -85,7 +86,7 @@ export default function BuyPanel({ item, railLive }: { item: StoreItem; railLive
             <input
               value={shipName}
               onChange={(e) => setShipName(e.target.value)}
-              className="mt-1 w-full border border-neutral-700 bg-black px-2 py-1 text-sm"
+              className="mt-1 w-full border border-neutral-700 bg-black px-2 py-2 text-base sm:text-sm"
             />
           </label>
           <label className="mt-2 block text-xs text-neutral-400">
@@ -93,7 +94,7 @@ export default function BuyPanel({ item, railLive }: { item: StoreItem; railLive
             <textarea
               value={shipAddr}
               onChange={(e) => setShipAddr(e.target.value)}
-              className="mt-1 w-full border border-neutral-700 bg-black px-2 py-1 text-sm"
+              className="mt-1 w-full border border-neutral-700 bg-black px-2 py-2 text-base sm:text-sm"
               rows={3}
             />
           </label>
@@ -105,7 +106,7 @@ export default function BuyPanel({ item, railLive }: { item: StoreItem; railLive
       <button
         onClick={buy}
         disabled={busy || (needsShipping && (!shipName || !shipAddr))}
-        className="mt-4 w-full border border-yellow-500 px-4 py-2 text-sm font-bold tracking-widest text-yellow-400 disabled:opacity-40"
+        className="mt-4 min-h-11 w-full touch-manipulation border border-yellow-500 px-4 py-2 text-sm font-bold tracking-widest text-yellow-400 disabled:opacity-40"
       >
         {busy ? "OPENING INVOICE…" : "BUY WITH BITCOIN"}
       </button>
