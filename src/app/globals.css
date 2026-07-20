@@ -741,7 +741,27 @@ footer {
   .scar-railsubbtn[aria-current="page"] { background: var(--acc); color: var(--color-void) !important; }
   .scar-railsubbtn--soon { opacity: .45; cursor: default; pointer-events: none; }
   .scar-railsubbtn--soon .soon { font-size: 6px; letter-spacing: .18em; opacity: .8; margin-left: .5em; }
+  /* a whole ROOM berth that hasn't landed yet — honest, disabled, never a dead link */
+  .scar-railbtn--soon { opacity: .4; cursor: default; pointer-events: none; }
+  .scar-railbtn--soon .soon { font-size: 6px; letter-spacing: .18em; opacity: .85; margin-left: .5em; }
   .scar-rail__gap { flex: 1 1 auto; min-height: 8px; }
+  /* the ship-node block — the v2 sidebar node readout, restored */
+  .scar-railnode {
+    flex: none; border-radius: 3px 12px 3px 3px;
+    background: #17211b; border: 1.5px solid var(--console-edge);
+    padding: 8px 10px; text-align: left;
+    display: flex; flex-direction: column; gap: 3px;
+    font-family: var(--font-console);
+  }
+  .scar-railnode__name {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 9px; letter-spacing: .1em; font-weight: 800;
+    text-transform: uppercase; color: #cfe0d6;
+  }
+  .scar-railnode__line {
+    font-size: 8px; letter-spacing: .04em; color: #7f9578;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
   /* numeric callouts — the console's REAL data (SCAR room readout) */
   .scar-railstat {
     flex: none; border-radius: 3px 3px 3px 15px;
@@ -847,6 +867,37 @@ footer {
     background: color-mix(in srgb, var(--color-neon) 10%, #0b110a);
     color: color-mix(in srgb, var(--color-neon) 80%, #dfe8db); font-weight: 700;
   }
+  /* the v2 header controls — THEME · SND · the rank chip (the restored trio's
+     buttons live here; the node block rides the ribbon foot) */
+  .scar-tweaks {
+    display: inline-flex; align-items: center; gap: 6px; flex: none;
+    margin-left: auto;
+  }
+  .scar-tweaks ~ .scar-readout { margin-left: 0; }
+  .scar-tweak {
+    display: inline-flex; align-items: center; gap: .4em;
+    min-height: 34px; padding: 0 10px; border-radius: 3px 10px 10px 3px;
+    border: 1.5px solid var(--console-edge); background: transparent;
+    color: #839388; cursor: pointer;
+    font-family: var(--font-console); font-size: 9.5px;
+    letter-spacing: .08em; font-weight: 700; text-transform: uppercase;
+    white-space: nowrap;
+    transition: border-color .2s ease, color .2s ease, background-color .2s ease;
+  }
+  .scar-tweak:hover {
+    border-color: var(--color-cyan); color: var(--color-cyan);
+  }
+  .scar-tweak[aria-pressed="true"] {
+    border-color: color-mix(in srgb, var(--color-neon) 65%, var(--console-edge));
+    color: var(--color-neon);
+  }
+  /* ranks are honor-only — the chip wears pink (flair), never coin */
+  .scar-tweak--rank {
+    border-color: color-mix(in srgb, var(--color-pink) 45%, var(--console-edge));
+    color: color-mix(in srgb, var(--color-pink) 80%, #dfd0da) !important;
+  }
+  .scar-tweak--rank:hover { border-color: var(--color-pink); }
+
   /* mobile-only site-exit fallback — the ribbon (which owns ⌂ + home) hides ≤900px */
   .scar-siteexit {
     display: none; align-items: center; gap: .4em; flex: none;
@@ -1137,4 +1188,89 @@ footer {
   .scar-rail { transition: none; }
   .scar-clockdot { animation: none; }
   .scar-mbar__caret { transition: none; }
+}
+
+/* ==========================================================================
+   THE LCARS TRIBUTE — SCAR Console v2's second theme, header-toggled.
+   A TOKEN-LEVEL remap only ([data-console-theme="lcars"] on the shell root),
+   never a markup fork (design-team law): the LCARS palette rides the same
+   semantic slots (coin=money, neon=live, cyan=info, ghost=danger, pink=flair),
+   the pixel/arcade faces swap to the condensed sans LCARS speaks, glows go
+   quiet, corners go round, and the tiny pixel-font sizes step up because the
+   condensed face needs the room. Pac's Arcade (no attribute / "arcade")
+   stays the default skin.
+   ========================================================================== */
+
+[data-console-theme="lcars"] {
+  /* the v2 LCARS palette, mapped onto the house semantic tokens */
+  --color-void: #000000;
+  --color-panel: #15111d;
+  --color-coin: #ffcc66;
+  --color-neon: #ff9c00;
+  --color-cyan: #9999ff;
+  --color-ghost: #cc5c5c;
+  --color-pink: #cc6699;
+  --color-edge: #43395c;
+  /* structural frame — LCARS lavender instead of ops-green */
+  --scar-ops: #5c5c99;
+  --scar-ops-d: #2e2e50;
+  --console-edge: #43395c;
+  --acc: #8a7fb8;
+  /* LCARS speaks condensed sans, not pixels */
+  --font-pixel: "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  --font-arcade: "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+
+  background: #000000;
+}
+
+/* glow OFF everywhere in the tribute — LCARS is matte */
+[data-console-theme="lcars"] [class*="glow-"] { text-shadow: none !important; }
+
+/* panels: flat LCARS violet, rounder */
+[data-console-theme="lcars"] .console-card,
+[data-console-theme="lcars"] .scar-stat,
+[data-console-theme="lcars"] .scar-drawer,
+[data-console-theme="lcars"] .scar-railstat,
+[data-console-theme="lcars"] .scar-railnode,
+[data-console-theme="lcars"] .scar-railclock {
+  background: #15111d;
+  border-radius: 14px;
+}
+[data-console-theme="lcars"] .scar-railnode__name { color: #f4eee0; }
+[data-console-theme="lcars"] .scar-railnode__line,
+[data-console-theme="lcars"] .scar-railstat > span,
+[data-console-theme="lcars"] .scar-crumb__site,
+[data-console-theme="lcars"] .scar-readout,
+[data-console-theme="lcars"] .scar-brandline { color: #93889f; }
+
+/* the ribbon goes full LCARS: filled rounded end-caps, bigger condensed type */
+[data-console-theme="lcars"] .scar-railbtn {
+  border-radius: 20px 6px 6px 20px;
+  font-size: 13px; letter-spacing: .12em; font-weight: 700;
+}
+[data-console-theme="lcars"] .scar-railsubbtn {
+  border-radius: 16px 5px 5px 16px;
+  font-size: 11.5px; letter-spacing: .1em; font-weight: 700;
+}
+[data-console-theme="lcars"] .scar-railsubbtn--2 { font-size: 10.5px; }
+[data-console-theme="lcars"] .scar-railsubbtn--soon .soon,
+[data-console-theme="lcars"] .scar-railbtn--soon .soon { font-size: 9px; }
+[data-console-theme="lcars"] .scar-rail__elbow { border-top-left-radius: 34px; }
+[data-console-theme="lcars"] .scar-rail__brand {
+  background: linear-gradient(150deg, #cc6699, #5c5c99);
+}
+
+/* pixel-font labels across the boards step up for the condensed face */
+[data-console-theme="lcars"] .lcars-eyebrow { font-size: 13px; letter-spacing: .18em; }
+[data-console-theme="lcars"] .pill { font-size: 12px; }
+[data-console-theme="lcars"] .btn-pill { font-size: 12px; letter-spacing: .1em; }
+[data-console-theme="lcars"] .scar-stat__l { font-size: 12px; }
+[data-console-theme="lcars"] .scar-stat__sub { font-size: 11px; }
+[data-console-theme="lcars"] .scar-mbar__roomname { font-size: 12px; }
+[data-console-theme="lcars"] .scar-mbar__menulbl { font-size: 9px; }
+[data-console-theme="lcars"] .font-pixel { font-weight: 700; letter-spacing: .06em; }
+
+/* the nocturnal-forest ground goes void-black under LCARS */
+[data-console-theme="lcars"].console-ground {
+  background: #000000;
 }

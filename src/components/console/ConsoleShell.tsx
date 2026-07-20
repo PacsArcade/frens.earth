@@ -1,9 +1,18 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { CONSOLE_ROOMS, CONSOLE_SITE, roomForPath } from "@/lib/console";
+import {
+  coinBleep,
+  setSoundOn,
+  setStoredTheme,
+  soundOn,
+  storedTheme,
+  tabBleep,
+  TWEAKS_EVENT,
+} from "@/lib/console-fx";
 import ScarRail from "./ScarRail";
 import BftTrayClock from "./BftTrayClock";
 
@@ -12,20 +21,57 @@ import BftTrayClock from "./BftTrayClock";
  * /a room (mounted by src/app/a/layout.tsx once the operator key clears).
  *
  * Desktop ≥901px: two columns — the sticky elbow RIBBON (rooms + accordion +
- * SCAR readout + BFT tray-clock) beside the main column, whose sticky top bar
- * carries the breadcrumb + SCAR readout.
+ * SCAR readout + the ship-node block + BFT tray-clock) beside the main column,
+ * whose sticky top bar carries the breadcrumb + the v2 header controls
+ * (THEME arcade↔lcars · SND on/off · the operator's rank chip) + SCAR readout.
  *
  * Mobile ≤900px (Option B): the ribbon hides into a bottom SHEET raised by
  * the ▲ MENU sweep on a persistent bottom elbow bar (current room ·
  * SCAR 0x/05 · the tray-clock); scrim / ✕ / Escape dismiss it, and the sheet
- * closes itself on every navigation. Route changes land at the top of the
- * page (Next's default scroll behaviour — anchors still scroll to their
- * section). The single brand statement is the footer brandline.
+ * closes itself on every navigation. The single brand statement is the footer
+ * brandline.
+ *
+ * The THEME seam is SCAR Console v2's: Pac's Arcade (default) ↔ LCARS
+ * tribute, a token-level remap via data-console-theme — never a markup fork.
  */
+
+/** the operator's rank read — office label first (Pac's identity ruling) */
+interface RankRead {
+  office: string | null;
+  rank: { name: string; grade: string } | null;
+  tag: string | null;
+}
+
 export default function ConsoleShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const closeMenu = useCallback(() => setMenuOpen(false), []);
+
+  /* v2 header tweaks — localStorage is the external store; the server
+     snapshot renders the defaults (arcade, snd off) so hydration never
+     disagrees, then the client snapshot takes over after mount */
+  const subscribeTweaks = useCallback((onChange: () => void) => {
+    window.addEventListener(TWEAKS_EVENT, onChange);
+    return () => window.removeEventListener(TWEAKS_EVENT, onChange);
+  }, []);
+  const theme = useSyncExternalStore(subscribeTweaks, storedTheme, () => "arcade" as const);
+  const snd = useSyncExternalStore(subscribeTweaks, soundOn, () => false);
+
+  /* the restored rank chip — one gated read; office label beats ladder rank */
+  const [rank, setRank] = useState<RankRead | null>(null);
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/admin/rank")
+      .then((res) => res.json())
+      .then((data) => {
+        if (alive && data?.ok) setRank(data);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
+  const rankLabel = rank ? (rank.office ?? rank.rank?.name ?? "NO TAG YET") : null;
 
   const room = roomForPath(pathname);
   const pad2 = (n: number) => String(n).padStart(2, "0");
@@ -67,12 +113,13 @@ export default function ConsoleShell({ children }: { children: React.ReactNode }
   }
 
   return (
-    <div className="console-ground min-h-screen">
+    <div className="console-ground min-h-screen" data-console-theme={theme}>
       <div className="scar-frame">
         <ScarRail onNavigate={closeMenu} />
 
         <div className="scar-main">
-          {/* the LCARS top bar — breadcrumb on desktop, ⌂ site-exit on mobile */}
+          {/* the LCARS top bar — breadcrumb on desktop, ⌂ site-exit on mobile,
+              plus the v2 header controls (theme · sound · rank) */}
           <header className="scar-topbar">
             <div className="scar-topbar__row">
               <Link
@@ -89,6 +136,45 @@ export default function ConsoleShell({ children }: { children: React.ReactNode }
                 </span>
                 <span className="scar-crumb__room">{room.label}</span>
               </div>
+
+              <div className="scar-tweaks" role="group" aria-label="console tweaks">
+                {rankLabel && (
+                  /* rank/points/commendations restored — the chip opens the track */
+                  <Link
+                    href="/a/testing#rank"
+                    className="scar-tweak scar-tweak--rank"
+                    title="your rank track — points & commendations live on the crew board"
+                  >
+                    ▸ {rankLabel}
+                  </Link>
+                )}
+                <button
+                  type="button"
+                  className="scar-tweak"
+                  onClick={() => {
+                    const next = theme === "arcade" ? "lcars" : "arcade";
+                    setStoredTheme(next);
+                    tabBleep();
+                  }}
+                  title="theme — Pac's Arcade ↔ LCARS tribute (token remap, same bridge)"
+                >
+                  THEME: {theme === "arcade" ? "ARCADE" : "LCARS"}
+                </button>
+                <button
+                  type="button"
+                  className="scar-tweak"
+                  aria-pressed={snd}
+                  onClick={() => {
+                    const next = !snd;
+                    setSoundOn(next);
+                    if (next) coinBleep(true);
+                  }}
+                  title="console bleeps — off by default, your call always"
+                >
+                  SND: {snd ? "ON" : "OFF"}
+                </button>
+              </div>
+
               <p className="scar-readout" aria-hidden="true">
                 <span>SCAR</span>
                 <b>{readout}</b>
