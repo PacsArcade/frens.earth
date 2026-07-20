@@ -213,18 +213,8 @@ export const CONSOLE_ROOMS: ConsoleRoom[] = [
     ],
   },
   {
-    /* the STORE room lands from feat/store-framework (parallel build) — the
-       key/href/tone are ITS contract; `soon` holds the berth honest until
-       /a/store exists (that branch drops the flag when the room opens). */
-    key: "store",
-    href: "/a/store",
-    label: "STORE",
-    short: "STORE",
-    blurb: "the storefront module — being fitted out on its own slip",
-    tone: "neon",
-    soon: true,
-  },
-  {
+    /* the STORE room — landed from feat/store-framework; /a/store is open,
+       so the berth flag came off at the union of the two branches. */
     key: "store",
     href: "/a/store",
     label: "STORE",
