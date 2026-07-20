@@ -29,12 +29,32 @@ export interface Price {
   fiat?: { amount: number; currency: string };
 }
 
+/**
+ * v2 media block. `images` are PRODUCT SHOTS — public by nature, public
+ * URLs are correct. `deliverable` is metadata ONLY ({ kind, label }) — the
+ * paid file itself has no field here on purpose: it must never live in
+ * public storage, and the gated delivery route is S2 (the entitlement
+ * gate). Until then the artist delivers by hand and the copy says so.
+ */
+export interface ItemMedia {
+  images: string[];
+  /** optional public teaser URL (a clip, a sample) — never the paid good */
+  preview?: string;
+  deliverable?: { kind: "audio" | "video" | "file"; label: string };
+}
+
 export interface StoreItem {
   id: string;
-  schemaVersion: 1;
+  schemaVersion: 2;
   title: string;
   blurb: string;
+  /** legacy v1 field — mirrored from media.images so old readers keep working */
   images: string[];
+  /** artist-entered item number */
+  sku?: string;
+  /** size/variant labels (S/M/L/XL or custom) — presence makes size required at checkout */
+  sizes?: string[];
+  media?: ItemMedia;
   kind: ItemKind;
   price: Price;
   /** sale price rides the gold rail; presence = on sale */
@@ -42,6 +62,15 @@ export interface StoreItem {
   fulfillment: ItemKind;
   status: ItemStatus;
   entitlementTier?: string;
+}
+
+/** What a v1 record on disk/blob may look like — read-compat input shape. */
+type StoredItem = Omit<StoreItem, "schemaVersion"> & { schemaVersion: 1 | 2 };
+
+/** Read-compat: v1 records upgrade in memory on every read; writes are v2. */
+function migrateItem(raw: StoredItem): StoreItem {
+  const media: ItemMedia = raw.media ?? { images: raw.images ?? [] };
+  return { ...raw, schemaVersion: 2, media, images: media.images };
 }
 
 export type OrderState =
@@ -69,9 +98,10 @@ export interface PriceSnapshot {
 
 export interface OrderRecord {
   id: string;
-  schemaVersion: 1;
+  /** 1 = pre-sizes records (read-compat: size is optional); new orders write 2 */
+  schemaVersion: 1 | 2;
   state: OrderState;
-  lineItems: { itemId: string; title: string; qty: number }[];
+  lineItems: { itemId: string; title: string; qty: number; size?: string }[];
   priceSnapshot: PriceSnapshot;
   adapterId: string;
   /** one order, many charges — invoices expire and get re-minted */
@@ -95,8 +125,22 @@ const PII_PURGE_MS = 30 * 24 * 60 * 60 * 1000;
 // ---------------------------------------------------------------------------
 
 interface CatalogDoc {
-  schemaVersion: 1;
+  /** doc version follows the item version; v1 docs read fine (item read-compat) */
+  schemaVersion: 2;
   items: StoreItem[];
+}
+
+/** A doc as stored — may be v1 (items without sku/sizes/media). */
+interface StoredCatalogDoc {
+  schemaVersion: 1 | 2;
+  items: StoredItem[];
+}
+
+/** Fresh each call — callers mutate the doc (upsert pushes into items). */
+const emptyCatalog = (): CatalogDoc => ({ schemaVersion: 2, items: [] });
+
+function migrateCatalog(doc: StoredCatalogDoc): CatalogDoc {
+  return { schemaVersion: 2, items: doc.items.map(migrateItem) };
 }
 
 const CATALOG_BLOB = "store/catalog.json";
@@ -107,17 +151,17 @@ async function readCatalog(): Promise<CatalogDoc> {
     try {
       const res = await get(CATALOG_BLOB, { access: "public" });
       if (res && res.statusCode === 200) {
-        return JSON.parse(await new Response(res.stream).text()) as CatalogDoc;
+        return migrateCatalog(JSON.parse(await new Response(res.stream).text()) as StoredCatalogDoc);
       }
     } catch {
       /* fall through to empty */
     }
-    return { schemaVersion: 1, items: [] };
+    return emptyCatalog();
   }
   try {
-    return JSON.parse(await fs.readFile(catalogFile(), "utf8")) as CatalogDoc;
+    return migrateCatalog(JSON.parse(await fs.readFile(catalogFile(), "utf8")) as StoredCatalogDoc);
   } catch {
-    return { schemaVersion: 1, items: [] };
+    return emptyCatalog();
   }
 }
 
@@ -160,16 +204,43 @@ export function validateItem(item: StoreItem): { ok: true } | { ok: false; reaso
   if (item.price.fiat && (!Number.isInteger(item.price.fiat.amount) || !/^[A-Z]{3}$/.test(item.price.fiat.currency))) {
     return { ok: false, reason: "fiat as integer minor units + ISO-4217 code" };
   }
+  if (item.sku != null && (typeof item.sku !== "string" || item.sku.length > 64)) {
+    return { ok: false, reason: "sku as short text (max 64 chars)" };
+  }
+  if (item.sizes != null) {
+    if (
+      !Array.isArray(item.sizes) ||
+      item.sizes.length > 24 ||
+      item.sizes.some((s) => typeof s !== "string" || !s.trim() || s.length > 32)
+    ) {
+      return { ok: false, reason: "sizes as up to 24 short labels" };
+    }
+  }
+  if (item.media) {
+    const m = item.media;
+    if (!Array.isArray(m.images) || m.images.length > 12 || m.images.some((u) => typeof u !== "string" || !u)) {
+      return { ok: false, reason: "media images as up to 12 URLs" };
+    }
+    if (m.preview != null && typeof m.preview !== "string") {
+      return { ok: false, reason: "preview as a URL" };
+    }
+    if (m.deliverable) {
+      if (!["audio", "video", "file"].includes(m.deliverable.kind) || !m.deliverable.label?.trim()) {
+        return { ok: false, reason: "deliverable as kind (audio/video/file) + label" };
+      }
+    }
+  }
   return { ok: true };
 }
 
 export async function upsertItem(item: StoreItem): Promise<StoreItem> {
+  const normalized = migrateItem(item); // keeps the legacy images mirror in sync
   const doc = await readCatalog();
-  const i = doc.items.findIndex((x) => x.id === item.id);
-  if (i >= 0) doc.items[i] = item;
-  else doc.items.push(item);
+  const i = doc.items.findIndex((x) => x.id === normalized.id);
+  if (i >= 0) doc.items[i] = normalized;
+  else doc.items.push(normalized);
   await writeCatalog(doc);
-  return item;
+  return normalized;
 }
 
 export async function removeItem(id: string): Promise<boolean> {

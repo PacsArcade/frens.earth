@@ -6,7 +6,7 @@ import { bftDateTime, estimateHeight } from "@/lib/bb/bft";
 interface OrderView {
   id: string;
   state: string;
-  lineItems: { itemId: string; title: string; qty: number }[];
+  lineItems: { itemId: string; title: string; qty: number; size?: string }[];
   priceSnapshot: { amount: number; currency: string };
   entitlementSubject?: string;
   createdAtMs: number;
@@ -99,6 +99,7 @@ export default function OrderStatus({ orderId }: { orderId: string }) {
         {order.lineItems.map((li) => (
           <p key={li.itemId} className="font-bold">
             {li.title}
+            {li.size && <span className="ml-2 font-normal text-neutral-300">· size {li.size}</span>}
           </p>
         ))}
         <p className="mt-1" style={{ color: "#FFD700" }}>

@@ -76,3 +76,6 @@ next-env.d.ts
 # live only in the private driver (dev files / prod KV), never in git.
 /data/store-catalog.json
 /data/store-orders/
+
+# store product shots, dev driver (prod uses public Blob) — never tracked
+/public/store-media/
