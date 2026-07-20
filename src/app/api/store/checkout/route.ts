@@ -37,6 +37,7 @@ export async function POST(request: Request) {
   let body: {
     itemId?: string;
     orderId?: string;
+    size?: string;
     contact?: { email?: string };
     shipping?: { name?: string; address?: string };
   };
@@ -74,6 +75,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, reason: "not on the shelf" }, { status: 404 });
   }
 
+  // sized wares require a chosen size — the artist can't ship "one of each"
+  const size = typeof body.size === "string" ? body.size.trim() : "";
+  if (item.sizes?.length && !item.sizes.includes(size)) {
+    return NextResponse.json(
+      { ok: false, reason: `pick a size: ${item.sizes.join(" / ")}` },
+      { status: 400 }
+    );
+  }
+
   // the gate's subject: packages + digital goods buy AS someone
   let entitlementSubject: string | undefined;
   if (item.kind === "digital" || item.kind === "package") {
@@ -96,9 +106,9 @@ export async function POST(request: Request) {
 
   const order: OrderRecord = {
     id: newOrderId(),
-    schemaVersion: 1,
+    schemaVersion: 2,
     state: "created",
-    lineItems: [{ itemId: item.id, title: item.title, qty: 1 }],
+    lineItems: [{ itemId: item.id, title: item.title, qty: 1, size: item.sizes?.length ? size : undefined }],
     priceSnapshot: snapshot,
     adapterId: adapter.id,
     chargeIds: [],
