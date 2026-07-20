@@ -44,9 +44,15 @@ export default async function StorePage() {
           <ul className="mt-8 grid gap-4 sm:grid-cols-2">
             {items.map((item) => {
               const effective = item.sale ?? item.price;
+              const shot = item.media?.images[0] ?? item.images[0];
               return (
                 <li key={item.id} className="border border-neutral-700 p-4">
                   <Link href={`/store/${item.id}`} className="block">
+                    {shot && (
+                      /* product shots come from blob/dev-file URLs — plain img, bounded so the card never breaks */
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={shot} alt={item.title} className="mb-3 h-40 w-full max-w-full border border-neutral-800 object-cover" />
+                    )}
                     <div className="flex items-baseline justify-between gap-2">
                       <span className="font-bold">{item.title}</span>
                       {item.status === "soldout" && (
@@ -54,6 +60,11 @@ export default async function StorePage() {
                       )}
                     </div>
                     <p className="mt-1 text-sm text-neutral-300">{item.blurb}</p>
+                    {item.media?.deliverable && (
+                      <p className="mt-1 text-xs text-cyan-300">
+                        includes: {item.media.deliverable.label} ({item.media.deliverable.kind} download)
+                      </p>
+                    )}
                     <p className="mt-2 text-sm" style={{ color: "#FFD700" }}>
                       {effective.sats != null ? satsLabel(effective.sats) : effective.fiat ? fiatLabel(effective.fiat) : ""}
                       {item.sale && <span className="ml-2 text-xs">· ON SALE</span>}
