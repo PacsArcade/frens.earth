@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { operatorFromCookieHeader } from "@/lib/operator-auth";
 import { listItems, upsertItem, removeItem, validateItem, type StoreItem } from "@/lib/store";
+import { btcpayAdapter } from "@/lib/payments";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +15,13 @@ function gate(request: Request): NextResponse | null {
 export async function GET(request: Request) {
   const denied = gate(request);
   if (denied) return denied;
-  return NextResponse.json({ ok: true, items: await listItems({ includeHidden: true }) });
+  return NextResponse.json({
+    ok: true,
+    items: await listItems({ includeHidden: true }),
+    // honest rail states for the RAILS berths — btcpay is real (env-wired
+    // or not); square/stripe are S5 SOON berths, no config to report yet
+    rails: { btcpay: btcpayAdapter.configured() },
+  });
 }
 
 export async function PUT(request: Request) {
