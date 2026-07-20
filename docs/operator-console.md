@@ -17,7 +17,8 @@ source: the signed-off `scar-lcars-wireframe`), mounted once by
   ▲ MENU raises the ribbon as a bottom sheet.
 - **`ScarRail`** — the elbow RIBBON: ⌂ site-exit elbow, the ◗ SCAR·LET brand
   block (opens the Overview front page and lights up while you're home), the
-  five room blocks, and the active room's **progressive accordion** — room
+  room blocks (the five v2 decks, plus honest SOON berths for registered-but-
+  unlanded rooms), the ship-node block, and the active room's **progressive accordion** — room
   enter shows level 1 only; a level-1 item with children opens its level-2
   filter rail only when clicked. Sub-items with a `countKey` wear a
   label-left / count-right pill (uniform min-width) fed by ONE read of
@@ -35,16 +36,38 @@ The colour law is strict everywhere in the shell: **gold/coin = MONEY only**
 (plus the BFT clock's coin tint), neon = live, cyan = info, ghost = danger,
 pink = your-action/flair. The structural frame itself is muted ops-green.
 
-## The rooms
+## The rooms — the five decks of SCAR Console v2 (0018.04.24 a₿)
 
-| room | route | what it is |
+The registry wears the canonical SCAR Console v2 chart; the boards and
+routes underneath are unchanged.
+
+| deck | route(s) | what it is |
 |---|---|---|
-| **Overview** (◉ HOME) | `/a` | the console front page the ◗ SCAR·LET block opens — site health (live tip, nodes wired), the needs-you counts (each a door), first-captain onboarding |
-| **Status** | `/a/status` + `/a/briefs` | Reports: in-flight (now/next/later) + sign/review/vote aggregated live from the boards, stat-card filters, reader drawer. Briefs: the library (below) |
-| **Action Items** | `/a/action` | sign-offs (cross-project, `#signoffs`) + the merge→ship approvals queue (`#approvals`) + the decision board (`#decisions`) |
-| **Bug Testing** | `/a/testing` | in-flight testing, the duty roster, the ship's log |
-| **Connections** | `/a/connections` | the nodes & doors — spaces · chat · mud · chain · briefs · ship |
-| **Dressing Room** | `/a/brand` | brand cartridges + the cert foundry |
+| **Overview** (◉ HOME) | `/a` | the CALM front page the ◗ SCAR·LET block opens — site health (live tip, nodes wired), the needs-you counts (each a door), first-captain onboarding |
+| **01 Bridge** | `/a/status` + `/a/briefs` | where everything stands: in-flight (now/next/later) + sign/review/vote aggregated live from the boards, stat-card filters, reader drawer; the briefs library beside it |
+| **02 Duty Roster** | `/a/action` + `/a/testing` | the signature desk (sign-offs `#signoffs` · merge→ship approvals `#approvals` · decisions `#decisions`) + the **crew board** (in-flight testing, tickets, the restored **rank track** `#rank`, the ship's log) |
+| **03 Simulator** | `/a/sim` | the SIM DECK — the door to the operator's own P.O.K.E. MUD node (play money only; honest empty state when none is linked); TRAINING MODULES is an honest SOON berth |
+| **04 Bot Deck** | `/a/bots` | PACBOT · POKE-ENGINEER · POKE-COUNSEL · ARCHITECT as honest OFF berths — owner-toggled add-ons, wired only when the swarm-carrying node links |
+| **05 Fleet Map** | `/a/connections` + `/a/brand` | the nodes & doors — spaces · chat · mud · chain · briefs · ship · torrents — plus the Dressing Room (brand cartridges + the cert foundry) as the verse-identity berth |
+| *(store)* | `/a/store` | soon-flagged berth held for the storefront module building on its own slip |
+
+## The header tweaks + the ship node (the restored trio)
+
+- **Theme seam** — Pac's Arcade (default) ↔ **LCARS tribute**, toggled in
+  the top bar: a token-level remap on `data-console-theme` (palette,
+  condensed faces, matte glows, round corners) — never a markup fork.
+- **Sounds** — the v2 WebAudio bleeps (tab tick · coin · buzz), DEFAULT
+  OFF, persisted per browser; the SND-ON flip confirms itself audibly.
+- **Rank chip** — the operator's office/ladder rank in the top bar, one
+  read of `/api/admin/rank`; opens the crew board's rank track (tenure in
+  blocks since the tag claim → the SCAR fleet ladder; points = logged
+  resolutions; commendations = the duty roster's own resolved counts).
+  Honor-only, pink, never coin gold.
+- **Ship node block** — `NODE: EARTHSHIP-01` in the ribbon foot
+  (`NEXT_PUBLIC_NODE_NAME` — config, not code) with the officers per the
+  admiral's binding identity ruling: **pacster@pacsarcade is THE ADMIN;
+  pacster@frens.earth is THE CAPTAIN** (display/copy only — the key stays
+  the operator; the prototype's un-owned ops alias appears nowhere).
 
 ## What the module is
 

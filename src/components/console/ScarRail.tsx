@@ -4,11 +4,14 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  CONSOLE_NODE,
+  CONSOLE_OFFICERS,
   CONSOLE_ROOMS,
   CONSOLE_SITE,
   roomForPath,
   type ConsoleRoomSub,
 } from "@/lib/console";
+import { tabBleep } from "@/lib/console-fx";
 import BftTrayClock from "./BftTrayClock";
 
 /**
@@ -123,6 +126,20 @@ export default function ScarRail({ onNavigate }: { onNavigate: () => void }) {
       <nav className="scar-rail__nav" aria-label="rooms">
         {CONSOLE_ROOMS.map((r) => {
           const active = r.key === room.key;
+          if (r.soon) {
+            /* honest berth — the room is registered but its route hasn't
+               landed; never a dead link (house law) */
+            return (
+              <span
+                key={r.key}
+                className="scar-railbtn scar-railbtn--soon"
+                aria-disabled="true"
+                title={r.blurb}
+              >
+                {r.short} <span className="soon">SOON</span>
+              </span>
+            );
+          }
           return (
             <div key={r.key}>
               <Link
@@ -134,6 +151,7 @@ export default function ScarRail({ onNavigate }: { onNavigate: () => void }) {
                 onClick={() => {
                   /* room enter (or re-enter) → back to level 1 only */
                   setExpandedSub(null);
+                  tabBleep();
                   onNavigate();
                 }}
                 title={r.blurb}
@@ -169,6 +187,7 @@ export default function ScarRail({ onNavigate }: { onNavigate: () => void }) {
                           onClick={() => {
                             /* progressive: clicking level 1 opens ITS level 2 */
                             setExpandedSub(hasKids ? s.key : null);
+                            tabBleep();
                             if (!hasKids) onNavigate();
                           }}
                         >
@@ -188,7 +207,10 @@ export default function ScarRail({ onNavigate }: { onNavigate: () => void }) {
                                 aria-current={
                                   c.href === pathname + hash ? "page" : undefined
                                 }
-                                onClick={onNavigate}
+                                onClick={() => {
+                                  tabBleep();
+                                  onNavigate();
+                                }}
                               >
                                 {subLabel(c)}
                               </a>
@@ -206,6 +228,19 @@ export default function ScarRail({ onNavigate }: { onNavigate: () => void }) {
       </nav>
 
       <div className="scar-rail__gap" />
+
+      {/* the ship-node block — the v2 sidebar's node readout, restored. The
+          officers are Pac's identity ruling (display only, never auth). */}
+      <div className="scar-railnode" title="this console's ship node — the name is config, not code">
+        <span className="scar-railnode__name">
+          <span className="scar-clockdot" aria-hidden="true" /> NODE: {CONSOLE_NODE.name}
+        </span>
+        {CONSOLE_OFFICERS.map((o) => (
+          <span key={o.role} className="scar-railnode__line">
+            {o.role} · {o.display}
+          </span>
+        ))}
+      </div>
 
       {/* numeric callouts — the console's REAL data */}
       <div className="scar-railstat">

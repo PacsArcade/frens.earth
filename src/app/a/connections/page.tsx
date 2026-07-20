@@ -12,14 +12,16 @@ import { CONSOLE_SITE } from "@/lib/console";
 import { SPACE_NAME } from "@/lib/identity-config";
 
 /**
- * CONNECTIONS — every node & door this deployment owns, one tab. The old
- * per-room pages (Spaces / Chat / MUD / Chain) are now stacked sections here,
- * each panel untouched (its own POINT · SAVE · TEST rail, its own gating), with
- * Torrents parked as a coming-soon berth. A jump rail skips between them. Same
- * key-is-the-operator gate as every /a tab.
+ * FLEET MAP — deck 05 of the SCAR Console v2 layout: every node & door this
+ * deployment owns, one tab. The old per-room pages (Spaces / Chat / MUD /
+ * Chain) are stacked sections here, each panel untouched (its own POINT ·
+ * SAVE · TEST rail, its own gating), with Torrents parked as a coming-soon
+ * berth. Nothing is hardwired — click a section, point this node at YOUR
+ * bridge/hub. The DRESSING ROOM (verse identity) berths beside it in the
+ * ribbon. Same key-is-the-operator gate as every /a tab.
  */
 export const metadata: Metadata = {
-  title: "Connections — frens.earth admin",
+  title: "Fleet map — frens.earth admin",
   robots: { index: false, follow: false },
 };
 
@@ -45,12 +47,12 @@ export default async function AdminConnectionsPage() {
     <main className="min-h-screen">
       <div className="mx-auto max-w-5xl px-6 pb-2 pt-10">
         <p className="lcars-eyebrow mb-3" data-accent="cyan">
-          OPERATOR CONSOLE · {CONSOLE_SITE.domain.toUpperCase()}
+          OPERATOR CONSOLE · {CONSOLE_SITE.domain.toUpperCase()} · DECK 05
         </p>
-        <h1 className="mb-3 font-arcade text-4xl text-cyan glow-cyan">CONNECTIONS</h1>
+        <h1 className="mb-3 font-arcade text-4xl text-cyan glow-cyan">FLEET MAP</h1>
         <p className="mb-5 font-body text-sm text-white/55">
           Your nodes and doors — point each one at your own server, save, and test. Leave one
-          empty and it falls back honestly.
+          empty and it falls back honestly. Nothing here is hardwired.
         </p>
         {/* jump rail — MOBILE fallback (the desktop ribbon accordion owns this sub-nav) */}
         <nav aria-label="connections sections" className="scar-mobile-only flex-wrap gap-2">
