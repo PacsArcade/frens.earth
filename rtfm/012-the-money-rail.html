@@ -100,10 +100,12 @@
     </div>
     <p>The new admin isn't a member of the old stores yet — from the new admin account, add yourself to the existing store (Store → Settings → Users), or simply carry on with a fresh store below.</p>
 
-    <h3>Door two on a podman ship — when the scripts don't exist</h3>
-    <p><code>btcpay-admin.sh</code> ships with the <em>docker</em> deployment. A ship deployed
-       by hand or on rootless podman may not have it — "no such file or directory" means
-       find how BTCPay actually runs first:</p>
+    <h3>Door two off the docker path — podman ships and bare-metal ships</h3>
+    <p><code>btcpay-admin.sh</code> ships with the <em>docker</em> deployment only. A ship
+       deployed by hand (dedicated <code>btcpay</code>/<code>nbxplorer</code> system users,
+       dotnet run from <code>/home/btcpay</code>, system Postgres — the arcade's own shape)
+       or on rootless podman never had it. "No such file or directory" means find how
+       BTCPay actually runs first:</p>
     <div class="term">
       <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;diagnose — who runs the rail, and is the docker kit even aboard</div>
 <pre><span class="p">$</span> ps aux | grep -iE <span class="s">"btcpay|nbxplorer"</span>   <span class="c"># the USER column = who runs it</span>
@@ -115,8 +117,10 @@
        No scripts → the same reset, done directly in the database (this is all the script
        does anyway):</p>
     <div class="term">
-      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;the manual reset — psql into the btcpay postgres container</div>
-<pre><span class="p">$</span> podman exec -it <span class="s">&lt;postgres-container&gt;</span> psql -U postgres <span class="s">&lt;btcpay-db&gt;</span>
+      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;the manual reset — psql into btcpay's database</div>
+<pre><span class="c"># bare-metal (system Postgres — the arcade's shape; db name from ps output):</span>
+<span class="p">$</span> sudo -u postgres psql -d <span class="s">btcpayserver</span>
+<span class="c"># podman ship instead:  podman exec -it &lt;postgres-container&gt; psql -U postgres &lt;btcpay-db&gt;</span>
 <span class="c">-- 1 · reset policies (re-enables the Register page):</span>
 DELETE FROM "Settings" WHERE "Id" = 'BTCPayServer.Services.PoliciesSettings';
 <span class="c">-- 2 · now Register the new account in the web UI, then come back:</span>
@@ -125,8 +129,11 @@ SELECT "Id","Name"  FROM "AspNetRoles";     <span class="c">-- find ServerAdmin'
 <span class="c">-- 3 · promote the new account:</span>
 INSERT INTO "AspNetUserRoles" ("UserId","RoleId")
   VALUES ('&lt;new-user-id&gt;','&lt;ServerAdmin-role-id&gt;');
-<span class="c">-- 4 · restart the btcpayserver container, sign in, and LOCK</span>
-<span class="c">--     registration back off in Server Policies.</span>
+<span class="c">-- 4 · restart btcpay (bare-metal: find the unit —</span>
+<span class="c">--     systemctl list-units --all | grep -iE "btcpay|nbx"</span>
+<span class="c">--     then sudo systemctl restart &lt;unit&gt;), sign in, and LOCK</span>
+<span class="c">--     registration back off in Server Policies. Restart once more</span>
+<span class="c">--     after the DELETE too — policies are cached in memory.</span>
 </pre>
     </div>
     <div class="call tip"><span class="lab">Tip</span><p>Planning a fresh store anyway (step 02)? Then the new admin doesn't need membership on the old store at all — recover the door, create the new store under the recovered account, done.</p></div>
@@ -139,9 +146,9 @@ INSERT INTO "AspNetUserRoles" ("UserId","RoleId")
        <strong>Server Settings → Email</strong>:</p>
     <div class="term">
       <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;smtp from the webspace — every captain has this</div>
-<pre>SMTP server:  mail.&lt;your-domain&gt;        <span class="c"># the webspace's mail host</span>
-Port:         587 · STARTTLS
-Username:     support@&lt;your-domain&gt;      <span class="c"># the FULL address</span>
+<pre>SMTP server:  &lt;whatever the mail panel names&gt;   <span class="c"># the arcade's: pacsarcade.org</span>
+Port + TLS:   465 · SSL  — or 587 · STARTTLS    <span class="c"># take the pair the panel lists</span>
+Username:     support@&lt;your-domain&gt;              <span class="c"># the FULL address</span>
 Password:     the mailbox password
 From:         support@&lt;your-domain&gt;
 </pre>
