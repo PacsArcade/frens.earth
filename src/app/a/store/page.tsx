@@ -112,7 +112,15 @@ export default function StoreRoom() {
   }
 
   if (denied) {
-    return <p className="p-6 text-sm text-cyan-300">operator session required — sign in at the console door.</p>;
+    return (
+      <p className="p-6 text-sm text-cyan-300">
+        operator session required —{" "}
+        <a href="/a" className="underline">
+          sign in at the console door
+        </a>
+        .
+      </p>
+    );
   }
   if (!items) return <p className="p-6 text-sm text-neutral-400">reading the shelf…</p>;
 
@@ -126,7 +134,7 @@ export default function StoreRoom() {
           {orders
             .filter((o) => attention.includes(o.id))
             .map((o) => (
-              <div key={o.id} className="mt-2 flex items-center justify-between gap-2">
+              <div key={o.id} className="mt-2 flex flex-wrap items-center justify-between gap-2">
                 <span>
                   {o.lineItems[0]?.title} ·{" "}
                   <span style={{ color: "#FFD700" }}>
@@ -137,7 +145,10 @@ export default function StoreRoom() {
                   {o.entitlementSubject && <span className="text-cyan-300"> → {o.entitlementSubject}</span>}
                   {o.shipping?.name && <span className="text-neutral-400"> · ship to {o.shipping.name}</span>}
                 </span>
-                <button onClick={() => fulfill(o.id)} className="border border-neutral-500 px-2 py-1 text-xs">
+                <button
+                  onClick={() => fulfill(o.id)}
+                  className="min-h-11 touch-manipulation border border-neutral-500 px-3 py-1 text-xs"
+                >
                   MARK FULFILLED
                 </button>
               </div>
@@ -149,7 +160,10 @@ export default function StoreRoom() {
       {items.length === 0 && <p className="mt-2 text-neutral-400">No wares on the shelf yet — add the first below.</p>}
       <ul className="mt-2 space-y-2">
         {items.map((item) => (
-          <li key={item.id} className="flex items-center justify-between gap-2 border border-neutral-700 p-2">
+          <li
+            key={item.id}
+            className="flex flex-wrap items-center justify-between gap-2 border border-neutral-700 p-2"
+          >
             <span>
               <b>{item.title}</b> · {item.kind} ·{" "}
               <span style={{ color: "#FFD700" }}>
@@ -161,23 +175,36 @@ export default function StoreRoom() {
               </span>{" "}
               · {item.status}
             </span>
-            <span className="flex gap-1">
+            {/* thumb-sized controls that wrap instead of shrinking (Module 6) */}
+            <span className="flex flex-wrap gap-1">
               {item.status !== "live" && (
-                <button onClick={() => toggle(item, "live")} className="border border-neutral-500 px-2 py-1 text-xs">
+                <button
+                  onClick={() => toggle(item, "live")}
+                  className="min-h-11 touch-manipulation border border-neutral-500 px-3 py-1 text-xs"
+                >
                   GO LIVE
                 </button>
               )}
               {item.status === "live" && (
-                <button onClick={() => toggle(item, "hidden")} className="border border-neutral-500 px-2 py-1 text-xs">
+                <button
+                  onClick={() => toggle(item, "hidden")}
+                  className="min-h-11 touch-manipulation border border-neutral-500 px-3 py-1 text-xs"
+                >
                   HIDE
                 </button>
               )}
               {item.status !== "soldout" && (
-                <button onClick={() => toggle(item, "soldout")} className="border border-neutral-500 px-2 py-1 text-xs">
+                <button
+                  onClick={() => toggle(item, "soldout")}
+                  className="min-h-11 touch-manipulation border border-neutral-500 px-3 py-1 text-xs"
+                >
                   SOLD OUT
                 </button>
               )}
-              <button onClick={() => setDraft(item)} className="border border-neutral-500 px-2 py-1 text-xs">
+              <button
+                onClick={() => setDraft(item)}
+                className="min-h-11 touch-manipulation border border-neutral-500 px-3 py-1 text-xs"
+              >
                 EDIT
               </button>
             </span>
@@ -187,25 +214,26 @@ export default function StoreRoom() {
 
       <h2 className="mt-6 font-bold tracking-widest text-cyan-300">{draft.id ? `EDIT — ${draft.id}` : "ADD A WARE"}</h2>
       <div className="mt-2 grid max-w-md gap-2">
+        {/* text-base on touch = 16px, so iOS doesn't zoom-jump on focus */}
         <input
           placeholder="title"
           value={draft.title}
           onChange={(e) => setDraft({ ...draft, title: e.target.value })}
-          className="border border-neutral-700 bg-black px-2 py-1"
+          className="border border-neutral-700 bg-black px-2 py-2 text-base sm:text-sm"
         />
         <input
           placeholder="blurb"
           value={draft.blurb}
           onChange={(e) => setDraft({ ...draft, blurb: e.target.value })}
-          className="border border-neutral-700 bg-black px-2 py-1"
+          className="border border-neutral-700 bg-black px-2 py-2 text-base sm:text-sm"
         />
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <select
             value={draft.kind}
             onChange={(e) =>
               setDraft({ ...draft, kind: e.target.value as StoreItem["kind"], fulfillment: e.target.value as StoreItem["kind"] })
             }
-            className="border border-neutral-700 bg-black px-2 py-1"
+            className="min-h-11 border border-neutral-700 bg-black px-2 py-2 text-base sm:text-sm"
           >
             <option value="self">merch (you ship)</option>
             <option value="digital">digital</option>
@@ -219,7 +247,7 @@ export default function StoreRoom() {
             onChange={(e) =>
               setDraft({ ...draft, price: { ...draft.price, sats: e.target.value ? Number(e.target.value) : undefined } })
             }
-            className="w-36 border border-neutral-700 bg-black px-2 py-1"
+            className="w-36 border border-neutral-700 bg-black px-2 py-2 text-base sm:text-sm"
           />
           <input
             placeholder="sale sats"
@@ -228,10 +256,13 @@ export default function StoreRoom() {
             onChange={(e) =>
               setDraft({ ...draft, sale: e.target.value ? { sats: Number(e.target.value) } : undefined })
             }
-            className="w-28 border border-neutral-700 bg-black px-2 py-1"
+            className="w-28 border border-neutral-700 bg-black px-2 py-2 text-base sm:text-sm"
           />
         </div>
-        <button onClick={() => save(draft)} className="border border-yellow-500 px-3 py-1 font-bold text-yellow-400">
+        <button
+          onClick={() => save(draft)}
+          className="min-h-11 touch-manipulation border border-yellow-500 px-3 py-1 font-bold text-yellow-400"
+        >
           SAVE
         </button>
         {note && <p className="text-xs" style={{ color: "#ff5577" }}>{note}</p>}
