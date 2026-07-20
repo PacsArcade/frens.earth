@@ -13,10 +13,11 @@ import type { StoreItem, OrderRecord } from "@/lib/store";
 
 const BLANK: StoreItem = {
   id: "",
-  schemaVersion: 1,
+  schemaVersion: 2,
   title: "",
   blurb: "",
   images: [],
+  media: { images: [] },
   kind: "self",
   price: {},
   fulfillment: "self",

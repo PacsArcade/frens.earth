@@ -26,9 +26,26 @@ export async function PUT(request: Request) {
   } catch {
     return NextResponse.json({ ok: false, reason: "bad request" }, { status: 400 });
   }
-  item.schemaVersion = 1;
+  item.schemaVersion = 2;
   if (!item.id) item.id = item.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
   item.fulfillment = item.fulfillment ?? item.kind;
+  // v2 merchandising fields — trim to honest shapes; empty means absent
+  item.sku = typeof item.sku === "string" && item.sku.trim() ? item.sku.trim() : undefined;
+  item.sizes = Array.isArray(item.sizes)
+    ? [...new Set(item.sizes.map((s) => String(s).trim()).filter(Boolean))]
+    : undefined;
+  if (item.sizes?.length === 0) item.sizes = undefined;
+  if (item.media) {
+    item.media = {
+      images: Array.isArray(item.media.images) ? item.media.images.filter((u) => typeof u === "string" && u) : [],
+      preview:
+        typeof item.media.preview === "string" && item.media.preview.trim() ? item.media.preview.trim() : undefined,
+      deliverable:
+        item.media.deliverable && item.media.deliverable.label?.trim()
+          ? { kind: item.media.deliverable.kind, label: item.media.deliverable.label.trim() }
+          : undefined,
+    };
+  }
   const valid = validateItem(item);
   if (!valid.ok) return NextResponse.json({ ok: false, reason: `needs ${valid.reason}` }, { status: 400 });
   return NextResponse.json({ ok: true, item: await upsertItem(item) });
