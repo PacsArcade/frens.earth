@@ -395,6 +395,31 @@ rewrite:
 - Vercel stays compute-only; nothing heavy transits the home connection.
 - Rides the S7 clone track; the KV/Blob drivers stay the default.
 
+## Module 8 — community rails (later kit modules, admiral-sparked ~0018.04.24)
+
+Three nostr-native modules that ride the SAME relay + identity the kit
+already has — none block S1–S2; each is a bolt-on when its moment comes:
+
+- **Fundraising — NIP-75 zap goals.** A goal event (target in msats, the
+  relays that count it) + zap receipts tallying toward it, verifiable by
+  anyone. Kit shapes: an **event fund** ("raise for the Degen New Year
+  venue"), a **commission fund** (a business commissions a mural → the
+  artist's goal page collects the crowd's half), and the receipts trail
+  doubling as **spend accountability** (zap receipts are the public books).
+  Flourish (the admiral likes it): funders of a goal can receive an
+  **ordinal/rune memento** — the mural's patrons etched, patron-wall style.
+- **Live — NIP-53 live activities.** Live event notices (streams, classes
+  in session, meetup-now) published from the clone's key; the BFT clock
+  badge already knows how to wear "LIVE."
+- **Classifieds — NIP-99.** The honest craigslist: structured listings
+  (title, price in sats, location, images) signed by real `name@space`
+  identities on the community relay — farmers-market stalls, event booths,
+  local trades. Moderation = the relay's own write policy; reputation =
+  the tag's history, checkable by anyone.
+
+All three are read/write against the house relay (Module 7) — no new
+infrastructure, just new event kinds and their surfaces.
+
 ## The template contract v2 (what a clone must configure)
 
 | knob | via | notes |
