@@ -67,7 +67,7 @@ routes underneath are unchanged.
   (`NEXT_PUBLIC_NODE_NAME` — config, not code) with the officers per the
   admiral's binding identity ruling: **pacster@pacsarcade is THE ADMIN;
   pacster@frens.earth is THE CAPTAIN** (display/copy only — the key stays
-  the operator; the un-owned "@pacsarcade-ops" appears nowhere).
+  the operator; the prototype's un-owned ops alias appears nowhere).
 
 ## What the module is
 

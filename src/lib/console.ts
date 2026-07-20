@@ -67,7 +67,7 @@ export const CONSOLE_NODE = {
  * Pac's identity ruling (binding): pacster@pacsarcade is THE ADMIN;
  * pacster@frens.earth is THE CAPTAIN. Display / copy / role-labels ONLY —
  * never auth logic (the key is the operator; OPERATOR_NPUBS stays the gate).
- * The old "@pacsarcade-ops" name is NOT owned and must never appear.
+ * The v2 prototype's old ops alias is NOT owned and must never appear.
  */
 export interface ConsoleOfficer {
   role: string; // the office as the console names it
