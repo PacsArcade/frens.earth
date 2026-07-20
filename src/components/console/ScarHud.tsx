@@ -53,6 +53,7 @@ export default function ScarHud() {
   return (
     <div
       className="scar-hud"
+      role="group"
       aria-label="operator HUD — ship node, rank, points, commendations"
     >
       <span
