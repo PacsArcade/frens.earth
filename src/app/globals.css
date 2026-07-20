@@ -1368,3 +1368,57 @@ footer {
 [data-console-theme="lcars"].console-ground {
   background: #000000;
 }
+
+/* ==========================================================================
+   THE BRAND CARTRIDGE — the theme seam's THIRD position (the dressing room's
+   "insert a cartridge" made real on the shell). A TOKEN-LEVEL remap only,
+   same law as the LCARS tribute: the values are this site's own BrandTheme —
+   src/lib/brand/themes/frens-earth.ts, the NIGHT GARDEN — mapped onto the
+   house semantic slots (harvest gold = money ONLY, sprout = live,
+   verification teal = info, ember = danger, 💜 heartlight = flair). Fonts
+   stay the pixel DNA because the cartridge's font slots do too. Today this
+   is the HOUSE cartridge; resolving YOUR home-space cartridge from your key
+   (wardrobe → signed nostr note, docs/brand-cartridge.md) lands SOON — the
+   switcher says so.
+   ========================================================================== */
+
+[data-console-theme="cartridge"] {
+  /* frensEarthTheme.tokens, verbatim */
+  --color-void: #0d1210;
+  --color-panel: #151d18;
+  --color-edge: #2f4033;
+  --color-coin: #f7c948;   /* harvest gold — money only */
+  --color-neon: #5ef78a;   /* sprout — live/success */
+  --color-cyan: #53e0d4;   /* verification teal — info */
+  --color-ghost: #ff6b6b;  /* ember — danger */
+  --color-pink: #b795ff;   /* 💜 heartlight — the one free flair */
+  /* structural frame — garden leaf instead of ops-green */
+  --scar-ops: #4c9a63;
+  --scar-ops-d: #24402d;
+  --console-edge: #2f4033;
+  --acc: #4e8f57;
+
+  background: #0d1210;
+}
+
+/* panels: deeper loam, same rounded night-garden grammar */
+[data-console-theme="cartridge"] .console-card,
+[data-console-theme="cartridge"] .scar-stat,
+[data-console-theme="cartridge"] .scar-drawer,
+[data-console-theme="cartridge"] .scar-railstat,
+[data-console-theme="cartridge"] .scar-railnode,
+[data-console-theme="cartridge"] .scar-railclock {
+  background: linear-gradient(180deg, #17241c, #0f1611);
+}
+
+/* the ribbon brand block wears the heartlight-to-teal garden sweep */
+[data-console-theme="cartridge"] .scar-rail__brand {
+  background: linear-gradient(150deg, #b795ff, #53e0d4);
+}
+
+/* the ground blooms deep loam under the cartridge */
+[data-console-theme="cartridge"].console-ground {
+  background:
+    radial-gradient(1000px 600px at 50% -10%, #16281e, transparent 60%),
+    #0d1210;
+}

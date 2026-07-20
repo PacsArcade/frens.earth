@@ -2,8 +2,15 @@
 
 /**
  * Console tweaks — the SCAR Console v2 header trio's client state:
- *   • THEME — Pac's Arcade (default) ↔ LCARS tribute. A token-level remap
- *     ([data-console-theme="lcars"] in globals.css), never a markup fork.
+ *   • THEME — three positions on one seam, each a token-level remap
+ *     ([data-console-theme] in globals.css), never a markup fork:
+ *       arcade    — Pac's Arcade (default)
+ *       lcars     — the LCARS tribute
+ *       cartridge — the brand cartridge: this site's own BrandTheme tokens
+ *                   (src/lib/brand/themes/frens-earth.ts — NIGHT GARDEN).
+ *                   Today it's the house cartridge; the key-resolved
+ *                   home-space cartridge (wardrobe → signed nostr note,
+ *                   docs/brand-cartridge.md) lands SOON.
  *   • SOUND — the WebAudio bleeps from the v2 prototype (tab tick, coin,
  *     buzz). DEFAULT OFF, the operator's call; the restored sounds button
  *     in the shell top bar flips it.
@@ -11,7 +18,10 @@
  * piece (top bar, rail) stays in step without prop-drilling.
  */
 
-export type ConsoleTheme = "arcade" | "lcars";
+export type ConsoleTheme = "arcade" | "lcars" | "cartridge";
+
+/** the THEME button's cycle order — arcade is home, so it's first */
+export const THEME_ORDER: ConsoleTheme[] = ["arcade", "lcars", "cartridge"];
 
 const THEME_KEY = "scarlet:theme";
 const SOUND_KEY = "scarlet:sound";
@@ -19,7 +29,8 @@ export const TWEAKS_EVENT = "scarlet:tweaks";
 
 export function storedTheme(): ConsoleTheme {
   try {
-    return localStorage.getItem(THEME_KEY) === "lcars" ? "lcars" : "arcade";
+    const t = localStorage.getItem(THEME_KEY);
+    return t === "lcars" || t === "cartridge" ? t : "arcade";
   } catch {
     return "arcade";
   }
