@@ -924,12 +924,45 @@ footer {
     border-color: color-mix(in srgb, var(--color-neon) 65%, var(--console-edge));
     color: var(--color-neon);
   }
-  /* ranks are honor-only — the chip wears pink (flair), never coin */
-  .scar-tweak--rank {
+
+  /* ── the HUD — node · rank · points · commendations, one strip on every
+     deck. Prototype-styled (the v2 header chips): mono small-caps, 2px
+     borders, rounded end-caps. Numbers are neon (live counts), the rank seg
+     pink (honor-only, never coin — it absorbed the old rank chip), the node
+     dot neon (live). Dark segs are dashed — the honest no-read state. */
+  .scar-hud {
+    display: inline-flex; align-items: center; flex-wrap: nowrap; gap: 6px;
+    min-width: 0; flex: none;
+  }
+  .scar-hud__seg {
+    display: inline-flex; align-items: center; gap: .45em;
+    min-height: 34px; padding: 0 10px;
+    border: 2px solid var(--console-edge); border-radius: 3px 10px 10px 3px;
+    background: color-mix(in srgb, var(--color-void) 55%, transparent);
+    color: #839388;
+    font-family: var(--font-console); font-size: 9.5px;
+    letter-spacing: .08em; font-weight: 700; text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .scar-hud__seg b {
+    font-size: 12px; font-weight: 800; color: var(--color-neon);
+    font-variant-numeric: tabular-nums;
+  }
+  .scar-hud__seg--node { color: #cfe0d6; }
+  .scar-hud__seg--node .scar-clockdot { width: 6px; height: 6px; }
+  .scar-hud__seg--dim { color: #5f6f63; border-style: dashed; }
+  a.scar-hud__seg--rank {
     border-color: color-mix(in srgb, var(--color-pink) 45%, var(--console-edge));
     color: color-mix(in srgb, var(--color-pink) 80%, #dfd0da) !important;
+    transition: border-color .2s ease, color .2s ease;
   }
-  .scar-tweak--rank:hover { border-color: var(--color-pink); }
+  a.scar-hud__seg--rank:hover {
+    border-color: var(--color-pink);
+    color: var(--color-pink) !important;
+  }
+  .scar-hud__seg:focus-visible {
+    outline: 2px solid var(--color-cyan); outline-offset: 2px;
+  }
 
   /* mobile-only site-exit fallback — the ribbon (which owns ⌂ + home) hides ≤900px */
   .scar-siteexit {
@@ -1038,6 +1071,11 @@ footer {
     .scar-siteexit { display: inline-flex; }
     .scar-crumb { display: none; }
     .scar-readout { display: none; }
+    /* the top bar wraps: controls on line one, the HUD takes its own line */
+    .scar-topbar__row {
+      flex-wrap: wrap; min-height: 0; padding-top: 10px; padding-bottom: 10px;
+    }
+    .scar-hud { order: 9; flex-basis: 100%; flex-wrap: wrap; }
     .scar-mobile-only { display: flex; }
     /* keep page content clear of the fixed bottom bar */
     .scar-main { padding-bottom: calc(var(--scar-mbar-h) + env(safe-area-inset-bottom, 0px) + 14px); }
@@ -1228,6 +1266,13 @@ footer {
   .scar-mbar__caret { transition: none; }
 }
 
+/* ≤900px the top bar wraps (the HUD line rides under the controls), so the
+   sticky bar is taller than --scar-nav-h — anchors need deeper clearance.
+   Unlayered on purpose: it must beat the scroll-mt-* utilities. */
+@media (max-width: 900px) {
+  .scar-main [id] { scroll-margin-top: 122px; }
+}
+
 /* ==========================================================================
    THE LCARS TRIBUTE — SCAR Console v2's second theme, header-toggled.
    A TOKEN-LEVEL remap only ([data-console-theme="lcars"] on the shell root),
@@ -1280,6 +1325,8 @@ footer {
 [data-console-theme="lcars"] .scar-crumb__site,
 [data-console-theme="lcars"] .scar-readout,
 [data-console-theme="lcars"] .scar-brandline { color: #93889f; }
+[data-console-theme="lcars"] .scar-hud__seg { color: #93889f; border-radius: 14px 5px 5px 14px; }
+[data-console-theme="lcars"] .scar-hud__seg--node { color: #f4eee0; }
 
 /* the ribbon goes full LCARS: filled rounded end-caps, bigger condensed type */
 [data-console-theme="lcars"] .scar-railbtn {

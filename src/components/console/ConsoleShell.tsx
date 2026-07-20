@@ -16,6 +16,7 @@ import {
 import ScarRail from "./ScarRail";
 import BftTrayClock from "./BftTrayClock";
 import ConsoleBoot from "./ConsoleBoot";
+import ScarHud from "./ScarHud";
 
 /**
  * The SCAR·LET shell — the approved LCARS operator console frame around every
@@ -32,16 +33,13 @@ import ConsoleBoot from "./ConsoleBoot";
  * closes itself on every navigation. The single brand statement is the footer
  * brandline.
  *
+ * The HUD (ScarHud — node · rank · points · commendations) rides the top bar
+ * on every deck; it absorbed the old rank chip, so /api/admin/rank reads
+ * once, in one place. ≤900px the bar wraps and the HUD takes its own line.
+ *
  * The THEME seam is SCAR Console v2's: Pac's Arcade (default) ↔ LCARS
  * tribute, a token-level remap via data-console-theme — never a markup fork.
  */
-
-/** the operator's rank read — office label first (Pac's identity ruling) */
-interface RankRead {
-  office: string | null;
-  rank: { name: string; grade: string } | null;
-  tag: string | null;
-}
 
 export default function ConsoleShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -57,22 +55,6 @@ export default function ConsoleShell({ children }: { children: React.ReactNode }
   }, []);
   const theme = useSyncExternalStore(subscribeTweaks, storedTheme, () => "arcade" as const);
   const snd = useSyncExternalStore(subscribeTweaks, soundOn, () => false);
-
-  /* the restored rank chip — one gated read; office label beats ladder rank */
-  const [rank, setRank] = useState<RankRead | null>(null);
-  useEffect(() => {
-    let alive = true;
-    fetch("/api/admin/rank")
-      .then((res) => res.json())
-      .then((data) => {
-        if (alive && data?.ok) setRank(data);
-      })
-      .catch(() => {});
-    return () => {
-      alive = false;
-    };
-  }, []);
-  const rankLabel = rank ? (rank.office ?? rank.rank?.name ?? "NO TAG YET") : null;
 
   const room = roomForPath(pathname);
   const pad2 = (n: number) => String(n).padStart(2, "0");
@@ -140,17 +122,11 @@ export default function ConsoleShell({ children }: { children: React.ReactNode }
                 <span className="scar-crumb__room">{room.label}</span>
               </div>
 
+              {/* the HUD — node · rank · points · commendations, every deck
+                  (it absorbed the old rank chip; one gated read inside) */}
+              <ScarHud />
+
               <div className="scar-tweaks" role="group" aria-label="console tweaks">
-                {rankLabel && (
-                  /* rank/points/commendations restored — the chip opens the track */
-                  <Link
-                    href="/a/testing#rank"
-                    className="scar-tweak scar-tweak--rank"
-                    title="your rank track — points & commendations live on the crew board"
-                  >
-                    ▸ {rankLabel}
-                  </Link>
-                )}
                 <button
                   type="button"
                   className="scar-tweak"
