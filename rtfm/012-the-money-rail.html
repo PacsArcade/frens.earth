@@ -99,9 +99,56 @@
 </pre>
     </div>
     <p>The new admin isn't a member of the old stores yet — from the new admin account, add yourself to the existing store (Store → Settings → Users), or simply carry on with a fresh store below.</p>
-    <div class="call danger"><span class="lab">Careful</span><p>Whoever can SSH that box can mint BTCPay admins. This is why the server's SSH keys are treasury-grade (RTFM 001, RTFM 003) — the money rail's real lock is the box, not the login form.</p></div>
-    <div class="call tip"><span class="lab">Tip</span><p>While you're in: set SMTP (Server Settings → Email) so door one exists next time — and lock <strong>registration back off</strong> in Server Policies if step 3 opened it.</p></div>
-    <div class="call check"><span class="lab">Checkpoint</span><p>You're signed into BTCPay as an admin. The drill is complete — log the block height in the shiplog.</p></div>
+
+    <h3>Door two on a podman ship — when the scripts don't exist</h3>
+    <p><code>btcpay-admin.sh</code> ships with the <em>docker</em> deployment. A ship deployed
+       by hand or on rootless podman may not have it — "no such file or directory" means
+       find how BTCPay actually runs first:</p>
+    <div class="term">
+      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;diagnose — who runs the rail, and is the docker kit even aboard</div>
+<pre><span class="p">$</span> ps aux | grep -iE <span class="s">"btcpay|nbxplorer"</span>   <span class="c"># the USER column = who runs it</span>
+<span class="p">$</span> sudo find / -maxdepth 5 -name <span class="s">"btcpay-admin.sh"</span> 2>/dev/null
+<span class="p">$</span> podman ps --format <span class="s">"{{.Names}}"</span>        <span class="c"># run AS the user from line 1</span>
+</pre>
+    </div>
+    <p>Scripts found in some directory → <code>cd</code> there and run them as that user.
+       No scripts → the same reset, done directly in the database (this is all the script
+       does anyway):</p>
+    <div class="term">
+      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;the manual reset — psql into the btcpay postgres container</div>
+<pre><span class="p">$</span> podman exec -it <span class="s">&lt;postgres-container&gt;</span> psql -U postgres <span class="s">&lt;btcpay-db&gt;</span>
+<span class="c">-- 1 · reset policies (re-enables the Register page):</span>
+DELETE FROM "Settings" WHERE "Id" = 'BTCPayServer.Services.PoliciesSettings';
+<span class="c">-- 2 · now Register the new account in the web UI, then come back:</span>
+SELECT "Id","Email" FROM "AspNetUsers";
+SELECT "Id","Name"  FROM "AspNetRoles";     <span class="c">-- find ServerAdmin's id</span>
+<span class="c">-- 3 · promote the new account:</span>
+INSERT INTO "AspNetUserRoles" ("UserId","RoleId")
+  VALUES ('&lt;new-user-id&gt;','&lt;ServerAdmin-role-id&gt;');
+<span class="c">-- 4 · restart the btcpayserver container, sign in, and LOCK</span>
+<span class="c">--     registration back off in Server Policies.</span>
+</pre>
+    </div>
+    <div class="call tip"><span class="lab">Tip</span><p>Planning a fresh store anyway (step 02)? Then the new admin doesn't need membership on the old store at all — recover the door, create the new store under the recovered account, done.</p></div>
+    <div class="call danger"><span class="lab">Careful</span><p>Whoever can SSH that box can mint BTCPay admins. This is why the server's SSH keys are treasury-grade (RTFM 001, RTFM 003) — the money rail's real lock is the box, not the login form. And remember: the wallet's <strong>12-word seed restores the WALLET, never the login</strong> — two different locks, two different drills.</p></div>
+
+    <h3>Door zero — set the email now, so next time is a password reset</h3>
+    <p>Every Plesk-style webspace already ships SMTP — that's your reset rail, free.
+       Make a <em>service</em> mailbox (the arcade: <code>support@pacsarcade.org</code> —
+       not the captain's personal box), then in BTCPay:
+       <strong>Server Settings → Email</strong>:</p>
+    <div class="term">
+      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;smtp from the webspace — every captain has this</div>
+<pre>SMTP server:  mail.&lt;your-domain&gt;        <span class="c"># the webspace's mail host</span>
+Port:         587 · STARTTLS
+Username:     support@&lt;your-domain&gt;      <span class="c"># the FULL address</span>
+Password:     the mailbox password
+From:         support@&lt;your-domain&gt;
+</pre>
+    </div>
+    <p>Send the test mail before you leave the page. From now on, "Forgot password" is
+       door one — the drill above becomes the backup, not the routine.</p>
+    <div class="call check"><span class="lab">Checkpoint</span><p>You're signed into BTCPay as an admin, registration is locked again, and the test email landed. The drill is complete — log the block height in the shiplog.</p></div>
   </section>
 
   <section id="s2">
