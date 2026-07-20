@@ -331,6 +331,28 @@ the FIRST room is created, permanent once chosen. Whatever the model:
   the clone's behalf" (today's pacsarcade-powers-frens.earth arrangement,
   written down instead of implicit).
 
+## Module 6 — mobile (the same identity in your pocket)
+
+The admiral's requirement (~0018.04.24): the experience syncs everywhere —
+a fren signs in on their phone, an artist manages the shelf or pulls an
+inventory report from a mobile app. NIP-07 is a **desktop browser
+extension** API; phones need the signer paths nostr already has:
+
+- **Sign-in parity, three doors, one session:** NIP-07 (desktop extension) ·
+  **NIP-55** (Android signer apps — Amber-class: the key lives in the signer
+  app, ours never sees it) · **NIP-46** (remote signer / bunker — covers iOS
+  and any browser). All three produce the same signed challenge → the same
+  fren/operator session. The login door detects and offers what the device
+  has; keys never touch the app on ANY platform (house law, unchanged).
+- **Mobile management = the same API.** `/api/store` and `/api/admin/store`
+  are already the gate; a mobile surface (PWA first — the console and shelf
+  are responsive web; a native wrapper later consumes the identical routes)
+  adds no second backend. Per-action signatures for high-stakes ops work on
+  mobile the same way — the signer app signs them.
+- **Inventory report:** an operator-gated `/api/admin/store/report` (counts,
+  sold, settled totals in sats, needs-attention) — S2 work, shaped for both
+  the console room and the mobile team's screens.
+
 ## The template contract v2 (what a clone must configure)
 
 | knob | via | notes |
@@ -370,6 +392,9 @@ doc from day one.
 - **S1 — shelf + sats:** catalog + `/store` + `/a/store` (with the stakes
   model + CSRF defenses) + BTCPay adapter end-to-end **including** the
   receipt/status page, processing/expired UX, and the reconcile view.
+- **S1.5 — mobile sign-in parity** (parallel, with the mobile team): NIP-55 +
+  NIP-46 doors beside NIP-07, one session model; PWA pass over /store and
+  /a/store; the inventory-report endpoint.
 - **S2 — packages + the gate:** *prerequisites:* the clone's hosting-model
   choice recorded (call #1), scripted room bootstrap with the one-way
   settings, MXID provisioning/link. Then:
