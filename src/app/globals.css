@@ -992,6 +992,11 @@ footer {
   }
   .scar-rail__sheetx:hover { border-color: var(--color-ghost); color: var(--color-ghost); }
 
+  /* narrow desktop: the v2 tweaks need the row — drop the crumb's site half */
+  @media (max-width: 1120px) {
+    .scar-crumb__site, .scar-crumb__sep { display: none; }
+  }
+
   /* ── ≤900px: bottom bar + rail-as-bottom-sheet; single column ──────────── */
   @media (max-width: 900px) {
     .scar-frame { grid-template-columns: 1fr; }
