@@ -143,7 +143,7 @@ export default function OverviewPanel() {
         <Link href="/a/testing#roster" className="scar-stat" data-accent="neon">
           <div className="scar-stat__n">{n(counts?.tickets)}</div>
           <div className="scar-stat__l">Tickets open</div>
-          <div className="scar-stat__sub">the duty roster</div>
+          <div className="scar-stat__sub">the crew board</div>
         </Link>
       </section>
       <p className="mt-3 font-mono text-[11px] text-white/40">
@@ -178,11 +178,11 @@ export default function OverviewPanel() {
             step: "STEP 03",
             pill: "optional",
             accent: "cyan",
-            title: "Wire your Connections",
+            title: "Wire the Fleet Map",
             detail:
-              "Point the console at your own nodes — Spaces, Chat, Chain, Briefs. Leave one empty and it falls back honestly.",
+              "Point the console at your own nodes — Spaces, Chat, MUD, Chain, Briefs. Leave one empty and it falls back honestly.",
             href: "/a/connections",
-            cta: "Go to Connections",
+            cta: "Open the Fleet Map",
           },
           {
             step: "STEP 04",
@@ -190,9 +190,9 @@ export default function OverviewPanel() {
             accent: "neon",
             title: "Sign your first act",
             detail:
-              "Everything you approve is a signed, block-stamped event. Head to Status to see what needs your key first.",
+              "Everything you approve is a signed, block-stamped event. Head to the Bridge to see what needs your key first.",
             href: "/a/status",
-            cta: "Open Status",
+            cta: "Open the Bridge",
           },
         ].map((s) => (
           <div key={s.step} className="console-card p-5 text-center" data-accent={s.accent}>

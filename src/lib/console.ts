@@ -2,11 +2,17 @@ import { NIP05_DOMAIN, SPACE_NAME } from "./identity-config";
 
 /**
  * The operator console manifest — the console is a MODULE, not frens.earth
- * furniture (Pac, 2026-07-11). Sites templated from this repo (pacsarcade-org,
+ * furniture (Pac, 0018.04.11 a₿). Sites templated from this repo (pacsarcade-org,
  * onecocreation, every fork) get the same console as CONFIGURATION: the site
  * identity and the room registry live here, and the SCAR·LET shell (elbow
  * ribbon + mobile bottom bar) renders from it. Adding a room = one entry;
  * rebranding the console = the theme.
+ *
+ * SCAR Console v2 alignment: the five rooms are the canonical v2 decks —
+ * BRIDGE · DUTY ROSTER · SIMULATOR · BOT DECK · FLEET MAP — laid over the
+ * existing boards (nothing lost, everything re-berthed). The v2 theme seam
+ * (Pac's Arcade ↔ LCARS tribute) lives in the shell as a token remap, never
+ * a markup fork.
  */
 
 /** house accents — the semantic contract (gold/coin = MONEY only) */
@@ -36,6 +42,9 @@ export interface ConsoleRoom {
   blurb: string;
   /** semantic accent — the colour law holds (coin = money ONLY, so no coin here) */
   tone: ConsoleTone;
+  /** registered but its route hasn't landed yet — renders as an honest
+      disabled SOON berth in the ribbon (never a dead link) */
+  soon?: boolean;
   subs?: ConsoleRoomSub[];
 }
 
@@ -47,9 +56,34 @@ export const CONSOLE_SITE = {
 };
 
 /**
+ * The ship node — the v2 sidebar's node block, restored (the lost trio).
+ * The name is config, not code: a templated site names its own ship.
+ */
+export const CONSOLE_NODE = {
+  name: process.env.NEXT_PUBLIC_NODE_NAME ?? "EARTHSHIP-01",
+};
+
+/**
+ * Pac's identity ruling (binding): pacster@pacsarcade is THE ADMIN;
+ * pacster@frens.earth is THE CAPTAIN. Display / copy / role-labels ONLY —
+ * never auth logic (the key is the operator; OPERATOR_NPUBS stays the gate).
+ * The v2 prototype's old ops alias is NOT owned and must never appear.
+ */
+export interface ConsoleOfficer {
+  role: string; // the office as the console names it
+  handle: string; // registry handle (matching only)
+  space: string; // registry space (matching only)
+  display: string; // the tag exactly as the ruling writes it
+}
+export const CONSOLE_OFFICERS: ConsoleOfficer[] = [
+  { role: "THE CAPTAIN", handle: "pacster", space: "frens", display: "pacster@frens.earth" },
+  { role: "THE ADMIN", handle: "pacster", space: "pacsarcade", display: "pacster@pacsarcade" },
+];
+
+/**
  * The console FRONT PAGE — the room the ◗ SCAR·LET brand block opens. Not a
  * numbered room (the readout reads ◉ HOME there), so it lives beside the
- * registry rather than in it.
+ * registry rather than in it. Deliberately CALM — the decks live in the ribbon.
  */
 export const CONSOLE_OVERVIEW: ConsoleRoom = {
   key: "overview",
@@ -61,22 +95,21 @@ export const CONSOLE_OVERVIEW: ConsoleRoom = {
 };
 
 /**
- * The console is SCAR·LET — five rooms in the left elbow ribbon, each with its
- * accordion sub-nav. Accents honour the house colour law (gold = money ONLY):
- * pink = your action, neon = live/test, cyan = info/systems. STATUS leads —
- * its Reports sub-view lands the room; Briefs sits beside it. Sub-items with a
- * `countKey` wear a live count pill; ones with `children` open a level-2
- * filter rail progressively (level 1 only on room enter). Adding a room is
- * still one entry; the ribbon, breadcrumb, readouts and mobile bottom bar all
- * render from this list.
+ * The five decks of SCAR Console v2, mapped onto the console's REAL boards.
+ * Accents honour the house colour law (gold = money ONLY): pink = your
+ * action, neon = live/test, cyan = info/systems. Sub-items with a `countKey`
+ * wear a live count pill; ones with `children` open a level-2 filter rail
+ * progressively (level 1 only on room enter). Adding a room is still one
+ * entry; the ribbon, breadcrumb, readouts and mobile bottom bar all render
+ * from this list.
  */
 export const CONSOLE_ROOMS: ConsoleRoom[] = [
   {
-    key: "status",
+    key: "bridge",
     href: "/a/status",
-    label: "STATUS",
-    short: "STATUS",
-    blurb: "where everything stands — status reports + the briefs library",
+    label: "BRIDGE",
+    short: "BRIDGE",
+    blurb: "the live board — status reports + the briefs library",
     tone: "cyan",
     subs: [
       {
@@ -102,60 +135,94 @@ export const CONSOLE_ROOMS: ConsoleRoom[] = [
     ],
   },
   {
-    key: "action",
+    key: "duty",
     href: "/a/action",
-    label: "ACTION ITEMS",
-    short: "ACTION",
-    blurb: "sign-offs + approvals + the decision board — everything that needs your signature",
+    label: "DUTY ROSTER",
+    short: "DUTY ROSTER",
+    blurb: "everything that needs your key, then the crew board — missions, rank track, ship's log",
     // pink = your action (the admiral rules here); not coin — gold = money only (Pac's house law)
     tone: "pink",
     subs: [
       { key: "signoffs", label: "SIGN-OFFS", href: "/a/action#signoffs", countKey: "signoffs" },
       { key: "approvals", label: "APPROVALS", href: "/a/action#approvals" },
       { key: "decisions", label: "DECISIONS", href: "/a/action#decisions", countKey: "decisions" },
+      {
+        key: "crew",
+        label: "CREW BOARD",
+        href: "/a/testing",
+        children: [
+          { key: "inflight", label: "IN FLIGHT", href: "/a/testing#inflight" },
+          { key: "roster", label: "TICKETS", href: "/a/testing#roster", countKey: "tickets" },
+          { key: "rank", label: "RANK TRACK", href: "/a/testing#rank" },
+          { key: "log", label: "SHIP'S LOG", href: "/a/testing#log" },
+        ],
+      },
     ],
   },
   {
-    key: "testing",
-    href: "/a/testing",
-    label: "BUG TESTING",
-    short: "TESTING",
-    blurb: "signed & shipped — test it live, work the board, read the ship's log",
+    key: "sim",
+    href: "/a/sim",
+    label: "SIMULATOR",
+    short: "SIMULATOR",
+    blurb: "the sim deck — play money only — and the training modules berth",
     tone: "neon",
     subs: [
-      { key: "inflight", label: "IN FLIGHT", href: "/a/testing#inflight" },
-      { key: "roster", label: "DUTY ROSTER", href: "/a/testing#roster", countKey: "tickets" },
-      { key: "log", label: "SHIP'S LOG", href: "/a/testing#log" },
+      { key: "deck", label: "SIM DECK", href: "/a/sim#deck" },
+      { key: "modules", label: "TRAINING MODULES", href: "/a/sim#modules", soon: true },
     ],
   },
   {
-    key: "connections",
+    key: "bots",
+    href: "/a/bots",
+    label: "BOT DECK",
+    short: "BOT DECK",
+    blurb: "owner-toggled add-ons — OFF by default, your call always",
+    tone: "cyan",
+  },
+  {
+    key: "fleet",
     href: "/a/connections",
-    label: "CONNECTIONS",
-    short: "CONNECT",
-    blurb: "your nodes & doors — spaces · chat · mud · chain · torrents",
+    label: "FLEET MAP",
+    short: "FLEET MAP",
+    blurb: "your nodes & doors, plus the dressing room — nothing here is hardwired",
     tone: "cyan",
     subs: [
-      { key: "spaces", label: "SPACES", href: "/a/connections#spaces" },
-      { key: "chat", label: "CHAT", href: "/a/connections#chat" },
-      { key: "mud", label: "MUD", href: "/a/connections#mud" },
-      { key: "chain", label: "CHAIN", href: "/a/connections#chain" },
-      { key: "briefs-src", label: "BRIEFS", href: "/a/connections#briefs" },
-      { key: "deploy", label: "SHIP", href: "/a/connections#deploy" },
-      { key: "torrents", label: "TORRENTS", href: "/a/connections#torrents" },
+      {
+        key: "nodes",
+        label: "NODES & DOORS",
+        href: "/a/connections",
+        children: [
+          { key: "spaces", label: "SPACES", href: "/a/connections#spaces" },
+          { key: "chat", label: "CHAT", href: "/a/connections#chat" },
+          { key: "mud", label: "MUD", href: "/a/connections#mud" },
+          { key: "chain", label: "CHAIN", href: "/a/connections#chain" },
+          { key: "briefs-src", label: "BRIEFS", href: "/a/connections#briefs" },
+          { key: "deploy", label: "SHIP", href: "/a/connections#deploy" },
+          { key: "torrents", label: "TORRENTS", href: "/a/connections#torrents" },
+        ],
+      },
+      {
+        key: "dressing",
+        label: "DRESSING ROOM",
+        href: "/a/brand",
+        children: [
+          { key: "certs", label: "CERT FOUNDRY", href: "/a/brand#certs" },
+          { key: "tester", label: "BRAND KIT", href: "/a/brand#tester" },
+        ],
+      },
     ],
   },
   {
-    key: "brand",
-    href: "/a/brand",
-    label: "DRESSING ROOM",
-    short: "DRESSING",
-    blurb: "brand cartridges + the cert foundry shelf — preview candidate looks",
-    tone: "pink",
-    subs: [
-      { key: "certs", label: "CERT FOUNDRY", href: "/a/brand#certs" },
-      { key: "tester", label: "BRAND KIT", href: "/a/brand#tester" },
-    ],
+    /* the STORE room lands from feat/store-framework (parallel build) — the
+       key/href/tone are ITS contract; `soon` holds the berth honest until
+       /a/store exists (that branch drops the flag when the room opens). */
+    key: "store",
+    href: "/a/store",
+    label: "STORE",
+    short: "STORE",
+    blurb: "the storefront module — being fitted out on its own slip",
+    tone: "neon",
+    soon: true,
   },
   {
     key: "store",
@@ -175,7 +242,8 @@ function allSubs(room: ConsoleRoom): ConsoleRoomSub[] {
 /**
  * Which room a console pathname lives in — "/a" exactly is the Overview front
  * page (◉ HOME), then the exact room href, then a sub route at any accordion
- * level (Briefs lives under STATUS), then the longest room-href prefix.
+ * level (Briefs lives under BRIDGE; the crew board under DUTY ROSTER), then
+ * the longest room-href prefix.
  */
 export function roomForPath(pathname: string): ConsoleRoom {
   if (pathname === CONSOLE_OVERVIEW.href) return CONSOLE_OVERVIEW;
@@ -188,5 +256,5 @@ export function roomForPath(pathname: string): ConsoleRoom {
   const byPrefix = CONSOLE_ROOMS.filter(
     (r) => r.href !== "/a" && pathname.startsWith(`${r.href}/`)
   ).sort((a, b) => b.href.length - a.href.length)[0];
-  return byPrefix ?? CONSOLE_ROOMS.find((r) => r.key === "action") ?? CONSOLE_ROOMS[0];
+  return byPrefix ?? CONSOLE_ROOMS.find((r) => r.key === "duty") ?? CONSOLE_ROOMS[0];
 }

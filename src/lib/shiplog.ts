@@ -14,6 +14,16 @@ export interface ShipLogEntry {
 
 export const SHIP_LOG: ShipLogEntry[] = [
   {
+    height: 958910,
+    title: "THE CONSOLE WEARS THE V2 CHART",
+    bullets: [
+      "SCAR Console v2 ported onto the SCAR·LET shell — the five decks land as the room registry (BRIDGE · DUTY ROSTER · SIMULATOR · BOT DECK · FLEET MAP) over the same boards and routes; the Overview stays the calm front page; a soon-flagged STORE berth holds the slip for the storefront build landing in parallel",
+      "The lost trio restored: RANK TRACK on the crew board (registry claim → Bitcoin-time tenure → the SCAR fleet ladder; points = your logged resolutions; commendations = the duty roster's own resolved counts, honest crew:prefix until crew link their tags) plus the header rank chip · the SOUNDS button (the v2 WebAudio bleeps — tab tick, coin, buzz — DEFAULT OFF, your call always) · the SHIP NODE block (NODE: EARTHSHIP-01 — the name is config, not code)",
+      "The v2 theme seam in the header: Pac's Arcade (default) ↔ LCARS tribute — a token-level remap on data-console-theme (palette, condensed faces, matte glows, round corners), never a markup fork. Officers named per the admiral's binding ruling: pacster@pacsarcade is THE ADMIN, pacster@frens.earth is THE CAPTAIN — display only, never auth; the prototype's un-owned ops alias appears nowhere",
+      "Dead-pill sweep passed: every visible affordance behind /a resolves — a real link, a real action, or an honest disabled SOON berth (training modules, bot toggles, torrents, store). The SIM DECK fronts the operator's real MUD node or says plainly that none is linked; the console never fakes a battle terminal",
+    ],
+  },
+  {
     height: 957728,
     title: "THE BRIEFINGS GROW A BUTTON",
     bullets: [

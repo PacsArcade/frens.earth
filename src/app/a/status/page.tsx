@@ -6,15 +6,15 @@ import { operatorFromCookieHeader, operatorsConfigured } from "@/lib/operator-au
 import { CONSOLE_SITE } from "@/lib/console";
 
 /**
- * STATUS — the room's Reports sub-view: where everything stands, the moment
- * you land. In-flight work with now/next/later priorities plus everything
- * that needs the admiral (sign · review · vote), aggregated live from the
- * console's own boards, with the reader drawer on the right. BRIEFS sits
- * beside it in the ribbon accordion (/a/briefs). Same key-is-the-operator
- * gate as every /a tab.
+ * BRIDGE — deck 01 of the SCAR Console v2 layout: where everything stands,
+ * the moment you land. In-flight work with now/next/later priorities plus
+ * everything that needs the admiral (sign · review · vote), aggregated live
+ * from the console's own boards, with the reader drawer on the right. BRIEFS
+ * sits beside it in the ribbon accordion (/a/briefs). Same key-is-the-
+ * operator gate as every /a tab.
  */
 export const metadata: Metadata = {
-  title: "Status reports — frens.earth admin",
+  title: "Bridge — frens.earth admin",
   robots: { index: false, follow: false },
 };
 
@@ -30,9 +30,9 @@ export default async function AdminStatusPage() {
     <main className="min-h-screen">
       <div className="mx-auto max-w-5xl px-6 pb-6 pt-10">
         <p className="lcars-eyebrow mb-3" data-accent="cyan">
-          OPERATOR CONSOLE · {CONSOLE_SITE.domain.toUpperCase()} · THE SHIP&apos;S STATUS
+          OPERATOR CONSOLE · {CONSOLE_SITE.domain.toUpperCase()} · DECK 01
         </p>
-        <h1 className="mb-3 font-arcade text-4xl text-cyan glow-cyan">STATUS</h1>
+        <h1 className="mb-3 font-arcade text-4xl text-cyan glow-cyan">BRIDGE</h1>
         <p className="font-body text-sm text-white/55">
           Where everything stands, the moment you land — the in-flight work and everything that
           needs you (sign · review · vote), each report one select from its reader.{" "}
