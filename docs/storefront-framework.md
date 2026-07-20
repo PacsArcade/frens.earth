@@ -24,14 +24,23 @@ captain's calls.***
    **static class-file hosting** and **the email path** (mailboxes for
    newsletter/receipts — the house's missing email capability; shared-IP
    deliverability caveat applies).
-2. **Anchor network: the copy never outruns the chain.** (Plain terms: this
-   is *which* Bitcoin the name-anchoring transaction is written to. The
-   subspace batch-commit feature currently exists only on **testnet4** — a
-   practice network whose coins and history carry no permanence. An anchor
-   there is a rehearsal, not the etching.) Ruling adopted: public /join copy
-   stays at honest "queued" (the tri-state), testnet4 ceremonies are labeled
-   **rehearsals**, and "permanent on Bitcoin" copy flips on only when the
-   batch-commit RPC is confirmed on mainnet.
+2. **Anchor network: MAINNET — with the mistype window before the chain.**
+   The admiral's ruling (~0018.04.23): we anchor on the real chain, and a
+   mistyped name must be catchable. The physics: nothing cancels an etched
+   mainnet transaction — that permanence IS the product — so cancel-ability
+   lives entirely **pre-broadcast, by design**:
+   - A `queued` subname is freely editable/cancelable until the batch
+     ceremony. The ceremony GUI shows a **final review manifest** — read the
+     roll before you etch it — with per-name removal, then the one confirm.
+   - On-chain `@spacename` bids get the same confirm-with-review step (sats
+     committed at bid time; the GUI never one-clicks money onto the chain).
+   - After the etch there is no cancel, and the copy says so proudly.
+   Two legs, honestly distinguished: **top-level `@spacenames` auction on
+   mainnet today** — requests/bids run from the **Pac's Arcade auction
+   surface** (graduated from "future addon" to real S7 work; pacman's own
+   pending space registrations are its first live cargo). **Subnames** go
+   mainnet as soon as the subspaces batch-commit RPC is confirmed there
+   against the running node; ceremonies before that are labeled rehearsals.
 3. **Buyer privacy: minimum, private, then gone.** Collect only what
    fulfillment needs; all of it on the private driver; contact/shipping
    **purged ~4,320 blocks (~30 days) after `fulfilled`** (returns window;
@@ -375,8 +384,11 @@ doc from day one.
   already in the contract and event union.
 - **S6 — booking:** services wired to the ship's-calendar work.
 - **S7 — the clone track** (parallel): distribution model mechanics,
-  de-house-ing checklist execution, @artist transfer ceremony — the identity
-  leg's "permanent" copy gated on mainnet batch-commit confirmation (call #2).
+  de-house-ing checklist execution, @artist transfer ceremony, and the
+  **Pac's Arcade @spacename auction surface** (request → review → bid →
+  registered, from the GUI, node wallet signing — pacman's pending space
+  registrations ride first). The identity leg's "permanent" copy gated on
+  mainnet batch-commit confirmation (call #2).
 
 ## Residual risks (the panel's, kept honest)
 
