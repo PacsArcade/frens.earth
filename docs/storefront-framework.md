@@ -6,27 +6,39 @@ identity · Matrix · commerce/brand · security) returned 36 findings, merged
 into 12 amendments — all applied below. Status: **v2 — build-ready except the
 captain's calls.***
 
-## ⚑ Captain's calls still open
+## ⚑ Captain's calls — RESOLVED ~0018.04.23 a₿
 
-Decisions only the admiral can make; each is flagged at the phase it gates.
-
-1. **Matrix homeserver model per clone** (gates S2; **irreversible** — Matrix
-   has no account/room portability and `server_name` is immutable, so "start
-   on the arcade's server, self-host later" is impossible). Options:
-   **(a) per-clone homeserver** — true sovereignty, real recurring ops burden
-   per artist; **(b) arcade-hosted** — easy, but the arcade admin holds
-   custody of the artist's whole community (can read rooms, deactivate
-   accounts, delete the space) — in tension with the mission sentence, and if
-   chosen the copy must say so honestly.
-2. **Anchor network for clones** (gates the /join→anchor leg): subspace batch
-   commits live on testnet4 / the `subspaces` dev branch today. A testnet4
-   anchor is NOT "permanent on Bitcoin" in the sense the copy sells — either
-   the copy waits for a confirmed mainnet-capable batch-commit RPC, or it
-   says "testnet rehearsal" out loud.
-3. **Buyer-PII ownership**: shipping addresses and purchase histories will
-   accumulate in framework-managed storage on a sovereignty brand. Someone
-   must own the retention/deletion policy (suggested default: orders purge
-   contact/shipping N blocks after fulfilled; the admiral names N).
+1. **Matrix homeserver model: two plans, offered honestly.**
+   **(a) Sovereign** — the artist runs their own homeserver (needs a
+   VPS-class box; a Conduit-class server runs light — a small Zap-Hosting
+   VPS qualifies). **(b) Arcade-hosted** — for artists who can't host, Pac's
+   Arcade hosts their space as a service tier built into the plan model,
+   with the custody note said out loud in the plan copy (the arcade admin
+   *can* read rooms and deactivate accounts — that's what hosting means),
+   namespaced localparts (`@name.artist:server`), and per-clone scoped bots.
+   The choice is **permanent per community** (no Matrix migration exists) —
+   the plan page says that too.
+   **Ruled out:** Plesk-style *webspace* (incl. Zap's Webspace XXL: 20 GB /
+   100 mailboxes / 100 MySQL) cannot host Matrix — shared PHP hosting runs
+   no persistent daemons. It stays in the model for what it IS good at:
+   **static class-file hosting** and **the email path** (mailboxes for
+   newsletter/receipts — the house's missing email capability; shared-IP
+   deliverability caveat applies).
+2. **Anchor network: the copy never outruns the chain.** (Plain terms: this
+   is *which* Bitcoin the name-anchoring transaction is written to. The
+   subspace batch-commit feature currently exists only on **testnet4** — a
+   practice network whose coins and history carry no permanence. An anchor
+   there is a rehearsal, not the etching.) Ruling adopted: public /join copy
+   stays at honest "queued" (the tri-state), testnet4 ceremonies are labeled
+   **rehearsals**, and "permanent on Bitcoin" copy flips on only when the
+   batch-commit RPC is confirmed on mainnet.
+3. **Buyer privacy: minimum, private, then gone.** Collect only what
+   fulfillment needs; all of it on the private driver; contact/shipping
+   **purged ~4,320 blocks (~30 days) after `fulfilled`** (returns window;
+   artist can export their own records before purge); shipping data is
+   visible to the artist alone, never shared, never sold, never a byproduct.
+   We aren't trying to share anyone's shipping data — we're trying to
+   forget it on schedule.
 
 ## The mission
 
@@ -241,8 +253,9 @@ type ChargeEvent = { type: 'settled'|'processing'|'expired'|'invalid'
 
 ## Module 4 — classes & community (Matrix)
 
-**Blocked on captain's call #1 (homeserver model) before the FIRST room is
-created.** Whatever the model:
+**Hosting model per captain's call #1:** sovereign (artist's own VPS
+homeserver) or arcade-hosted as a plan tier — chosen per community, before
+the FIRST room is created, permanent once chosen. Whatever the model:
 
 - **Invite automation (OQ2, answered):** a **per-clone regular bot account**
   holding elevated power levels only inside that clone's space — **never** a
@@ -348,8 +361,9 @@ doc from day one.
 - **S1 — shelf + sats:** catalog + `/store` + `/a/store` (with the stakes
   model + CSRF defenses) + BTCPay adapter end-to-end **including** the
   receipt/status page, processing/expired UX, and the reconcile view.
-- **S2 — packages + the gate:** *prerequisites:* captain's call #1, scripted
-  room bootstrap with the one-way settings, MXID provisioning/link. Then:
+- **S2 — packages + the gate:** *prerequisites:* the clone's hosting-model
+  choice recorded (call #1), scripted room bootstrap with the one-way
+  settings, MXID provisioning/link. Then:
   package → tier grant → Matrix invite, **plus manual revocation** (kick +
   revoke) from day one.
 - **S3 — Fourthwall** (independent of S2; may run parallel or earlier — it's
@@ -361,8 +375,8 @@ doc from day one.
   already in the contract and event union.
 - **S6 — booking:** services wired to the ship's-calendar work.
 - **S7 — the clone track** (parallel): distribution model mechanics,
-  de-house-ing checklist execution, @artist transfer ceremony — gated on
-  captain's call #2 (anchor network) for the identity leg.
+  de-house-ing checklist execution, @artist transfer ceremony — the identity
+  leg's "permanent" copy gated on mainnet batch-commit confirmation (call #2).
 
 ## Residual risks (the panel's, kept honest)
 
@@ -379,7 +393,8 @@ doc from day one.
    growth may force a queue/worker outside this architecture.
 5. Template drift until the distribution model ships — every clone diverges
    from the master as the fleet grows.
-6. PII concentration on a sovereignty brand — captain's call #3.
+6. PII concentration on a sovereignty brand — mitigated by call #3's
+   purge-on-schedule ruling; residual = the ~30-day window itself.
 
 ## Appendix A — PeerTube, what hosting it actually takes
 
