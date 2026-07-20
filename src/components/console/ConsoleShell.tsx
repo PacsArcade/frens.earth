@@ -15,6 +15,7 @@ import {
 } from "@/lib/console-fx";
 import ScarRail from "./ScarRail";
 import BftTrayClock from "./BftTrayClock";
+import ConsoleBoot from "./ConsoleBoot";
 
 /**
  * The SCAR·LET shell — the approved LCARS operator console frame around every
@@ -114,6 +115,8 @@ export default function ConsoleShell({ children }: { children: React.ReactNode }
 
   return (
     <div className="console-ground min-h-screen" data-console-theme={theme}>
+      {/* the CRT wake — once per session, never blocking (v2 boot sequence) */}
+      <ConsoleBoot />
       <div className="scar-frame">
         <ScarRail onNavigate={closeMenu} />
 

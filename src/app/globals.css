@@ -37,6 +37,39 @@
 
 .neon-letter { display: inline-block; }
 
+/* CRT power-on for the console shell — the SCAR Console v2 wake, same tube
+   family as crt-letter-on: a point of light stretches into a scanline, holds,
+   then blooms to the full picture. The overlay is pointer-events:none so the
+   wake never blocks the operator; ConsoleBoot unmounts it at ~1.2s, plays
+   once per session, and skips entirely under prefers-reduced-motion. */
+@keyframes scar-boot-beam {
+  0%   { transform: scaleX(0.004) scaleY(0.012); opacity: 1; filter: brightness(6); }
+  34%  { transform: scaleX(1) scaleY(0.012); opacity: 1; filter: brightness(4); }
+  62%  { transform: scaleX(1) scaleY(0.012); filter: brightness(5); }
+  100% { transform: scaleX(1) scaleY(1); opacity: 1; filter: brightness(1.4); }
+}
+@keyframes scar-boot-fade {
+  0%, 72% { opacity: 1; }
+  100% { opacity: 0; }
+}
+.scar-boot {
+  position: fixed; inset: 0; z-index: 100;
+  background: #000;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+  pointer-events: none;
+  animation: scar-boot-fade 1.15s ease-in forwards;
+}
+.scar-boot__beam {
+  width: 100vw; height: 100vh;
+  background: radial-gradient(ellipse at center, #f4fdff 0%, #bfefff 34%, #04141a 78%);
+  transform-origin: center center;
+  animation: scar-boot-beam 0.95s cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .scar-boot { display: none; }
+}
+
 /* SHIP lit — the merge card's ▲ SHIP control lights up the moment a change is
    merged-but-not-live: a soft neon breathing glow that says "ready, ship it".
    Stills to a steady ring under prefers-reduced-motion (respected below). */
