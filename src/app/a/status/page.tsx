@@ -28,12 +28,12 @@ export default async function AdminStatusPage() {
   }
   return (
     <main className="min-h-screen">
-      <div className="mx-auto max-w-5xl px-6 pb-6 pt-10">
+      <div className="mx-auto max-w-5xl px-6 pb-4 pt-10">
         <p className="lcars-eyebrow mb-3" data-accent="cyan">
           OPERATOR CONSOLE · {CONSOLE_SITE.domain.toUpperCase()} · DECK 01
         </p>
         <h1 className="mb-3 font-arcade text-4xl text-cyan glow-cyan">BRIDGE</h1>
-        <p className="font-body text-sm text-white/55">
+        <p className="max-w-2xl font-body text-sm text-white/55">
           Where everything stands, the moment you land — the in-flight work and everything that
           needs you (sign · review · vote), each report one select from its reader.{" "}
           <b className="text-white/75">Briefs</b> sits beside it in the ribbon.

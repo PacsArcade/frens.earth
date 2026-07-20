@@ -110,7 +110,7 @@ export default function RankTrackPanel() {
               {read.blocksSinceClaim != null ? (
                 <div className="mt-4">
                   <div
-                    className="h-3 overflow-hidden rounded-full border border-edge bg-void"
+                    className="relative h-3.5 overflow-hidden rounded-full border-2 border-edge bg-void"
                     role="img"
                     aria-label={`${monthPct}% through the current BFT month`}
                   >
@@ -118,6 +118,8 @@ export default function RankTrackPanel() {
                       className="h-full bg-pink"
                       style={{ width: `${Math.max(2, monthPct)}%` }}
                     />
+                    {/* the v2 meters' segmented texture — same notched read */}
+                    <span className="scar-meter-notches" aria-hidden="true" />
                   </div>
                   <p className="mt-2 font-mono text-[11px] text-white/50">
                     {tilde}

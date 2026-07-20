@@ -39,7 +39,7 @@ export default async function AdminBrandPage() {
           OPERATOR CONSOLE · {CONSOLE_SITE.domain.toUpperCase()}
         </p>
         <h1 className="mb-3 font-arcade text-4xl text-cyan glow-cyan">DRESSING ROOM</h1>
-        <p className="font-body text-sm text-white/55">
+        <p className="max-w-2xl font-body text-sm text-white/55">
           Where a candidate {CONSOLE_SITE.domain} identity gets{" "}
           <b className="text-white/75">worn by the real components</b> before it goes live. Every
           cert ships as box art — the block it etched at decides the case. No randomness: look at

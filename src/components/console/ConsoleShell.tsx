@@ -11,10 +11,13 @@ import {
   soundOn,
   storedTheme,
   tabBleep,
+  THEME_ORDER,
   TWEAKS_EVENT,
 } from "@/lib/console-fx";
 import ScarRail from "./ScarRail";
 import BftTrayClock from "./BftTrayClock";
+import ConsoleBoot from "./ConsoleBoot";
+import ScarHud from "./ScarHud";
 
 /**
  * The SCAR·LET shell — the approved LCARS operator console frame around every
@@ -31,16 +34,18 @@ import BftTrayClock from "./BftTrayClock";
  * closes itself on every navigation. The single brand statement is the footer
  * brandline.
  *
- * The THEME seam is SCAR Console v2's: Pac's Arcade (default) ↔ LCARS
- * tribute, a token-level remap via data-console-theme — never a markup fork.
+ * The HUD (ScarHud — node · rank · points · commendations) rides the top bar
+ * on every deck; it absorbed the old rank chip, so /api/admin/rank reads
+ * once, in one place. ≤900px the bar wraps and the HUD takes its own line.
+ *
+ * The THEME seam is SCAR Console v2's, three positions deep: Pac's Arcade
+ * (default) → LCARS tribute → the brand cartridge (this site's own
+ * BrandTheme tokens — NIGHT GARDEN). Each is a token-level remap via
+ * data-console-theme, never a markup fork; the key-resolved home-space
+ * cartridge (docs/brand-cartridge.md) is the honest SOON on the seam.
  */
 
-/** the operator's rank read — office label first (Pac's identity ruling) */
-interface RankRead {
-  office: string | null;
-  rank: { name: string; grade: string } | null;
-  tag: string | null;
-}
+const THEME_LABEL = { arcade: "ARCADE", lcars: "LCARS", cartridge: "CARTRIDGE" } as const;
 
 export default function ConsoleShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -56,22 +61,6 @@ export default function ConsoleShell({ children }: { children: React.ReactNode }
   }, []);
   const theme = useSyncExternalStore(subscribeTweaks, storedTheme, () => "arcade" as const);
   const snd = useSyncExternalStore(subscribeTweaks, soundOn, () => false);
-
-  /* the restored rank chip — one gated read; office label beats ladder rank */
-  const [rank, setRank] = useState<RankRead | null>(null);
-  useEffect(() => {
-    let alive = true;
-    fetch("/api/admin/rank")
-      .then((res) => res.json())
-      .then((data) => {
-        if (alive && data?.ok) setRank(data);
-      })
-      .catch(() => {});
-    return () => {
-      alive = false;
-    };
-  }, []);
-  const rankLabel = rank ? (rank.office ?? rank.rank?.name ?? "NO TAG YET") : null;
 
   const room = roomForPath(pathname);
   const pad2 = (n: number) => String(n).padStart(2, "0");
@@ -114,6 +103,8 @@ export default function ConsoleShell({ children }: { children: React.ReactNode }
 
   return (
     <div className="console-ground min-h-screen" data-console-theme={theme}>
+      {/* the CRT wake — once per session, never blocking (v2 boot sequence) */}
+      <ConsoleBoot />
       <div className="scar-frame">
         <ScarRail onNavigate={closeMenu} />
 
@@ -137,28 +128,23 @@ export default function ConsoleShell({ children }: { children: React.ReactNode }
                 <span className="scar-crumb__room">{room.label}</span>
               </div>
 
+              {/* the HUD — node · rank · points · commendations, every deck
+                  (it absorbed the old rank chip; one gated read inside) */}
+              <ScarHud />
+
               <div className="scar-tweaks" role="group" aria-label="console tweaks">
-                {rankLabel && (
-                  /* rank/points/commendations restored — the chip opens the track */
-                  <Link
-                    href="/a/testing#rank"
-                    className="scar-tweak scar-tweak--rank"
-                    title="your rank track — points & commendations live on the crew board"
-                  >
-                    ▸ {rankLabel}
-                  </Link>
-                )}
                 <button
                   type="button"
                   className="scar-tweak"
                   onClick={() => {
-                    const next = theme === "arcade" ? "lcars" : "arcade";
+                    const next =
+                      THEME_ORDER[(THEME_ORDER.indexOf(theme) + 1) % THEME_ORDER.length];
                     setStoredTheme(next);
                     tabBleep();
                   }}
-                  title="theme — Pac's Arcade ↔ LCARS tribute (token remap, same bridge)"
+                  title="theme — Pac's Arcade → LCARS tribute → the brand cartridge (frens.earth NIGHT GARDEN token remap; your key-resolved home-space cartridge lands SOON)"
                 >
-                  THEME: {theme === "arcade" ? "ARCADE" : "LCARS"}
+                  THEME: {THEME_LABEL[theme]}
                 </button>
                 <button
                   type="button"

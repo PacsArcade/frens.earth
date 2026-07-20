@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import TagClaim from "@/components/TagClaim";
 import ArcadeHeader from "@/components/ArcadeHeader";
 import EarthFooter from "@/components/EarthFooter";
@@ -121,6 +122,28 @@ export default function RegistrationPage({
             </p>
           </div>
         </div>
+      </section>
+
+      {/* The crew entrance — the velvet rope to the operator console. A
+          doorway, not a billboard: heartlight marquee, honest fine print
+          (the door is a sign-in gate), night-garden palette throughout. */}
+      <section className="px-6 pb-20">
+        <Link
+          href="/a"
+          className="crew-rope mx-auto max-w-2xl"
+          title="SCAR·LET — the operator console (crew keys only; the door is a sign-in gate)"
+        >
+          <span className="crew-rope__lights" aria-hidden="true" />
+          <span className="crew-rope__kicker">◗ CREW ENTRANCE</span>
+          <span className="crew-rope__title">SCAR·LET — The Operator Console</span>
+          <span className="crew-rope__blurb">
+            Past the velvet rope: the bridge this patch of earth is flown from — decks and duty
+            rosters, rank tracks, the block for a clock. Crew keys open it; every fren is welcome
+            to walk up and admire the marquee.
+          </span>
+          <span className="crew-rope__cta">WALK THE CARPET ▸</span>
+          <span className="crew-rope__gate">crew keys only · the door is a sign-in gate</span>
+        </Link>
       </section>
 
       <EarthFooter />

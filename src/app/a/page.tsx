@@ -27,12 +27,12 @@ export default async function ConsoleOverviewPage() {
   }
   return (
     <main className="min-h-screen">
-      <div className="mx-auto max-w-5xl px-6 pb-6 pt-10">
+      <div className="mx-auto max-w-5xl px-6 pb-4 pt-10">
         <p className="lcars-eyebrow mb-3" data-accent="cyan">
           ◗ CONSOLE FRONT PAGE · {CONSOLE_SITE.domain.toUpperCase()}
         </p>
         <h1 className="mb-3 font-arcade text-4xl text-cyan glow-cyan">SCAR·LET OVERVIEW</h1>
-        <p className="font-body text-sm text-white/55">
+        <p className="max-w-2xl font-body text-sm text-white/55">
           The console&apos;s front page — how <b className="text-white/75">{CONSOLE_SITE.domain}</b>{" "}
           is doing at a glance, and where a first captain begins. The rooms live in the ribbon.
         </p>
