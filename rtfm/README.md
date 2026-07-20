@@ -25,6 +25,9 @@ body of work.
 | [009](009-bringing-the-fleet-home.html) | **Bringing the Fleet Home** | Move the agentic workforce onto the box from 001 — the openclaw gateway the crew lives in, the honest local-vs-cloud engine tradeoff (hybrid), keeping every fren (skills + memory + keys, git'd), and safe passage: backup, keys encrypted, test-before-cutover, rollback. |
 | [010](010-the-ships-manifest.html) | **The Ship's Manifest** | Every doc in the fleet, counted at the gangway — what a `git clone` actually carries (`rtfm/`, `docs/`), what rides a separate repo (knowledge-engine), and the 118 of 166 that need their own passage (the memory in `~/.claude`, the design-briefs, the studies, the briefings) — plus the pre-launch checklist before the migration is called done. |
 
+| [011](011-the-install.html) | **The Install** | The away-mission laptop reborn — Ventoy → Arch/Clonezilla, the 001-aligned install, btrfs explainer, stack seeds (Podman/Honcho/POKE), openclaw + keys, and the crew REPORT IN protocol for the crossing. |
+| [012](012-the-money-rail.html) | **The Money Rail** | Locked out of BTCPay? That's the drill — the two doors back in (email reset · server-side `btcpay-admin.sh` promote), then the store ceremony: one store per ship, the invoices-and-nothing-more API key, the webhook that carries "paid", the private order vault, and the maiden voyage where sats cross your own counter. |
+
 _(more to come — 005 CLASSROOM SETUPS & MANAGEMENT is commissioned.)_
 
 ## Writing a new one

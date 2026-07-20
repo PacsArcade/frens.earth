@@ -353,6 +353,48 @@ extension** API; phones need the signer paths nostr already has:
   sold, settled totals in sats, needs-attention) — S2 work, shaped for both
   the console room and the mobile team's screens.
 
+## Module 7 — the connection rails (orbee · nostr · matrix)
+
+The admiral's comms doctrine (~0018.04.24), one identity across three
+layers — the `name@space` tag is the passport on all of them:
+
+1. **orbee — the first connection.** Realtime chat: NIP-29 groups on the
+   house relay (strfry, `relay.frens.earth`), served through the clone's
+   **branded orbee floor** (the `/chat` door — exists today, gated behind
+   sign-in, never public without it). Because orbee IS nostr, the fren's
+   key/tag is the identity automatically — no second account, the
+   @spacename rails carry straight in. Per-clone: every ship points
+   `chatUrl` at its own floor (moves from `CHAT_URL_DEFAULT` in code to
+   stored config — already on the de-house-ing checklist).
+2. **nostr — the social layer.** Posting, profiles, zaps, calendar sync and
+   event meetups (calendar-event kinds on the same relay), NIP-05 identity.
+3. **matrix — the long room.** Extended hangouts, gaming together, safe
+   community spaces, tier-gated classes (module 4). Heavier, roomier,
+   slower-burning — the clubhouse, not the counter.
+
+Contract additions: the clone's orbee floor + relay row (hosted services,
+listed honestly like the Element client).
+
+## Backend variant — the Zap webspace as the heavy-lifting host
+
+The admiral's ruling (~0018.04.24): a clone may run **Vercel as the front,
+Zap-Hosting webspace as the back** — pictures and data live on the
+webspace so the home host stays light. The store's storage is already
+behind driver interfaces, so this is a driver implementation, not a
+rewrite:
+
+- **Images/assets driver → the webspace** (20 GB static hosting,
+  DDoS-protected): product images, class files, brand assets. Upload via
+  the webspace's FTP/WebDAV or a small authenticated upload endpoint on
+  the webspace itself.
+- **Catalog + orders driver → the webspace's MySQL** (private — satisfies
+  the private-vault mandate): requires Plesk's "remote MySQL access"
+  enabled with TLS, credentials in env like every other rail. Honest
+  caveat for the builder: serverless functions must pool conservatively —
+  shared-host MySQL has low connection ceilings.
+- Vercel stays compute-only; nothing heavy transits the home connection.
+- Rides the S7 clone track; the KV/Blob drivers stay the default.
+
 ## The template contract v2 (what a clone must configure)
 
 | knob | via | notes |

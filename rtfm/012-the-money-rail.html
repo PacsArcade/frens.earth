@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>012 · The Money Rail — RTFM</title>
+<style>
+  :root {
+    --void:#0d1210; --panel:#151d18; --edge:#2f4033;
+    --ink:#e8ede9; --muted:#839388;
+    --sprout:#5ef78a; --teal:#53e0d4; --gold:#f7c948; --ghost:#ff6b6b; --heart:#b795ff;
+    --mono: ui-monospace,"Cascadia Code","JetBrains Mono","SFMono-Regular",Menlo,Consolas,monospace;
+    --sans: ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --maxw:900px;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --void:#f3f6f1; --panel:#fff; --edge:#d6ded3; --ink:#17211b; --muted:#5a6b60;
+      --sprout:#12924a; --teal:#0e8b82; --gold:#a97c07; --ghost:#c23a3a; --heart:#6f4dc0;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--void); color:var(--ink); font-family:var(--sans); font-size:16px; line-height:1.65; -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:var(--maxw); margin:0 auto; padding:0 20px 96px; }
+  a { color:var(--teal); text-decoration:none; border-bottom:1px solid transparent; }
+  a:hover { border-bottom-color:currentColor; }
+  a:focus-visible { outline:2px solid var(--teal); outline-offset:2px; }
+  code,.mono { font-family:var(--mono); }
+  header.hero { max-width:var(--maxw); margin:0 auto; padding:64px 20px 36px; }
+  .eyebrow { font-family:var(--mono); font-size:12px; letter-spacing:.22em; text-transform:uppercase; color:var(--sprout); display:flex; align-items:center; gap:10px; margin-bottom:20px; }
+  .eyebrow::before { content:""; width:22px; height:1px; background:var(--sprout); }
+  h1.title { font-family:var(--mono); font-weight:700; font-size:clamp(2rem,6vw,3.2rem); line-height:1.04; letter-spacing:-.01em; margin:0; text-wrap:balance; }
+  h1.title .glow { color:var(--sprout); text-shadow:0 0 24px color-mix(in srgb,var(--sprout) 45%,transparent); }
+  .subtitle { color:var(--muted); font-size:1.05rem; max-width:62ch; margin:14px 0 0; }
+  .mission { margin-top:22px; padding:14px 18px; border-left:3px solid var(--heart); background:color-mix(in srgb,var(--heart) 9%,transparent); font-size:.95rem; border-radius:0 6px 6px 0; max-width:64ch; }
+  .mission b { color:var(--heart); }
+  section { margin-top:52px; scroll-margin-top:20px; }
+  .head { display:flex; align-items:baseline; gap:14px; border-bottom:1px solid var(--edge); padding-bottom:12px; margin-bottom:20px; }
+  .head .num { font-family:var(--mono); font-size:13px; color:var(--void); background:var(--sprout); padding:3px 9px; border-radius:5px; font-weight:700; }
+  h2 { font-family:var(--mono); font-size:clamp(1.35rem,3.4vw,1.85rem); margin:0; letter-spacing:-.01em; text-wrap:balance; }
+  h3 { font-family:var(--mono); font-size:1.02rem; margin:28px 0 10px; color:var(--teal); }
+  p, ul { max-width:68ch; }
+  ul.plain { padding-left:20px; }
+  ul.plain li { margin:5px 0; }
+  strong { color:var(--ink); }
+  .term { margin:14px 0; border:1px solid var(--edge); border-radius:8px; overflow:hidden; background:color-mix(in srgb,var(--panel) 82%,var(--void)); }
+  .term .bar { display:flex; align-items:center; gap:8px; padding:7px 12px; border-bottom:1px solid var(--edge); font-family:var(--mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); background:var(--panel); }
+  .term .bar .dot { width:9px; height:9px; border-radius:50%; background:var(--edge); }
+  .term .bar .dot.g { background:var(--sprout); }
+  .term pre { margin:0; padding:14px 16px; overflow-x:auto; font-family:var(--mono); font-size:13px; line-height:1.7; }
+  .term pre .c { color:var(--muted); } .term pre .p { color:var(--sprout); } .term pre .s { color:var(--gold); }
+  .call { margin:18px 0; padding:14px 16px 14px 18px; border-radius:8px; border:1px solid var(--edge); border-left-width:3px; background:var(--panel); }
+  .call .lab { font-family:var(--mono); font-size:11px; letter-spacing:.14em; text-transform:uppercase; font-weight:700; margin-bottom:6px; display:block; }
+  .call p { margin:0; }
+  .call.danger { border-left-color:var(--ghost); background:color-mix(in srgb,var(--ghost) 8%,var(--panel)); } .call.danger .lab { color:var(--ghost); }
+  .call.check  { border-left-color:var(--sprout); background:color-mix(in srgb,var(--sprout) 8%,var(--panel)); } .call.check .lab { color:var(--sprout); }
+  .call.tip    { border-left-color:var(--teal); } .call.tip .lab { color:var(--teal); }
+  footer { max-width:var(--maxw); margin:56px auto 0; padding:24px 20px 0; border-top:1px solid var(--edge); color:var(--muted); font-family:var(--mono); font-size:12px; }
+  footer b { color:var(--heart); }
+  .kbd { font-family:var(--mono); font-size:.82em; border:1px solid var(--edge); border-bottom-width:2px; border-radius:4px; padding:1px 6px; color:var(--ink); }
+  #rtfm-magic { position:fixed; inset:0; display:grid; place-items:center; padding:24px; background:rgba(5,8,6,.82); z-index:9999; }
+  #rtfm-magic[hidden] { display:none; }
+  #rtfm-magic .card { max-width:440px; width:100%; border:2px solid var(--sprout); border-radius:12px; background:var(--panel); padding:28px; text-align:center; box-shadow:0 0 44px color-mix(in srgb,var(--sprout) 34%,transparent); }
+  #rtfm-magic .eye { font-family:var(--mono); font-size:11px; letter-spacing:.2em; text-transform:uppercase; color:var(--sprout); }
+  #rtfm-magic h2 { font-family:var(--mono); font-size:1.6rem; margin:.35em 0 .5em; }
+  #rtfm-magic .secret { font-family:var(--mono); margin-top:16px; border:1px dashed var(--edge); border-radius:8px; padding:10px 12px; }
+  #rtfm-magic .secret b { color:var(--heart); }
+  #rtfm-magic .foot { color:var(--muted); font-size:.85rem; margin-top:14px; }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="eyebrow">RTFM · 012 · recover the treasury door, open the store</div>
+  <h1 class="title">The Money Rail.<br><span class="glow">Your store, your node, your sats.</span></h1>
+  <p class="subtitle">For the captain locked out of their BTCPay, and for every artist wiring a shelf to their own node. After this manual: you're back in, your site's store exists, and sats cross the counter without ever touching anyone else's hands.</p>
+  <div class="mission"><b>Why this exists.</b> The house provides the rails and never holds the money. That only stays true if YOU hold the keys to the rail — including the day you lose them. Getting locked out isn't failure; it's the drill. Run it calm.</div>
+</header>
+
+<div class="wrap">
+
+  <section id="s1">
+    <div class="head"><span class="num">01</span><h2>The lockout drill — recover your BTCPay admin</h2></div>
+    <p>Two doors back in. Try them in order.</p>
+
+    <h3>Door one — the email reset (works only if SMTP was configured)</h3>
+    <p>Login page → <strong>Forgot password</strong>. If the server has email set up, the reset lands in your inbox and you're done. Most self-hosted ships never configured SMTP — if the page says email isn't configured, that's door two.</p>
+
+    <h3>Door two — the server-side reset (the real drill)</h3>
+    <p>SSH into the box that runs BTCPay (for the arcade: the VPS). Then: register a fresh account in the web UI, and promote it from the server's own console.</p>
+    <div class="term">
+      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;on the btcpay host, in the docker deployment dir</div>
+<pre><span class="c"># 1. in the browser: Register a new account, e.g. captain-recovered@yourdomain</span>
+<span class="c">#    (if Register is hidden, run step 3 first, then come back)</span>
+<span class="p">$</span> ./btcpay-admin.sh set-user-admin <span class="s">captain-recovered@yourdomain</span>
+<span class="c"># 3. only if registration was disabled in Server Policies:</span>
+<span class="p">$</span> ./btcpay-admin.sh reset-server-policy
+<span class="p">$</span> ./btcpay-restart.sh
+</pre>
+    </div>
+    <p>The new admin isn't a member of the old stores yet — from the new admin account, add yourself to the existing store (Store → Settings → Users), or simply carry on with a fresh store below.</p>
+    <div class="call danger"><span class="lab">Careful</span><p>Whoever can SSH that box can mint BTCPay admins. This is why the server's SSH keys are treasury-grade (RTFM 001, RTFM 003) — the money rail's real lock is the box, not the login form.</p></div>
+    <div class="call tip"><span class="lab">Tip</span><p>While you're in: set SMTP (Server Settings → Email) so door one exists next time — and lock <strong>registration back off</strong> in Server Policies if step 3 opened it.</p></div>
+    <div class="call check"><span class="lab">Checkpoint</span><p>You're signed into BTCPay as an admin. The drill is complete — log the block height in the shiplog.</p></div>
+  </section>
+
+  <section id="s2">
+    <div class="head"><span class="num">02</span><h2>Create the site's store — one store per ship</h2></div>
+    <p>Sidebar → <strong>Create Store</strong>. Name it after the site (<code>frens.earth</code>). Never share one store between two sites — separate books, separate webhooks, separate blast radius. Connect the wallet under <strong>Wallets → Bitcoin</strong> (+ Lightning if the node has it): sats land in <strong>that wallet</strong>, nowhere else.</p>
+    <p>Copy the <strong>Store ID</strong> from Store → Settings → General.</p>
+  </section>
+
+  <section id="s3">
+    <div class="head"><span class="num">03</span><h2>Mint the key — invoices and nothing more</h2></div>
+    <p>Avatar → <strong>Manage Account → API Keys → Generate Key</strong>. Pin it to the new store, check exactly two permissions:</p>
+    <div class="term">
+      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;the only two boxes a website key ever gets</div>
+<pre>btcpay.store.cancreateinvoice
+btcpay.store.canviewinvoices
+</pre>
+    </div>
+    <div class="call danger"><span class="lab">Careful</span><p>A key with store-modify rights can re-point where the money goes. The site asks for invoices; give it invoices. Nothing more, ever.</p></div>
+    <p>Copy the key when it's shown — it shows <strong>once</strong>.</p>
+  </section>
+
+  <section id="s4">
+    <div class="head"><span class="num">04</span><h2>The webhook — how "paid" reaches the shelf</h2></div>
+    <p>Store → <strong>Settings → Webhooks → Create Webhook</strong>. Payload URL (swap in your domain):</p>
+    <div class="term">
+      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;payload url</div>
+<pre>https://frens.earth/api/store/webhook/btcpay
+</pre>
+    </div>
+    <p>"Send all events" is fine — the site ignores the noise. Save, and copy the generated <strong>webhook secret</strong>: a separate credential from the API key. Without it the site can't tell a real "paid" from a forged one.</p>
+  </section>
+
+  <section id="s5">
+    <div class="head"><span class="num">05</span><h2>Hand the values to the ship + the order vault</h2></div>
+    <p>Vercel dashboard → the site's project (<strong>check the project name in the header</strong>) → Settings → Environment Variables → Production:</p>
+    <div class="term">
+      <div class="bar"><span class="dot g"></span><span class="dot"></span><span class="dot"></span>&nbsp;the four names</div>
+<pre>BTCPAY_URL              <span class="c"># e.g. https://btcpay.pacsarcade.org</span>
+BTCPAY_STORE_ID         <span class="c"># step 02</span>
+BTCPAY_API_KEY          <span class="c"># step 03</span>
+BTCPAY_WEBHOOK_SECRET   <span class="c"># step 04 — NOT the api key</span>
+</pre>
+    </div>
+    <p><strong>The order vault:</strong> the public shelf is a shopfront; orders carry private things (who bought, where it ships). Those live in a private KV database — Storage tab → Create → Redis → <strong>Connect Project</strong> (prefix <code>KV</code>). No vault = the site refuses checkout on purpose rather than put a buyer's address anywhere public.</p>
+    <div class="call danger"><span class="lab">Careful</span><p>Never set env values through a PowerShell pipe — it writes BLANKS silently (the 0018.04 ghost). Dashboard, or a Linux <code>printf</code> pipe.</p></div>
+    <p>Env changed → redeploy (house rule 9). Deep runbook with every click: <code>docs/btcpay-wiring.md</code> in the template repo.</p>
+  </section>
+
+  <section id="s6">
+    <div class="head"><span class="num">06</span><h2>The maiden voyage</h2></div>
+    <ul class="plain">
+      <li>① <code>/store</code> — the "rail not connected" banner is gone.</li>
+      <li>② <code>/a/store</code> — ADD A WARE, small price in sats, GO LIVE.</li>
+      <li>③ Buy it yourself; pay the lightning invoice.</li>
+      <li>④ Watch the receipt flip <strong>PAID ✓</strong> — that's the webhook doing its one job.</li>
+      <li>⑤ Order book → <strong>MARK FULFILLED</strong>. The loop is closed.</li>
+    </ul>
+    <div class="call check"><span class="lab">Checkpoint</span><p>Sats crossed the counter from your own wallet to your own node through your own site. Nobody else touched them at any point. That's the whole thesis, proven with one coffee's worth of sats.</p></div>
+  </section>
+
+  <footer>
+    <b>frens.earth</b> · RTFM · read the manual<br>
+    <span style="opacity:.32">the frens who read to the end find the magic. ↑ ↑ ↓ ↓ …</span>
+  </footer>
+</div>
+
+<div id="rtfm-magic" hidden>
+  <div class="card">
+    <p class="eye">RTFM ▸ you looked hard enough</p>
+    <h2>🌱 the magic</h2>
+    <p>You read the manual. Most won't. The frens who do get the good stuff.</p>
+    <p class="secret">secret word: <b>invoices-and-nothing-more</b></p>
+    <p class="foot">Tell the attendant the secret word. <span class="kbd">Esc</span> to close.</p>
+  </div>
+</div>
+<script>
+  (function () {
+    var seq = ["arrowup","arrowup","arrowdown","arrowdown","arrowleft","arrowright","arrowleft","arrowright","b","a"];
+    var i = 0, el = document.getElementById("rtfm-magic");
+    if (!el) return;
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") { el.hidden = true; return; }
+      var k = e.key.toLowerCase();
+      if (k === seq[i]) { i++; if (i === seq.length) { i = 0; el.hidden = false; } }
+      else { i = (k === seq[0] ? 1 : 0); }
+    });
+    el.addEventListener("click", function (e) { if (e.target === el) el.hidden = true; });
+  })();
+</script>
+</body>
+</html>
