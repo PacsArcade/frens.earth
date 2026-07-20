@@ -71,3 +71,8 @@ next-env.d.ts
 /data/brief-reviews.json
 /data/briefs-shared/
 /data/brief-reviews-shared.json
+
+# store — catalog is dual-driver (dev file / prod blob); orders are PII and
+# live only in the private driver (dev files / prod KV), never in git.
+/data/store-catalog.json
+/data/store-orders/

@@ -157,6 +157,14 @@ export const CONSOLE_ROOMS: ConsoleRoom[] = [
       { key: "tester", label: "BRAND KIT", href: "/a/brand#tester" },
     ],
   },
+  {
+    key: "store",
+    href: "/a/store",
+    label: "STORE",
+    short: "STORE",
+    blurb: "the shelf manager — wares, prices, the order book",
+    tone: "neon",
+  },
 ];
 
 /** Every level-1 + level-2 sub of a room, flattened (for path matching). */
