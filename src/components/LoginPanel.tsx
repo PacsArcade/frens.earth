@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import SigningExplainer from "@/components/SigningExplainer";
 import SignerNudge from "@/components/SignerNudge";
+import SignerDoors from "@/components/SignerDoors";
 import useFrenSession, { applyFrenSession } from "@/hooks/useFrenSession";
 import { useBrand, type DoorAccent } from "@/lib/brand";
 
@@ -37,6 +38,38 @@ export default function LoginPanel() {
   const { fren: existing, signOut } = useFrenSession();
   const { copy, doors } = useBrand();
 
+  /* One submit path for EVERY door — extension, bunker, Android signer app.
+     Returns the error to show, or null after taking over navigation. */
+  async function submitLogin(event: unknown): Promise<string | null> {
+    try {
+      const res = await fetch("/api/frens/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ event }),
+      });
+      let data: { ok?: boolean; reason?: string; handle?: string; space?: string; npub?: string | null } | null = null;
+      try {
+        data = await res.json();
+      } catch {
+        /* non-JSON = the server fell over, not the fren */
+      }
+      if (!res.ok || !data?.ok) {
+        return (
+          data?.reason ??
+          `the arcade server hiccuped (HTTP ${res.status}) — your signature was fine; tell the operator`
+        );
+      }
+      /* flip the whole header without a hard nav — one store, no stale chip */
+      applyFrenSession({ handle: data.handle!, space: data.space!, npub: data.npub ?? null });
+      /* space-qualified so the right door opens on ANY host — the
+         pacster@pacsarcade GAME OVER lesson */
+      router.push(`/u/${data.handle}@${data.space}`);
+      return null;
+    } catch {
+      return "couldn't reach the arcade — check your connection and try again";
+    }
+  }
+
   async function signIn() {
     setError(null);
     if (!window.nostr) {
@@ -60,35 +93,9 @@ export default function LoginPanel() {
       setBusy(false);
       return;
     }
-    try {
-      const res = await fetch("/api/frens/session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ event }),
-      });
-      let data: { ok?: boolean; reason?: string; handle?: string; space?: string; npub?: string | null } | null = null;
-      try {
-        data = await res.json();
-      } catch {
-        /* non-JSON = the server fell over, not the fren */
-      }
-      if (!res.ok || !data?.ok) {
-        setError(
-          data?.reason ??
-            `the arcade server hiccuped (HTTP ${res.status}) — your signature was fine; tell the operator`
-        );
-        return;
-      }
-      /* flip the whole header without a hard nav — one store, no stale chip */
-      applyFrenSession({ handle: data.handle!, space: data.space!, npub: data.npub ?? null });
-      /* space-qualified so the right door opens on ANY host — the
-         pacster@pacsarcade GAME OVER lesson */
-      router.push(`/u/${data.handle}@${data.space}`);
-    } catch {
-      setError("couldn't reach the arcade — check your connection and try again");
-    } finally {
-      setBusy(false);
-    }
+    const reason = await submitLogin(event);
+    if (reason) setError(reason);
+    setBusy(false);
   }
 
   return (
@@ -116,15 +123,33 @@ export default function LoginPanel() {
           <p className="mb-2 font-pixel text-xs text-cyan glow-cyan">{copy.returningTitle}</p>
           <p className="mb-5 font-body text-sm text-white/70">{copy.returningBlurb}</p>
           {hasSigner === false ? (
-            <SignerNudge />
+            /* no extension in this browser — the phone doors ARE the door;
+               the extension pitch demotes to the desktop footnote */
+            <div className="space-y-4">
+              <p className="font-pixel text-[9px] uppercase text-white/50">
+                PICK YOUR DOOR — SAME KEY, SAME SIGNATURE, ANY DEVICE
+              </p>
+              <SignerDoors kind="login" submit={submitLogin} />
+              <SignerNudge />
+            </div>
           ) : (
-            <button
-              onClick={signIn}
-              disabled={busy}
-              className="button block w-full text-center disabled:opacity-50"
-            >
-              {busy ? copy.signingCta : copy.signInCta}
-            </button>
+            <>
+              <button
+                onClick={signIn}
+                disabled={busy}
+                className="button block min-h-11 w-full touch-manipulation text-center disabled:opacity-50"
+              >
+                {busy ? copy.signingCta : copy.signInCta}
+              </button>
+              <details className="mt-4">
+                <summary className="cursor-pointer font-pixel text-[9px] uppercase text-white/50">
+                  ON A PHONE, OR NO EXTENSION HERE? MORE DOORS ▸
+                </summary>
+                <div className="mt-3">
+                  <SignerDoors kind="login" submit={submitLogin} />
+                </div>
+              </details>
+            </>
           )}
           {error && <p className="mt-3 font-pixel text-[9px] uppercase text-ghost">{error}</p>}
           <div className="mt-4">
