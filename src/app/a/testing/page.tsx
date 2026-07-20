@@ -36,7 +36,7 @@ export default async function AdminTestingPage() {
           OPERATOR CONSOLE · {CONSOLE_SITE.domain.toUpperCase()} · DECK 02 · THE CREW&apos;S SIDE
         </p>
         <h1 className="mb-3 font-arcade text-4xl text-cyan glow-cyan">CREW BOARD</h1>
-        <p className="font-body text-sm text-white/55">
+        <p className="max-w-2xl font-body text-sm text-white/55">
           Signed &amp; shipped — test it live, work the tickets, climb the ladder, and read what
           the crew shipped.
         </p>

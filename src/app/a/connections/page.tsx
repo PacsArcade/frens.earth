@@ -50,7 +50,7 @@ export default async function AdminConnectionsPage() {
           OPERATOR CONSOLE · {CONSOLE_SITE.domain.toUpperCase()} · DECK 05
         </p>
         <h1 className="mb-3 font-arcade text-4xl text-cyan glow-cyan">FLEET MAP</h1>
-        <p className="mb-5 font-body text-sm text-white/55">
+        <p className="mb-5 max-w-2xl font-body text-sm text-white/55">
           Your nodes and doors — point each one at your own server, save, and test. Leave one
           empty and it falls back honestly. Nothing here is hardwired.
         </p>
