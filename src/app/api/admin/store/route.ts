@@ -47,9 +47,18 @@ export async function PUT(request: Request) {
       images: Array.isArray(item.media.images) ? item.media.images.filter((u) => typeof u === "string" && u) : [],
       preview:
         typeof item.media.preview === "string" && item.media.preview.trim() ? item.media.preview.trim() : undefined,
+      // blobPath rides along here — this route is operator-gated, the ONE
+      // surface allowed to carry it (the leak rule in store.ts)
       deliverable:
         item.media.deliverable && item.media.deliverable.label?.trim()
-          ? { kind: item.media.deliverable.kind, label: item.media.deliverable.label.trim() }
+          ? {
+              kind: item.media.deliverable.kind,
+              label: item.media.deliverable.label.trim(),
+              blobPath:
+                typeof item.media.deliverable.blobPath === "string" && item.media.deliverable.blobPath.trim()
+                  ? item.media.deliverable.blobPath.trim()
+                  : undefined,
+            }
           : undefined,
     };
   }

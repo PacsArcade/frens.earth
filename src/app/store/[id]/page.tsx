@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import ArcadeHeader from "@/components/ArcadeHeader";
 import EarthFooter from "@/components/EarthFooter";
 import BuyPanel from "@/components/store/BuyPanel";
-import { getItem } from "@/lib/store";
+import { getItem, stripPrivateMedia } from "@/lib/store";
 import { liveAdapter } from "@/lib/payments";
 
 export const dynamic = "force-dynamic";
@@ -17,8 +17,11 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 
 export default async function ItemPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const item = await getItem(id);
-  if (!item || item.status === "hidden") notFound();
+  const raw = await getItem(id);
+  if (!raw || raw.status === "hidden") notFound();
+  // THE LEAK RULE (store.ts): the item feeds a client component's props —
+  // strip the deliverable's private blobPath before anything serializes
+  const item = stripPrivateMedia(raw);
 
   const effective = item.sale ?? item.price;
   const shots = item.media?.images.length ? item.media.images : item.images;
@@ -49,8 +52,8 @@ export default async function ItemPage({ params }: { params: Promise<{ id: strin
         <p className="mt-2 text-sm text-neutral-300">{item.blurb}</p>
         {item.media?.deliverable && (
           <p className="mt-2 text-xs text-cyan-300">
-            includes: {item.media.deliverable.label} ({item.media.deliverable.kind} download) — delivered by the
-            artist after purchase
+            includes: {item.media.deliverable.label} ({item.media.deliverable.kind} download) — delivered after
+            purchase, from your receipt page
           </p>
         )}
         {item.media?.preview && (

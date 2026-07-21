@@ -79,3 +79,7 @@ next-env.d.ts
 
 # store product shots, dev driver (prod uses public Blob) — never tracked
 /public/store-media/
+
+# store paid deliverables, dev driver (prod uploads go browser → Blob under
+# store/deliverables/) — the paid files, NEVER tracked, never under public/
+/data/deliverables/

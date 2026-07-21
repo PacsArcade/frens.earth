@@ -31,16 +31,39 @@ export interface Price {
 
 /**
  * v2 media block. `images` are PRODUCT SHOTS — public by nature, public
- * URLs are correct. `deliverable` is metadata ONLY ({ kind, label }) — the
- * paid file itself has no field here on purpose: it must never live in
- * public storage, and the gated delivery route is S2 (the entitlement
- * gate). Until then the artist delivers by hand and the copy says so.
+ * URLs are correct. `deliverable` describes the paid digital good:
+ * { kind, label } are public listing metadata; `blobPath` is the PRIVATE
+ * pointer to the paid file itself (a `store/deliverables/` blob pathname
+ * in prod — random-suffixed, unguessable — or a `deliverables/` name under
+ * data/ on the dev driver). See THE LEAK RULE on stripPrivateMedia().
  */
 export interface ItemMedia {
   images: string[];
   /** optional public teaser URL (a clip, a sample) — never the paid good */
   preview?: string;
-  deliverable?: { kind: "audio" | "video" | "file"; label: string };
+  deliverable?: {
+    kind: "audio" | "video" | "file";
+    label: string;
+    /** PRIVATE pointer to the paid file — leak rule: stripPrivateMedia() */
+    blobPath?: string;
+  };
+}
+
+/**
+ * ⛔ THE LEAK RULE — `deliverable.blobPath` is the private pointer to the
+ * paid file and must NEVER appear in any public response: not the catalog
+ * API, not an item page's server props, not the buyer's order view. Every
+ * public serialization of an item funnels through this helper. The only
+ * surface allowed to carry the path is the operator-gated /api/admin/store
+ * GET (the artist editing their own shelf). A buyer reaches the file
+ * exclusively through /api/store/download/[orderId] — the order id is the
+ * capability; the path stays server-side.
+ */
+export function stripPrivateMedia(item: StoreItem): StoreItem {
+  const media = item.media;
+  const d = media?.deliverable;
+  if (!media || !d || d.blobPath == null) return item;
+  return { ...item, media: { ...media, deliverable: { kind: d.kind, label: d.label } } };
 }
 
 export interface StoreItem {
@@ -227,6 +250,17 @@ export function validateItem(item: StoreItem): { ok: true } | { ok: false; reaso
     if (m.deliverable) {
       if (!["audio", "video", "file"].includes(m.deliverable.kind) || !m.deliverable.label?.trim()) {
         return { ok: false, reason: "deliverable as kind (audio/video/file) + label" };
+      }
+      const bp = m.deliverable.blobPath;
+      if (bp != null) {
+        if (
+          typeof bp !== "string" ||
+          bp.length > 300 ||
+          bp.includes("..") ||
+          !(bp.startsWith("store/deliverables/") || bp.startsWith("deliverables/"))
+        ) {
+          return { ok: false, reason: "deliverable file path under store/deliverables/ (or the dev driver's deliverables/)" };
+        }
       }
     }
   }

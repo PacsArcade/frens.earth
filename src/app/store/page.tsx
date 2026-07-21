@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import ArcadeHeader from "@/components/ArcadeHeader";
 import EarthFooter from "@/components/EarthFooter";
-import { listItems } from "@/lib/store";
+import { listItems, stripPrivateMedia } from "@/lib/store";
 import { liveAdapter } from "@/lib/payments";
 
 export const metadata: Metadata = {
@@ -21,7 +21,8 @@ function fiatLabel(f: { amount: number; currency: string }): string {
 }
 
 export default async function StorePage() {
-  const items = await listItems();
+  // THE LEAK RULE (store.ts): public serialization strips deliverable.blobPath
+  const items = (await listItems()).map(stripPrivateMedia);
   const rail = liveAdapter();
 
   return (
