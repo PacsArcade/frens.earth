@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { operatorFromCookieHeader } from "@/lib/operator-auth";
 import { listItems, upsertItem, removeItem, validateItem, type StoreItem } from "@/lib/store";
 import { btcpayAdapter } from "@/lib/payments";
+import { blobStoreEnabled } from "@/lib/registry";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +22,9 @@ export async function GET(request: Request) {
     // honest rail states for the RAILS berths — btcpay is real (env-wired
     // or not); square/stripe are S5 SOON berths, no config to report yet
     rails: { btcpay: btcpayAdapter.configured() },
+    // deliverable uploads: browser → blob directly when the blob store is
+    // live; otherwise the dev driver (multipart to data/deliverables/)
+    uploads: { deliverableDirect: blobStoreEnabled() },
   });
 }
 
