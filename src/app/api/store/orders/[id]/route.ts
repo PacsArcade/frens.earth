@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getOrder, getItem, recordChargeEvent } from "@/lib/store";
+import { sessionsFromRequest } from "@/lib/fren-auth";
 import { getAdapter } from "@/lib/payments";
 
 export const dynamic = "force-dynamic";
@@ -11,7 +12,7 @@ export const dynamic = "force-dynamic";
  * can't be). Reconcile flips through recordChargeEvent — the same commit
  * function the webhook uses. Same guarantee, two triggers.
  */
-export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   let order: Awaited<ReturnType<typeof getOrder>>;
   try {
@@ -39,15 +40,21 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     }
   }
 
-  // downloadable? — a boolean + label for the receipt page, NEVER the path
-  // (THE LEAK RULE in store.ts: blobPath stays server-side; the buyer's
-  // only door to the file is /api/store/download/[orderId])
-  let deliverable: { label: string } | undefined;
+  // downloadable? — a label + locked flag for the receipt page, NEVER the
+  // path (THE LEAK RULE in store.ts: blobPath stays server-side; the
+  // buyer's only door to the file is /api/store/download/[orderId]).
+  // locked mirrors the download route's owner gate: a subject-bound order
+  // opens only for the buying tag's own session — a shared receipt link
+  // shows the receipt, never a live download affordance.
+  let deliverable: { label: string; locked: boolean } | undefined;
   for (const li of order.lineItems) {
     const item = await getItem(li.itemId);
     const d = item?.media?.deliverable;
     if (d?.blobPath) {
-      deliverable = { label: d.label || li.title };
+      const locked = order.entitlementSubject
+        ? !sessionsFromRequest(request).some((s) => `${s.handle}@${s.space}` === order.entitlementSubject)
+        : false;
+      deliverable = { label: d.label || li.title, locked };
       break;
     }
   }

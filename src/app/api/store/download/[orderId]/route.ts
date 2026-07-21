@@ -4,13 +4,22 @@ import path from "path";
 import { Readable } from "stream";
 import { head } from "@vercel/blob";
 import { getOrder, getItem } from "@/lib/store";
+import { sessionsFromRequest } from "@/lib/fren-auth";
 import { blobStoreEnabled } from "@/lib/registry";
 
 export const dynamic = "force-dynamic";
 
 /**
  * The paid download — the order id IS the capability, same doctrine as the
- * receipt page (unguessable 96-bit random id, held only by the buyer).
+ * receipt page (unguessable 96-bit random id, held only by the buyer)…
+ * with the owner's hardening (~0018.04.24): a shared receipt link shows
+ * the receipt, never the file. When the order carries entitlementSubject
+ * (every digital/package purchase does — checkout requires sign-in), the
+ * download ALSO demands a live fren session for that very tag. Orders
+ * without a subject that somehow carry a deliverable stay capability-only
+ * — that's the documented fallback; digital/package + subject is the
+ * sanctioned pairing.
+ *
  * Gate: order state settled or fulfilled AND the line item's catalog record
  * carries a deliverable file. Prod answers with a 302 to the blob's
  * unguessable URL; the dev driver streams the local file. blobPath itself
@@ -34,7 +43,7 @@ const EXT_MIME: Record<string, string> = {
   ".pdf": "application/pdf",
 };
 
-export async function GET(_request: Request, { params }: { params: Promise<{ orderId: string }> }) {
+export async function GET(request: Request, { params }: { params: Promise<{ orderId: string }> }) {
   const { orderId } = await params;
 
   let order: Awaited<ReturnType<typeof getOrder>>;
@@ -52,6 +61,21 @@ export async function GET(_request: Request, { params }: { params: Promise<{ ord
       { ok: false, reason: `the download unlocks when payment settles — this order is ${order.state}` },
       { status: 403 }
     );
+  }
+
+  // the owner's gate: subject-bound orders open only for the buying tag's
+  // own session — ANY of the signed-in sessions may match (up to 8 ride
+  // the cookie; sessions[0]-only would be silent ambiguity, per spec)
+  if (order.entitlementSubject) {
+    const owned = sessionsFromRequest(request).some(
+      (s) => `${s.handle}@${s.space}` === order.entitlementSubject
+    );
+    if (!owned) {
+      return NextResponse.json(
+        { ok: false, reason: `this download belongs to ${order.entitlementSubject} — sign in with that key` },
+        { status: 403 }
+      );
+    }
   }
 
   // single-item checkout today, but scan the line items honestly: the first

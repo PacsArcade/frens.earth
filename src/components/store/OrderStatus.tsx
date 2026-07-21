@@ -11,8 +11,8 @@ interface OrderView {
   entitlementSubject?: string;
   createdAtMs: number;
   settledAtMs?: number;
-  /** a downloadable exists for this order — label only, never a path */
-  deliverable?: { label: string };
+  /** a downloadable exists for this order — label + owner lock, never a path */
+  deliverable?: { label: string; locked?: boolean };
 }
 
 /** Buyer-honest copy per state — processing is a first-class wait, not a spinner. */
@@ -118,18 +118,34 @@ export default function OrderStatus({ orderId }: { orderId: string }) {
         </p>
         <p className="mt-1 text-[10px] text-neutral-600">order {order.id}</p>
       </div>
-      {/* the paid good itself — gold is right here, this IS the money's worth */}
+      {/* the paid good itself — gold is right here, this IS the money's worth.
+          Locked = the viewer isn't the buying tag (shared link, or signed
+          out): an honest lock, never a gold button that would only 403. */}
       {order.deliverable && ["settled", "fulfilled"].includes(order.state) && (
         <div className="mt-4">
-          <a
-            href={`/api/store/download/${order.id}`}
-            className="inline-block min-h-11 touch-manipulation border border-yellow-500 px-4 py-2 text-sm font-bold tracking-widest text-yellow-400"
-          >
-            ⬇ DOWNLOAD — {order.deliverable.label}
-          </a>
-          <p className="mt-1 text-xs text-neutral-400">
-            this link is yours — your receipt email leads back to this page.
-          </p>
+          {order.deliverable.locked ? (
+            <div className="border border-neutral-700 px-4 py-2">
+              <p className="text-sm text-neutral-300">
+                🔒 unlocks for <span className="text-cyan-300">{order.entitlementSubject}</span> —{" "}
+                <a href="/login" className="text-cyan-300 underline">
+                  sign in
+                </a>{" "}
+                with that key to download
+              </p>
+            </div>
+          ) : (
+            <>
+              <a
+                href={`/api/store/download/${order.id}`}
+                className="inline-block min-h-11 touch-manipulation border border-yellow-500 px-4 py-2 text-sm font-bold tracking-widest text-yellow-400"
+              >
+                ⬇ DOWNLOAD — {order.deliverable.label}
+              </a>
+              <p className="mt-1 text-xs text-neutral-400">
+                this link is yours — your receipt email leads back to this page.
+              </p>
+            </>
+          )}
         </div>
       )}
       {canRecharge && (
