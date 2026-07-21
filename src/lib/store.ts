@@ -262,7 +262,20 @@ const orderFile = (id: string) => path.join(ordersDir(), `${id}.json`);
 function kvEnv(): { url: string; token: string } | null {
   const url = process.env.KV_REST_API_URL;
   const token = process.env.KV_REST_API_TOKEN;
-  return url && token ? { url, token } : null;
+  if (url && token) return { url, token };
+  // The Upstash marketplace integration injects REDIS_URL (rediss://default:TOKEN@host)
+  // instead of the KV_REST_* pair; its REST endpoint is https://<host> and the REST
+  // token is the redis password — derive both so the vault works either way.
+  const redisUrl = process.env.REDIS_URL;
+  if (redisUrl) {
+    try {
+      const u = new URL(redisUrl);
+      if (u.hostname && u.password) return { url: `https://${u.hostname}`, token: u.password };
+    } catch {
+      /* malformed — treat as unconfigured, checkout refuses honestly */
+    }
+  }
+  return null;
 }
 
 const kvKey = (id: string) => `store:order:${id}`;
