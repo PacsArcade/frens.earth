@@ -259,44 +259,70 @@ export async function removeItem(id: string): Promise<boolean> {
 const ordersDir = () => path.join(process.cwd(), "data", "store-orders");
 const orderFile = (id: string) => path.join(ordersDir(), `${id}.json`);
 
-function kvEnv(): { url: string; token: string } | null {
+/**
+ * The vault speaks two transports, whichever the platform provisioned:
+ * - REST (Upstash KV_REST_API_URL/TOKEN pair) when present;
+ * - native Redis over TCP via REDIS_URL — the only thing the current
+ *   Vercel marketplace hands out. Lazy singleton client, reused across
+ *   warm invocations, dropped on error so the next call reconnects.
+ */
+function restEnv(): { url: string; token: string } | null {
   const url = process.env.KV_REST_API_URL;
   const token = process.env.KV_REST_API_TOKEN;
-  if (url && token) return { url, token };
-  // The Upstash marketplace integration injects REDIS_URL (rediss://default:TOKEN@host)
-  // instead of the KV_REST_* pair; its REST endpoint is https://<host> and the REST
-  // token is the redis password — derive both so the vault works either way.
-  const redisUrl = process.env.REDIS_URL;
-  if (redisUrl) {
-    try {
-      const u = new URL(redisUrl);
-      if (u.hostname && u.password) return { url: `https://${u.hostname}`, token: u.password };
-    } catch {
-      /* malformed — treat as unconfigured, checkout refuses honestly */
-    }
-  }
-  return null;
+  return url && token ? { url, token } : null;
+}
+
+function vaultConfigured(): boolean {
+  return restEnv() !== null || !!process.env.REDIS_URL;
 }
 
 const kvKey = (id: string) => `store:order:${id}`;
 const KV_INDEX = "store:orders:index";
 
-async function kv(cmd: unknown[]): Promise<{ result: unknown } | null> {
-  const env = kvEnv();
-  if (!env) return null;
-  const res = await fetch(env.url, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${env.token}`, "Content-Type": "application/json" },
-    body: JSON.stringify(cmd),
-    cache: "no-store",
+type RedisLike = { sendCommand: (cmd: string[]) => Promise<unknown> };
+let redisClient: RedisLike | null = null;
+
+async function getRedis(): Promise<RedisLike> {
+  if (redisClient) return redisClient;
+  const { createClient } = await import("redis");
+  const client = createClient({
+    url: process.env.REDIS_URL,
+    socket: { connectTimeout: 5000 },
   });
-  if (!res.ok) throw new Error(`order store: KV ${res.status}`);
-  return (await res.json()) as { result: unknown };
+  client.on("error", () => {
+    redisClient = null; // next call reconnects instead of riding a dead socket
+  });
+  await client.connect();
+  redisClient = client as unknown as RedisLike;
+  return redisClient;
 }
 
-/** Prod requires KV; dev uses files. False = checkout honestly refuses. */
+async function kv(cmd: unknown[]): Promise<{ result: unknown } | null> {
+  if (!vaultConfigured()) return null;
+  const rest = restEnv();
+  if (rest) {
+    const res = await fetch(rest.url, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${rest.token}`, "Content-Type": "application/json" },
+      body: JSON.stringify(cmd),
+      cache: "no-store",
+    });
+    if (!res.ok) throw new Error(`order store: KV ${res.status}`);
+    return (await res.json()) as { result: unknown };
+  }
+  try {
+    const client = await getRedis();
+    const result = await client.sendCommand(cmd.map(String));
+    return { result };
+  } catch (err) {
+    redisClient = null;
+    throw new Error(`order store: redis ${err instanceof Error ? err.message : "error"}`);
+  }
+}
+
+/** Prod requires the vault; dev uses files. False = checkout honestly refuses. */
 export function ordersConfigured(): boolean {
-  if (process.env.VERCEL === "1") return kvEnv() !== null;
+  if (process.env.VERCEL === "1") return vaultConfigured();
   return true;
 }
 
@@ -313,7 +339,7 @@ export function newOrderId(): string {
 /** Create-if-not-exists — the atomicity the money path requires. */
 export async function createOrder(order: OrderRecord): Promise<void> {
   if (!safeOrderId(order.id)) throw new Error("order store: bad id");
-  if (kvEnv()) {
+  if (vaultConfigured()) {
     const res = await kv(["SET", kvKey(order.id), JSON.stringify(order), "NX"]);
     if (res?.result === null) throw new Error("order store: id collision");
     await kv(["SADD", KV_INDEX, order.id]);
@@ -324,7 +350,7 @@ export async function createOrder(order: OrderRecord): Promise<void> {
 }
 
 async function writeOrder(order: OrderRecord): Promise<void> {
-  if (kvEnv()) {
+  if (vaultConfigured()) {
     await kv(["SET", kvKey(order.id), JSON.stringify(order)]);
     return;
   }
@@ -336,7 +362,7 @@ async function writeOrder(order: OrderRecord): Promise<void> {
 export async function getOrder(id: string): Promise<OrderRecord | null> {
   if (!safeOrderId(id)) return null;
   let order: OrderRecord | null = null;
-  if (kvEnv()) {
+  if (vaultConfigured()) {
     const res = await kv(["GET", kvKey(id)]);
     if (typeof res?.result === "string") order = JSON.parse(res.result) as OrderRecord;
   } else {
@@ -352,7 +378,7 @@ export async function getOrder(id: string): Promise<OrderRecord | null> {
 
 export async function listOrders(): Promise<OrderRecord[]> {
   const ids: string[] = [];
-  if (kvEnv()) {
+  if (vaultConfigured()) {
     const res = await kv(["SMEMBERS", KV_INDEX]);
     if (Array.isArray(res?.result)) ids.push(...(res.result as string[]));
   } else {
