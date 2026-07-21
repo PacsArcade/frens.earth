@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { upload as blobDirectUpload } from "@vercel/blob/client";
 import { bftDateTime, estimateHeight } from "@/lib/bb/bft";
 import type { StoreItem, OrderRecord } from "@/lib/store";
 
@@ -30,6 +31,20 @@ interface ShelfData {
   orders?: OrderRecord[];
   attention?: string[];
   railBtcpay?: boolean;
+  /** blob store live → deliverables upload browser → blob directly */
+  deliverableDirect?: boolean;
+}
+
+/** mirror of the server's deliverable-name hygiene — keeps pathnames sane */
+function safeDeliverableName(name: string): string {
+  const ext = (name.match(/\.[a-z0-9]{1,8}$/i)?.[0] ?? "").toLowerCase();
+  const base = name
+    .toLowerCase()
+    .replace(/\.[a-z0-9]{1,8}$/i, "")
+    .replace(/[^a-z0-9._-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 48);
+  return `${base || "deliverable"}${ext}`;
 }
 
 /** Pure fetcher — no state here, so effect and handlers share it cleanly. */
@@ -48,6 +63,7 @@ async function fetchShelf(): Promise<ShelfData | null> {
       orders: dord.ok ? dord.orders : undefined,
       attention: dord.ok ? dord.needsAttention : undefined,
       railBtcpay: di.ok ? Boolean(di.rails?.btcpay) : undefined,
+      deliverableDirect: di.ok ? Boolean(di.uploads?.deliverableDirect) : undefined,
     };
   } catch {
     return null;
@@ -64,6 +80,11 @@ export default function StoreRoom() {
   const [sizesText, setSizesText] = useState("");
   const [uploading, setUploading] = useState(false);
   const [note, setNote] = useState<string | null>(null);
+  const [directUp, setDirectUp] = useState(false);
+  const [dUploading, setDUploading] = useState(false);
+  const [dProgress, setDProgress] = useState<number | null>(null);
+  const [dNote, setDNote] = useState<string | null>(null);
+  const [dReplace, setDReplace] = useState(false);
 
   const apply = useCallback((d: ShelfData | null) => {
     if (!d) return;
@@ -75,6 +96,7 @@ export default function StoreRoom() {
     if (d.orders) setOrders(d.orders);
     if (d.attention) setAttention(d.attention);
     if (d.railBtcpay !== undefined) setRailBtcpay(d.railBtcpay);
+    if (d.deliverableDirect !== undefined) setDirectUp(d.deliverableDirect);
   }, []);
 
   const load = useCallback(async () => apply(await fetchShelf()), [apply]);
@@ -102,6 +124,8 @@ export default function StoreRoom() {
     if (data.ok) {
       setDraft(BLANK);
       setSizesText("");
+      setDNote(null);
+      setDReplace(false);
       load();
     }
   }
@@ -115,6 +139,8 @@ export default function StoreRoom() {
   function edit(item: StoreItem) {
     setDraft(item);
     setSizesText(item.sizes?.join(", ") ?? "");
+    setDNote(null);
+    setDReplace(false);
   }
 
   async function toggle(item: StoreItem, status: StoreItem["status"]) {
@@ -145,6 +171,55 @@ export default function StoreRoom() {
       }
     }
     setUploading(false);
+  }
+
+  /**
+   * The PAID file. Blob live → browser uploads straight to blob (the token
+   * route only mints permission — Vercel's ~4.5 MB body cap never applies).
+   * Dev driver → multipart to the same route, written under
+   * data/deliverables/. Either way the resulting blobPath lands on the
+   * draft; SAVE (the admin PUT) attaches it to the ware.
+   */
+  async function uploadDeliverable(file: File | null) {
+    if (!file || !draft.media?.deliverable) return;
+    setDUploading(true);
+    setDProgress(null);
+    setDNote(null);
+    setNote(null);
+    try {
+      let blobPath: string;
+      if (directUp) {
+        const result = await blobDirectUpload(`store/deliverables/${safeDeliverableName(file.name)}`, file, {
+          access: "public",
+          handleUploadUrl: "/api/admin/store/upload-deliverable",
+          multipart: true,
+          onUploadProgress: ({ percentage }) => setDProgress(Math.round(percentage)),
+        });
+        blobPath = result.pathname;
+      } else {
+        const fd = new FormData();
+        fd.append("file", file);
+        const res = await fetch("/api/admin/store/upload-deliverable", { method: "POST", body: fd });
+        const data = await res.json();
+        if (!data.ok) {
+          setNote(data.reason ?? "upload failed");
+          return;
+        }
+        blobPath = data.blobPath;
+      }
+      setDraft((d) =>
+        d.media?.deliverable
+          ? { ...d, media: { ...d.media, deliverable: { ...d.media.deliverable, blobPath } } }
+          : d
+      );
+      setDReplace(false);
+      setDNote("uploaded ✓ — press SAVE to attach it to the ware");
+    } catch (err) {
+      setNote(err instanceof Error ? err.message : "upload failed");
+    } finally {
+      setDUploading(false);
+      setDProgress(null);
+    }
   }
 
   function removeImage(url: string) {
@@ -266,7 +341,11 @@ export default function StoreRoom() {
                   <span className="text-neutral-400"> · {item.sizes.join("/")}</span>
                 )}
                 {item.media?.deliverable && (
-                  <span className="text-cyan-300"> · +{item.media.deliverable.kind}</span>
+                  <span className="text-cyan-300">
+                    {" "}
+                    · +{item.media.deliverable.kind}
+                    {item.media.deliverable.blobPath ? " ✓" : " (no file)"}
+                  </span>
                 )}
               </span>
             </span>
@@ -383,7 +462,7 @@ export default function StoreRoom() {
           className="border border-neutral-700 bg-black px-2 py-2 text-base sm:text-sm"
         />
 
-        {/* the deliverable is a LISTING, not a delivery: metadata only */}
+        {/* the deliverable: listing metadata + the paid file itself */}
         <div className="border border-neutral-700 p-2">
           <p className="text-xs text-neutral-400">digital deliverable (optional) — what the buyer gets</p>
           <div className="mt-2 flex flex-wrap gap-2">
@@ -398,6 +477,8 @@ export default function StoreRoom() {
                       ? {
                           kind: e.target.value as "audio" | "video" | "file",
                           label: draft.media?.deliverable?.label ?? "",
+                          // kind changes keep the attached file; "none" detaches
+                          blobPath: draft.media?.deliverable?.blobPath,
                         }
                       : undefined,
                   },
@@ -428,9 +509,57 @@ export default function StoreRoom() {
               />
             )}
           </div>
+          {draft.media?.deliverable && (
+            <div className="mt-2 border border-neutral-800 p-2">
+              {draft.media.deliverable.blobPath ? (
+                <p className="text-xs text-green-400">
+                  file attached ✓{" "}
+                  <span className="text-neutral-400">
+                    {draft.media.deliverable.blobPath.split("/").pop()}
+                  </span>
+                </p>
+              ) : (
+                <p className="text-xs text-neutral-400">
+                  no file attached yet — buyers get no download button until one is
+                </p>
+              )}
+              {draft.media.deliverable.blobPath && !dReplace ? (
+                <button
+                  onClick={() => setDReplace(true)}
+                  disabled={dUploading}
+                  className="mt-2 min-h-11 touch-manipulation border border-neutral-500 px-3 py-1 text-xs disabled:opacity-40"
+                >
+                  REPLACE FILE
+                </button>
+              ) : (
+                <input
+                  type="file"
+                  accept="audio/*,video/*,application/zip,application/x-zip-compressed,application/pdf,.zip,.pdf"
+                  disabled={dUploading}
+                  onChange={(e) => {
+                    void uploadDeliverable(e.target.files?.[0] ?? null);
+                    e.target.value = "";
+                  }}
+                  className="mt-2 block text-xs text-neutral-400"
+                />
+              )}
+              {dUploading && (
+                <p className="mt-1 text-xs text-neutral-400">
+                  {dProgress != null ? `uploading… ${dProgress}%` : "uploading…"}
+                </p>
+              )}
+              {dNote && <p className="mt-1 text-xs text-cyan-300">{dNote}</p>}
+              <p className="mt-2 text-xs text-neutral-500">
+                {directUp
+                  ? "audio/video/zip/pdf up to 1 GB — uploads go from your browser straight to the file vault"
+                  : "dev driver: the file lands in data/deliverables/ on this machine — any size your disk takes; prod uploads go browser → blob directly"}
+              </p>
+            </div>
+          )}
           <p className="mt-2 text-xs text-cyan-300">
-            listed on the item now · gated download delivery — SOON (S2, the entitlement gate). Until then you
-            send it by hand after settle; never upload the paid file as a product shot.
+            with a file attached, the buyer&apos;s receipt page grows a download button once payment settles — the
+            order id is the key. The file&apos;s address never appears on the public shelf. No file yet? You deliver
+            by hand after settle; never upload the paid file as a product shot.
           </p>
         </div>
 
@@ -468,7 +597,7 @@ export default function StoreRoom() {
         </div>
         <button
           onClick={() => saveDraft()}
-          disabled={uploading}
+          disabled={uploading || dUploading}
           className="min-h-11 touch-manipulation border border-yellow-500 px-3 py-1 font-bold text-yellow-400 disabled:opacity-40"
         >
           SAVE
