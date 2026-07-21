@@ -8,7 +8,18 @@ export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
   const operator = operatorFromCookieHeader(request.headers.get("cookie"));
   if (!operator) return NextResponse.json({ ok: false, reason: "operator session required" }, { status: 401 });
-  const orders = await listOrders();
+  let orders: Awaited<ReturnType<typeof listOrders>>;
+  try {
+    orders = await listOrders();
+  } catch (err) {
+    // vault sick ≠ room dead: the shelf still renders; the book says why it can't
+    return NextResponse.json({
+      ok: false,
+      reason: `order vault unreachable: ${err instanceof Error ? err.message : "unknown"}`,
+      orders: [],
+      needsAttention: [],
+    });
+  }
   return NextResponse.json({
     ok: true,
     orders,

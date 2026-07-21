@@ -13,7 +13,15 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  let order = await getOrder(id);
+  let order: Awaited<ReturnType<typeof getOrder>>;
+  try {
+    order = await getOrder(id);
+  } catch (err) {
+    return NextResponse.json(
+      { ok: false, reason: `order vault unreachable: ${err instanceof Error ? err.message : "unknown"}` },
+      { status: 503 }
+    );
+  }
   if (!order) return NextResponse.json({ ok: false, reason: "no such order" }, { status: 404 });
 
   if (["charge_created", "processing"].includes(order.state) && order.chargeIds.length > 0) {
