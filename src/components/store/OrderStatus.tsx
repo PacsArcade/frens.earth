@@ -11,6 +11,8 @@ interface OrderView {
   entitlementSubject?: string;
   createdAtMs: number;
   settledAtMs?: number;
+  /** a downloadable exists for this order — label only, never a path */
+  deliverable?: { label: string };
 }
 
 /** Buyer-honest copy per state — processing is a first-class wait, not a spinner. */
@@ -116,6 +118,20 @@ export default function OrderStatus({ orderId }: { orderId: string }) {
         </p>
         <p className="mt-1 text-[10px] text-neutral-600">order {order.id}</p>
       </div>
+      {/* the paid good itself — gold is right here, this IS the money's worth */}
+      {order.deliverable && ["settled", "fulfilled"].includes(order.state) && (
+        <div className="mt-4">
+          <a
+            href={`/api/store/download/${order.id}`}
+            className="inline-block min-h-11 touch-manipulation border border-yellow-500 px-4 py-2 text-sm font-bold tracking-widest text-yellow-400"
+          >
+            ⬇ DOWNLOAD — {order.deliverable.label}
+          </a>
+          <p className="mt-1 text-xs text-neutral-400">
+            this link is yours — your receipt email leads back to this page.
+          </p>
+        </div>
+      )}
       {canRecharge && (
         <button
           onClick={recharge}

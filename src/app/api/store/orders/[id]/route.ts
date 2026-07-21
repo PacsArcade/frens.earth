@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getOrder, recordChargeEvent } from "@/lib/store";
+import { getOrder, getItem, recordChargeEvent } from "@/lib/store";
 import { getAdapter } from "@/lib/payments";
 
 export const dynamic = "force-dynamic";
@@ -39,6 +39,19 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     }
   }
 
+  // downloadable? — a boolean + label for the receipt page, NEVER the path
+  // (THE LEAK RULE in store.ts: blobPath stays server-side; the buyer's
+  // only door to the file is /api/store/download/[orderId])
+  let deliverable: { label: string } | undefined;
+  for (const li of order.lineItems) {
+    const item = await getItem(li.itemId);
+    const d = item?.media?.deliverable;
+    if (d?.blobPath) {
+      deliverable = { label: d.label || li.title };
+      break;
+    }
+  }
+
   // the buyer's view — never the full record (no events log, no purge bookkeeping)
   return NextResponse.json({
     ok: true,
@@ -50,6 +63,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       entitlementSubject: order.entitlementSubject,
       createdAtMs: order.createdAtMs,
       settledAtMs: order.settledAtMs,
+      deliverable,
     },
   });
 }
