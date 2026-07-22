@@ -70,8 +70,11 @@ const RESERVED = new Set([
 ]);
 
 const HANDLE_RE = /^[a-z0-9](?:[a-z0-9-]{1,18})[a-z0-9]$/;
+const NPUB_RE = /^npub1[02-9ac-hj-np-z]{58}$/;
 
-export function validateHandle(raw: string): { ok: true; handle: string } | { ok: false; reason: string } {
+/** Handle FORMAT rules only — shared by the public queue (which also refuses
+    RESERVED names) and the captain's seat (which exists to place them). */
+function checkHandleFormat(raw: string): { ok: true; handle: string } | { ok: false; reason: string } {
   const handle = raw.trim().toLowerCase();
   if (handle.length < 3 || handle.length > 20) {
     return { ok: false, reason: "3-20 characters" };
@@ -79,10 +82,16 @@ export function validateHandle(raw: string): { ok: true; handle: string } | { ok
   if (!HANDLE_RE.test(handle)) {
     return { ok: false, reason: "a-z, 0-9 and hyphens only (no leading/trailing hyphen)" };
   }
-  if (RESERVED.has(handle)) {
+  return { ok: true, handle };
+}
+
+export function validateHandle(raw: string): { ok: true; handle: string } | { ok: false; reason: string } {
+  const fmt = checkHandleFormat(raw);
+  if (!fmt.ok) return fmt;
+  if (RESERVED.has(fmt.handle)) {
     return { ok: false, reason: "reserved name" };
   }
-  return { ok: true, handle };
+  return fmt;
 }
 
 // ---------------------------------------------------------------------------
@@ -333,7 +342,7 @@ export async function claimHandle(
   const valid = validateHandle(handle);
   if (!valid.ok) return { ok: false, reason: valid.reason };
 
-  if (!/^npub1[02-9ac-hj-np-z]{58}$/.test(npub)) {
+  if (!NPUB_RE.test(npub)) {
     return { ok: false, reason: "invalid nostr public key" };
   }
 
@@ -379,6 +388,79 @@ export async function claimHandle(
     return { ok: false, reason: "the claim queue isn't open on this deployment yet — check back soon" };
   }
   return { ok: true, entry, queuePosition: reg.entries.filter((e) => e.status === "queued").length };
+}
+
+/** The captain's door for RESERVED names. The public queue refuses them by
+    design and no operator override exists in claimHandle — this is the ONE
+    sanctioned way a reserved handle gets an entry. Gate it (operator session)
+    at the route; the function itself only skips the RESERVED check. Everything
+    else is claimHandle's own law: same format rules, same storage path, same
+    create-if-not-exists uniqueness — an existing entry still refuses, seating
+    never overwrites. The entry lands "queued" like every claim, which is all
+    sign-in (findHandleByNpub) and NIP-05 (nip05Names) need — it rides the
+    same anchor batch as the public queue. */
+export async function seatReservedHandle({
+  handle,
+  npub,
+  space,
+  blockHeight,
+}: {
+  handle: string;
+  npub: string;
+  space?: string;
+  blockHeight?: number | null;
+}): Promise<{ ok: true; entry: HandleEntry } | { ok: false; reason: string }> {
+  const fmt = checkHandleFormat(handle);
+  if (!fmt.ok) return fmt;
+
+  if (!NPUB_RE.test(npub)) {
+    return { ok: false, reason: "invalid nostr public key" };
+  }
+
+  const s = normalizeSpace(space);
+  const entry: HandleEntry = {
+    handle: fmt.handle,
+    npub,
+    status: "queued",
+    batchId: null,
+    requestedAt: new Date().toISOString(),
+    blockHeight: blockHeight ?? null,
+  };
+
+  if (blobStoreEnabled()) {
+    try {
+      await put(blobPath(s, fmt.handle), JSON.stringify(entry, null, 2), {
+        access: "public",
+        addRandomSuffix: false,
+        allowOverwrite: false, // create-if-not-exists: seating never overwrites
+        contentType: "application/json",
+      });
+    } catch {
+      if (await blobExists(s, fmt.handle)) {
+        return { ok: false, reason: "already claimed" };
+      }
+      return { ok: false, reason: "the registry hiccuped — try again in a moment" };
+    }
+    // Authoritative blob is committed above; warm the read-cache write-through.
+    await reindex(s, (index) => {
+      index[fmt.handle] = entry;
+    });
+  } else {
+    const reg = await fileRead(s);
+    if (reg.entries.some((e) => e.handle === fmt.handle)) {
+      return { ok: false, reason: "already claimed" };
+    }
+    reg.entries.push(entry);
+    try {
+      await fileWrite(s, reg);
+    } catch {
+      return { ok: false, reason: "the registry hiccuped — try again in a moment" };
+    }
+  }
+
+  // A reverse lookup cached before the seat must not shadow the fresh entry.
+  npubCache.delete(npub);
+  return { ok: true, entry };
 }
 
 /** Post-claim update (matrix door cut, etc.) — the one sanctioned rewrite
