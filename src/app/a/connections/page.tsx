@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import OperatorGate from "@/components/OperatorGate";
 import SpacesPanel from "@/components/SpacesPanel";
+import SeatReservedPanel from "@/components/SeatReservedPanel";
 import ChatPanel from "@/components/ChatPanel";
 import MudPanel from "@/components/MudPanel";
 import MempoolPanel from "@/components/MempoolPanel";
@@ -29,6 +30,7 @@ export const dynamic = "force-dynamic";
 
 const SECTIONS: { id: string; label: string }[] = [
   { id: "spaces", label: "SPACES" },
+  { id: "seat", label: "SEAT NAME" },
   { id: "chat", label: "CHAT" },
   { id: "mud", label: "MUD" },
   { id: "chain", label: "CHAIN" },
@@ -71,6 +73,23 @@ export default async function AdminConnectionsPage() {
 
       <section id="spaces" className="scroll-mt-20">
         <SpacesPanel space={SPACE_NAME} />
+      </section>
+
+      {/* SEAT — the captain's door for RESERVED names: the public queue refuses
+          them by design, so they only enter the registry here. Same registry
+          storage + reindex path as a public claim; the entry rides the next
+          anchor batch above. */}
+      <section id="seat" className="scroll-mt-20 border-t-2 border-edge/60">
+        <div className="mx-auto max-w-5xl px-6 py-10">
+          <p className="lcars-eyebrow mb-3" data-accent="cyan">
+            OPERATOR CONSOLE · {CONSOLE_SITE.domain.toUpperCase()}
+          </p>
+          <h2 className="mb-3 font-arcade text-4xl text-cyan glow-cyan">SEAT A RESERVED NAME</h2>
+          <p className="mb-8 font-mono text-[11px] text-white/50">
+            RESERVED NAMES ONLY MOVE BY THE CAPTAIN&apos;S HAND
+          </p>
+          <SeatReservedPanel space={SPACE_NAME} />
+        </div>
       </section>
 
       <section id="chat" className="scroll-mt-20 border-t-2 border-edge/60">

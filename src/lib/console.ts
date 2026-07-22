@@ -193,6 +193,7 @@ export const CONSOLE_ROOMS: ConsoleRoom[] = [
         href: "/a/connections",
         children: [
           { key: "spaces", label: "SPACES", href: "/a/connections#spaces" },
+          { key: "seat", label: "SEAT NAME", href: "/a/connections#seat" },
           { key: "chat", label: "CHAT", href: "/a/connections#chat" },
           { key: "mud", label: "MUD", href: "/a/connections#mud" },
           { key: "chain", label: "CHAIN", href: "/a/connections#chain" },
