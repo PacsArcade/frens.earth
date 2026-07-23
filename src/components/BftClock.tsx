@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { currentBlockInfo, BLOCKS_PER_DAY, bft, type BlockInfo } from "@/lib/bb/bft";
+import { currentBlockInfo, BLOCKS_PER_DAY, type BlockInfo } from "@/lib/bb/bft";
 import FlipClock from "@/components/time/FlipClock";
 
 /**
@@ -78,10 +78,7 @@ export default function BftClock() {
   if (info == null) return null;
 
   const { height, estimated } = info;
-  const { year, month, day } = bft(height);
   const beat = height % BLOCKS_PER_DAY; // 0–143
-
-  const pad2 = (n: number) => String(n).padStart(2, "0");
 
   return (
     /* docked bottom-right so the login dropdown never covers it (Pac flagged the
@@ -107,16 +104,11 @@ export default function BftClock() {
           ⧗ BITCOIN TIME CLOCK
         </span>
 
-        {/* HH:MM — the mini split-flap face (FlipClock: calm chain-exact cards
-            + the one struggling ones digit wearing the honest ~) */}
-        <span className="flex justify-center font-mono text-[24px]">
+        {/* the face — `yyyy:mm:dd hh:mm a₿` (owner format ruling), mini
+            split-flap: calm chain-exact cards + the one struggling ones
+            digit wearing the honest ~; wraps date row over time row */}
+        <span className="flex max-w-[148px] justify-center font-mono text-[15px]">
           <FlipClock height={height} fill={fill} />
-        </span>
-
-        {/* Date — the ₿-marked bitcoin date, marker after (house standard) */}
-        <span className="mt-1.5 block text-center font-mono text-[10px] tracking-[0.18em] text-white/75 tabular-nums">
-          {String(year).padStart(4, "0")}.{pad2(month)}.{pad2(day)}{" "}
-          <span className="text-coin/80 tracking-normal">a₿</span>
         </span>
 
         {/* Sub-label: beat + height — a ~estimate wears the honest ~ */}

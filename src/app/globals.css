@@ -1526,8 +1526,15 @@ footer {
    • prefers-reduced-motion → "all steady (flip → crossfade)": no spin,
      no tremble — the clock still ticks by a plain value swap.
 
+   OWNER FORMAT RULING (mid-build, binding): the face reads digital-flip
+   style — `yyyy:mm:dd hh:mm a₿` — COLONS between the date segments, time
+   after, ONE a₿ marker at the end (e.g. `0018:04:26 02:00 a₿`).
+
    Sized in em so the mini corner badge and the /time hero share one build. */
-.fclk { display: inline-flex; align-items: stretch; gap: .09em; }
+.fclk { display: inline-flex; flex-wrap: wrap; justify-content: center; align-items: center; row-gap: .18em; }
+.fclk-grp { display: inline-flex; align-items: stretch; gap: .09em; white-space: nowrap; }
+.fclk-gap { display: inline-block; width: .30em; }
+.fclk-ab { align-self: center; font-size: .34em; line-height: 1; color: rgba(247, 201, 72, .85); margin-left: .45em; }
 .fclk-card {
   position: relative; display: inline-flex; align-items: center; justify-content: center;
   width: .72em; height: 1.12em; border-radius: .12em; overflow: hidden;

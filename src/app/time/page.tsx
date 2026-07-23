@@ -60,7 +60,7 @@ function ThePaper() {
           ten &quot;minutes&quot; per block.
         </p>
         <p>
-          Look at the flip clock above: the hours and the minute-tens are{" "}
+          Look at the flip clock above: the date, the hours and the minute-tens are{" "}
           <b className="text-white/90">chain-exact</b> — calm cards that flip
           only when a real block lands. The last digit is the one card
           allowed to struggle: it shows the coming block filling up, in

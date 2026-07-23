@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { currentBlockInfo, BLOCKS_PER_DAY, bftDatePlain, moonPhase, yearAnimal } from "@/lib/bb/bft";
+import { currentBlockInfo, BLOCKS_PER_DAY, moonPhase, yearAnimal } from "@/lib/bb/bft";
 import FlipClock from "@/components/time/FlipClock";
 import Converters from "@/components/time/Converters";
 
@@ -72,15 +72,13 @@ export default function TimeDoor({ children }: { children?: ReactNode }) {
           <p className="py-10 font-mono text-sm text-white/40">syncing to the chain…</p>
         ) : (
           <>
-            <div className="flex justify-center font-mono text-[clamp(44px,13vw,88px)]">
+            {/* the face — `yyyy:mm:dd hh:mm a₿` (owner format ruling), LARGE;
+                the date+time groups wrap into two flip rows on small screens */}
+            <div className="flex justify-center font-mono text-[clamp(26px,6.8vw,46px)]">
               <FlipClock height={height} fill={fill} />
             </div>
 
-            <p className="mt-4 font-mono text-lg tracking-[0.2em] text-white/85 tabular-nums sm:text-xl">
-              {bftDatePlain(height)} <span className="text-coin/80 tracking-normal">a₿</span>
-            </p>
-
-            <p className="mt-2 font-mono text-xs tabular-nums text-white/45">
+            <p className="mt-4 font-mono text-xs tabular-nums text-white/45">
               beat {String(beat).padStart(3, "0")}/144 · ★{estimated ? "~" : ""}
               {height.toLocaleString()} · {moon!.emoji} {moon!.name} moon · year of the{" "}
               {animal!.emoji} {animal!.name}
