@@ -81,6 +81,31 @@ export default function useFrenSession() {
     applyFrenSession(null);
   }, []);
 
+  /** Close ONE door; the others stay signed in. Resolves the door left
+      active (or null when the last door closed = fully signed out). */
+  const signOutOne = useCallback(
+    async (handle: string, space: string): Promise<FrenSession | null> => {
+      try {
+        const res = await fetch("/api/frens/session", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ handle, space }),
+        });
+        const d = await res.json();
+        if (d?.ok && d.handle) {
+          const next = { handle: d.handle, space: d.space, npub: d.npub ?? null };
+          applyFrenSession(next, d.accounts);
+          return next;
+        }
+      } catch {
+        /* fall through — treat as fully signed out */
+      }
+      applyFrenSession(null);
+      return null;
+    },
+    []
+  );
+
   /** Switch to another signed-in door (or a same-key tag) — no re-signing. */
   const switchTo = useCallback(async (handle: string, space: string): Promise<boolean> => {
     try {
@@ -98,5 +123,5 @@ export default function useFrenSession() {
     }
   }, []);
 
-  return { fren, accounts, checked, signOut, switchTo };
+  return { fren, accounts, checked, signOut, signOutOne, switchTo };
 }

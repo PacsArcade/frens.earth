@@ -130,11 +130,44 @@ export async function PUT(request: Request) {
   );
 }
 
-/* Sign out — every door at once (that's the promise in the confirm),
-   INCLUDING the operator deck. The admiral's catch (0018.04.15 a₿): the
-   30-day fe-operator cookie outlived sign-out, so ⚓ ADMIN DECK kept
-   showing after the key was removed. Sign out means all the way out. */
-export async function DELETE() {
+/* Sign out. Two modes, both honest:
+   - body { handle, space }: close ONE door — that token leaves the cookie,
+     the other doors stay signed in, the next-in-line becomes active. If it
+     was the LAST door, fall through to the full clear (an empty cookie must
+     not linger, and neither may the operator deck).
+   - no body: every door at once (that's the promise in the confirm),
+     INCLUDING the operator deck. The admiral's catch (0018.04.15 a₿): the
+     30-day fe-operator cookie outlived sign-out, so ⚓ ADMIN DECK kept
+     showing after the key was removed. Sign out means all the way out. */
+export async function DELETE(request: Request) {
+  let target: { handle?: string; space?: string } | null = null;
+  try {
+    target = await request.json();
+  } catch {
+    /* no body = the full sign-out below */
+  }
+  if (target?.handle && target?.space) {
+    const handle = target.handle.trim().toLowerCase();
+    const space = target.space.trim().toLowerCase();
+    const remaining = sessionsFromRequest(request).filter(
+      (s) => !(s.handle === handle && s.space === space)
+    );
+    if (remaining.length) {
+      const active = remaining[0];
+      const entry = await getEntry(active.handle, active.space);
+      return Response.json(
+        {
+          ok: true,
+          handle: active.handle,
+          space: active.space,
+          npub: entry?.npub ?? null,
+          accounts: remaining.map((s) => ({ handle: s.handle, space: s.space })),
+        },
+        { headers: sessionCookie(joinSessionTokens(remaining.map((s) => s.token)), 2592000) }
+      );
+    }
+    /* last door closed — all the way out, same as the no-body path */
+  }
   const headers = new Headers();
   headers.append(
     "Set-Cookie",

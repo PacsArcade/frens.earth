@@ -580,6 +580,25 @@ export async function findHandleByNpub(
   return null;
 }
 
+/** EVERY tag an npub holds, across every known space — the /me "your tags"
+    listing and whois's npub-only answer. findHandleByNpub stops at the first
+    hit (sign-in only needs one door); this walks all of them, including two
+    handles bound to one key in the SAME space. Read from the index cache
+    where available (self-heals when missing), no per-hit cache — a listing
+    should always tell today's truth. */
+export async function findAllByNpub(npub: string): Promise<{ handle: string; space: string }[]> {
+  const holds: { handle: string; space: string }[] = [];
+  for (const space of KNOWN_SPACES) {
+    const entries = blobStoreEnabled()
+      ? await blobIndexEntries(space)
+      : (await fileRead(space)).entries;
+    for (const e of entries) {
+      if (e.npub === npub) holds.push({ handle: e.handle, space });
+    }
+  }
+  return holds;
+}
+
 /** NIP-05 mapping (name -> hex pubkey) served at /.well-known/nostr.json */
 export async function nip05Names(space?: string): Promise<Record<string, string>> {
   const { nip19 } = await import("nostr-tools");
