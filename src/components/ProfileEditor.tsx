@@ -1,18 +1,16 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
-import { nip19, SimplePool } from "nostr-tools";
+import { useState } from "react";
+import { nip19 } from "nostr-tools";
 import type { Event as NostrEvent } from "nostr-tools";
-import { PROFILE_RELAYS, type RawKind0 } from "@/hooks/useNostrProfile";
+import type { EventTemplate, VerifiedEvent } from "nostr-tools/pure";
+import { type RawKind0 } from "@/hooks/useNostrProfile";
 import useFrenSession from "@/hooks/useFrenSession";
 import SigningExplainer from "@/components/SigningExplainer";
-import SignerNudge from "@/components/SignerNudge";
-
-/* one-shot environment read, hydration-safe and lint-clean */
-const noopSubscribe = () => () => {};
-function useHasSigner(): boolean | null {
-  return useSyncExternalStore(noopSubscribe, () => !!window.nostr, () => null);
-}
+import Kind0Doors from "@/components/Kind0Doors";
+import ArtUpload from "@/components/ArtUpload";
+import RelayResults from "@/components/RelayResults";
+import { anyAccepted, publishKind0, type RelayResult } from "@/lib/kind0-publish";
 
 /** The eight fields the form edits — Primal parity, arcade dress. These are
     all NOSTR profile-card fields: none of them touch the etched arcade tag. */
@@ -31,6 +29,11 @@ type FieldKey = (typeof FIELDS)[number]["key"];
 type Draft = Record<FieldKey, string>;
 
 const ADDRESS_RE = /^[a-z0-9._+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i;
+
+/** https everywhere; plain-http only for localhost (the dev upload driver). */
+export function isImageUrl(v: string): boolean {
+  return /^https:\/\//i.test(v) || /^http:\/\/(localhost|127\.)/i.test(v);
+}
 
 function draftFrom(content: Record<string, unknown> | undefined, fallbackNip05: string): Draft {
   const read = (k: string) => {
@@ -56,7 +59,7 @@ function validate(draft: Draft): string | null {
   }
   for (const k of ["picture", "banner"] as const) {
     const v = draft[k].trim();
-    if (v && !/^https:\/\//i.test(v)) return `${k} must be an https:// image link`;
+    if (v && !isImageUrl(v)) return `${k} must be an https:// image link`;
   }
   for (const k of ["lud16", "nip05"] as const) {
     const v = draft[k].trim();
@@ -71,6 +74,11 @@ function validate(draft: Draft): string | null {
  * our server, there is no API route, and the merge spreads the RAW existing
  * content so fields other apps set (and fields we don't render) survive.
  * Publishing kind-0 replaces the whole card — the merge is the safety.
+ *
+ * Signing rides the signer doors (Kind0Doors): NIP-07 extension when
+ * present, NIP-46 remote signer always. Publish results are shown per
+ * relay, truthfully — one accepting relay is success (the network gossips),
+ * but the fren sees exactly who took the card.
  */
 export default function ProfileEditor({
   npub,
@@ -93,12 +101,11 @@ export default function ProfileEditor({
   onPublished: (content: Record<string, unknown>, created_at: number) => void;
 }) {
   const { fren } = useFrenSession();
-  const hasSigner = useHasSigner();
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<Draft | null>(null);
-  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [published, setPublished] = useState(false);
+  const [relayResults, setRelayResults] = useState<RelayResult[] | null>(null);
   const [lnCheck, setLnCheck] = useState<"idle" | "checking" | "live" | "bad" | "unknown">("idle");
 
   /* the editor exists only on your own profile — UX gate; the real security
@@ -111,6 +118,7 @@ export default function ProfileEditor({
     setDraft(draftFrom(raw?.content, defaultNip05));
     setError(null);
     setPublished(false);
+    setRelayResults(null);
     setLnCheck("idle");
     setOpen(true);
   }
@@ -137,81 +145,63 @@ export default function ProfileEditor({
     }
   }
 
-  async function save() {
-    if (!draft) return;
-    setError(null);
+  /* Build the card to sign — Kind0Doors calls this at sign time, so a slow
+     bunker approval still gets a truthful created_at. */
+  function prepare(): EventTemplate | { problem: string } {
+    if (!draft) return { problem: "nothing to sign yet" };
     const problem = validate(draft);
-    if (problem) {
-      setError(problem);
-      return;
+    if (problem) return { problem };
+
+    /* MERGE — the clobber guard: spread the whole existing card first, so
+       every field other apps set survives; then apply the edits. An empty
+       field removes its key (that's how you clear a value on nostr). */
+    const content: Record<string, unknown> = { ...(raw?.content ?? {}) };
+    for (const f of FIELDS) {
+      let v = draft[f.key].trim();
+      if (f.key === "website" && v && !/^https?:\/\//i.test(v)) v = `https://${v}`;
+      if (v) content[f.key] = v;
+      else delete content[f.key];
     }
-    if (!window.nostr) {
-      setError("no signer extension found — see the gear-up note below");
-      return;
+
+    /* relays keep the newest created_at — never publish one that ties/loses */
+    const created_at = Math.max(Math.floor(Date.now() / 1000), (raw?.created_at ?? 0) + 1);
+
+    return { kind: 0, created_at, tags: raw?.tags ?? [], content: JSON.stringify(content) };
+  }
+
+  /* The signed card comes back from WHICHEVER door signed it — verify the
+     key, then broadcast and show the per-relay truth. */
+  async function submit(event: NostrEvent | VerifiedEvent): Promise<string | null> {
+    /* wrong-key guard: the signer must hold THIS profile's key */
+    const decoded = nip19.decode(npub);
+    if (decoded.type !== "npub" || event.pubkey !== decoded.data) {
+      return "this signer holds a different fren's key — nothing sent";
     }
-    setBusy(true);
-    let pool: SimplePool | null = null;
+    setError(null);
+    const results = await publishKind0(event as NostrEvent);
+    setRelayResults(results);
+    if (!anyAccepted(results)) {
+      return "no relay accepted the card — nothing saved, try again";
+    }
+    let content: Record<string, unknown> = {};
     try {
-      /* MERGE — the clobber guard: spread the whole existing card first, so
-         every field other apps set survives; then apply the edits. An empty
-         field removes its key (that's how you clear a value on nostr). */
-      const content: Record<string, unknown> = { ...(raw?.content ?? {}) };
-      for (const f of FIELDS) {
-        let v = draft[f.key].trim();
-        if (f.key === "website" && v && !/^https?:\/\//i.test(v)) v = `https://${v}`;
-        if (v) content[f.key] = v;
-        else delete content[f.key];
-      }
-
-      /* relays keep the newest created_at — never publish one that ties/loses */
-      const created_at = Math.max(Math.floor(Date.now() / 1000), (raw?.created_at ?? 0) + 1);
-
-      const event = (await window.nostr.signEvent({
-        kind: 0,
-        created_at,
-        tags: raw?.tags ?? [],
-        content: JSON.stringify(content),
-      })) as NostrEvent;
-
-      /* wrong-key guard: the signer must hold THIS profile's key */
-      const decoded = nip19.decode(npub);
-      if (decoded.type !== "npub" || event.pubkey !== decoded.data) {
-        setError("this signer holds a different fren's key — nothing sent");
-        return;
-      }
-
-      pool = new SimplePool();
-      await Promise.race([
-        Promise.any(pool.publish(PROFILE_RELAYS, event)),
-        new Promise((_, reject) => setTimeout(() => reject(new Error("relay timeout")), 8000)),
-      ]);
-
-      onPublished(content, created_at);
-      setPublished(true);
-      setOpen(false);
-    } catch (e) {
-      setError(
-        e instanceof Error && e.message === "relay timeout"
-          ? "the relays didn't answer — nothing may have saved, try again"
-          : "signing was declined — nothing sent"
-      );
-    } finally {
-      pool?.close(PROFILE_RELAYS);
-      setBusy(false);
+      content = JSON.parse(event.content) as Record<string, unknown>;
+    } catch {
+      /* we built this content — unreachable, but never crash the flow */
     }
+    onPublished(content, event.created_at);
+    setPublished(true);
+    setOpen(false);
+    return null;
   }
 
   if (!open) {
     return (
-      <div>
+      <div className="space-y-2">
         <button type="button" onClick={openEditor} className="button cursor-pointer">
           ◆ EDIT PROFILE
         </button>
-        {published && (
-          <p className="mt-2 font-pixel text-[9px] uppercase text-neon glow-neon">
-            ✓ SIGNAL UPDATED — THE RELAYS GOSSIP IT OUT FROM HERE
-          </p>
-        )}
+        {published && relayResults && <RelayResults results={relayResults} />}
       </div>
     );
   }
@@ -300,13 +290,30 @@ export default function ProfileEditor({
                 </div>
               )}
               {f.key === "nip05" && draft.nip05.trim() !== defaultNip05 && (
-                <p className="mt-1 font-pixel text-[9px] uppercase text-coin">
-                  ⚠ {defaultNip05} is your verified arcade address — change it and the checkmark
-                  goes dark
-                </p>
+                <div className="mt-1 space-y-1">
+                  <p className="font-pixel text-[9px] uppercase text-coin">
+                    ⚠ {defaultNip05} is your verified arcade address — change it and the checkmark
+                    goes dark
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setDraft({ ...draft, nip05: defaultNip05 })}
+                    className="cursor-pointer border border-cyan/60 px-2 py-0.5 font-pixel text-[9px] uppercase text-cyan hover:bg-cyan/10"
+                  >
+                    USE {defaultNip05} ▸
+                  </button>
+                </div>
+              )}
+              {(f.key === "picture" || f.key === "banner") && (
+                <div className="mt-1">
+                  <ArtUpload
+                    label={f.key === "picture" ? "UPLOAD AVATAR ART" : "UPLOAD BANNER ART"}
+                    onUrl={(url) => setDraft({ ...draft, [f.key]: url })}
+                  />
+                </div>
               )}
               {(f.key === "picture" || f.key === "banner") &&
-                /^https:\/\//i.test(draft[f.key].trim()) && (
+                isImageUrl(draft[f.key].trim()) && (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={draft[f.key].trim()}
@@ -324,26 +331,17 @@ export default function ProfileEditor({
       </div>
 
       {error && <p className="mt-4 font-pixel text-[9px] uppercase text-ghost">{error}</p>}
+      {relayResults && !published && (
+        <div className="mt-4">
+          <RelayResults results={relayResults} />
+        </div>
+      )}
 
-      <div className="mt-5 flex flex-wrap gap-3">
-        {hasSigner === false ? (
-          <div className="w-full">
-            <SignerNudge />
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={save}
-            disabled={busy}
-            className="button cursor-pointer disabled:opacity-50"
-          >
-            {busy ? "WAITING FOR YOUR KEY…" : "▶ SIGN & PUBLISH"}
-          </button>
-        )}
+      <div className="mt-5 space-y-3">
+        <Kind0Doors prepare={prepare} submit={submit} />
         <button
           type="button"
           onClick={() => setOpen(false)}
-          disabled={busy}
           className="cursor-pointer border-2 border-edge px-4 py-2 font-pixel text-[10px] uppercase text-white/50 hover:border-cyan hover:text-cyan"
         >
           CANCEL
