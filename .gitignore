@@ -83,3 +83,6 @@ next-env.d.ts
 # store paid deliverables, dev driver (prod uploads go browser → Blob under
 # store/deliverables/) — the paid files, NEVER tracked, never under public/
 /data/deliverables/
+
+# fren profile art (avatars/banners), dev driver (prod uses public Blob) — never tracked
+/public/fren-media/

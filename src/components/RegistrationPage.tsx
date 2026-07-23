@@ -64,6 +64,13 @@ export default function RegistrationPage({
           <span className="text-cyan">nostr</span>{" "}the moment you claim it; tick tock, tied to
           Bitcoin at the next batch. Your patch of earth.
         </p>
+        <p className="mt-4 font-pixel text-[9px] uppercase text-white/40">
+          NEW HERE?{" "}
+          <Link href="/welcome" className="text-cyan underline hover:glow-cyan">
+            WALK THE WELCOME PATH ▸
+          </Link>{" "}
+          — SIGNER, TAG, FACE, STEP BY STEP
+        </p>
       </section>
 
       {/* The claim machine */}

@@ -73,13 +73,14 @@ function withTimeout<T>(p: Promise<T>, ms: number, what: string): Promise<T> {
 }
 
 /**
- * Paste path: a bunker:// URI or a name@domain NIP-05 → connect → sign the
- * challenge. The template is built AFTER the connect handshake so a slow
- * approval in the bunker app can't expire the challenge.
+ * Paste path, generalized: a bunker:// URI or a name@domain NIP-05 →
+ * connect → sign WHATEVER template the caller builds. The template is built
+ * AFTER the connect handshake so a slow approval in the bunker app can't
+ * expire a challenge (and a kind-0 gets a truthful created_at).
  */
-export async function signViaBunker(
+export async function signTemplateViaBunker(
   input: string,
-  kind: ChallengeKind,
+  getTemplate: () => EventTemplate,
   onauth?: (url: string) => void
 ): Promise<VerifiedEvent> {
   const bp = await parseBunkerInput(input.trim());
@@ -91,14 +92,19 @@ export async function signViaBunker(
   const signer = BunkerSigner.fromBunker(clientKey, bp, params);
   try {
     await withTimeout(signer.connect(), BUNKER_TIMEOUT_MS, "the bunker");
-    return await withTimeout(
-      signer.signEvent(challengeTemplate(kind)),
-      BUNKER_TIMEOUT_MS,
-      "the bunker"
-    );
+    return await withTimeout(signer.signEvent(getTemplate()), BUNKER_TIMEOUT_MS, "the bunker");
   } finally {
     signer.close().catch(() => {});
   }
+}
+
+/** The login/console challenge over the paste path — the original door. */
+export function signViaBunker(
+  input: string,
+  kind: ChallengeKind,
+  onauth?: (url: string) => void
+): Promise<VerifiedEvent> {
+  return signTemplateViaBunker(input, () => challengeTemplate(kind), onauth);
 }
 
 export interface NostrConnectInvite {
@@ -111,10 +117,15 @@ export interface NostrConnectInvite {
 }
 
 /**
- * Invite path: WE mint the nostrconnect:// URI, the signer app scans/opens
- * it and calls back over the relay. Same challenge, same endpoint.
+ * Invite path, generalized: WE mint the nostrconnect:// URI, the signer app
+ * scans/opens it and calls back over the relay. The caller declares which
+ * event kinds it will ask for (perms) and builds the template at sign time.
  */
-export function startNostrConnect(kind: ChallengeKind, onauth?: (url: string) => void): NostrConnectInvite {
+export function startNostrConnectForTemplate(
+  getTemplate: () => EventTemplate,
+  perms: string[],
+  onauth?: (url: string) => void
+): NostrConnectInvite {
   const clientKey = generateSecretKey();
   const secretBytes = new Uint8Array(16);
   crypto.getRandomValues(secretBytes);
@@ -123,7 +134,7 @@ export function startNostrConnect(kind: ChallengeKind, onauth?: (url: string) =>
     clientPubkey: getPublicKey(clientKey),
     relays: NOSTRCONNECT_RELAYS,
     secret,
-    perms: ["sign_event:22242"],
+    perms,
     name: "frens.earth",
     url: typeof location !== "undefined" ? location.origin : undefined,
   });
@@ -132,16 +143,17 @@ export function startNostrConnect(kind: ChallengeKind, onauth?: (url: string) =>
   const signed = (async () => {
     const signer = await BunkerSigner.fromURI(clientKey, uri, params, abort.signal);
     try {
-      return await withTimeout(
-        signer.signEvent(challengeTemplate(kind)),
-        BUNKER_TIMEOUT_MS,
-        "your signer"
-      );
+      return await withTimeout(signer.signEvent(getTemplate()), BUNKER_TIMEOUT_MS, "your signer");
     } finally {
       signer.close().catch(() => {});
     }
   })();
   return { uri, signed, cancel: () => abort.abort() };
+}
+
+/** The login/console challenge over the invite path — the original door. */
+export function startNostrConnect(kind: ChallengeKind, onauth?: (url: string) => void): NostrConnectInvite {
+  return startNostrConnectForTemplate(() => challengeTemplate(kind), ["sign_event:22242"], onauth);
 }
 
 // ---------------------------------------------------------------------------
