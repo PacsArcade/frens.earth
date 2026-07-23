@@ -1,18 +1,26 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { currentBlockInfo, BLOCKS_PER_DAY, bft, bftTime, type BlockInfo } from "@/lib/bb/bft";
+import { currentBlockInfo, BLOCKS_PER_DAY, bft, type BlockInfo } from "@/lib/bb/bft";
+import FlipClock from "@/components/time/FlipClock";
 
 /**
- * Bitcoin Federated Time clock — date + time displayed in familiar HH:MM format.
+ * Bitcoin Federated Time clock — THE TIME DOOR. The floating corner badge
+ * is now a MINI split-flap FLIP CLOCK per the pupil study's rules
+ * (studies/clock-study-pupil.html — see FlipClock.tsx for the laws), and
+ * the whole badge is a door: click it and /time opens — the clock large,
+ * the paper, and the experiment. The clock is the first lesson.
  *
- * The key insight: 144 blocks/day ÷ 24 = exactly 6 blocks per "Bitcoin hour".
- * Each block advances the minutes by 10 (00 → 10 → 20 → 30 → 40 → 50 → next hour).
- * So the time display ticks every ~10 real minutes and shows 00–23 for hours,
- * making it instantly readable as a normal clock. Every node worldwide agrees on
- * the same reading — block height IS the timestamp.
- * Fixed to the corner of every page; refreshes each minute.
+ * The data plumbing is unchanged: height via currentBlockInfo() (the
+ * fleet's own /api/chain/tip door, honest ~ estimate fallback), mempool
+ * fill vs one block for the ring + the struggling digit, refresh each
+ * minute, and the block-break pulse ONLY on a new REAL block — a genesis
+ * ~estimate never fakes a break.
+ * Fixed to the corner of every page (stands down inside /a — the console
+ * tray-clock carries time there — and on /time itself, where the hero IS
+ * the clock; time never shows twice).
  */
 export default function BftClock() {
   const pathname = usePathname();
@@ -64,14 +72,13 @@ export default function BftClock() {
      floating bubble stands down there so time never shows twice */
   if (pathname === "/a" || pathname.startsWith("/a/")) return null;
 
+  /* on /time the hero IS this clock, large — the badge stands down */
+  if (pathname === "/time") return null;
+
   if (info == null) return null;
 
   const { height, estimated } = info;
   const { year, month, day } = bft(height);
-
-  /* the face comes from bft.ts — bftTime() IS the canonical beat→hh:mm mapping
-     (144 blocks/day on a 24h face), never reimplemented here */
-  const [btcHour, btcMin] = bftTime(height).split(":");
   const beat = height % BLOCKS_PER_DAY; // 0–143
 
   const pad2 = (n: number) => String(n).padStart(2, "0");
@@ -80,9 +87,12 @@ export default function BftClock() {
     /* docked bottom-right so the login dropdown never covers it (Pac flagged the
        top-corner clock hiding behind the open menu, 0018.04.16 a₿); persistent on
        every page. The btc-orange ring is the mempool filling toward the next block;
-       it pulses when the block breaks. */
-    <div
-      className={`fixed bottom-3 right-3 z-40 select-none rounded-lg ${
+       it pulses when the block breaks. The whole badge is the TIME DOOR. */
+    <Link
+      href="/time"
+      title="open the clock"
+      aria-label="open the clock — Bitcoin Federated Time: the flip clock, the paper, the experiment"
+      className={`fixed bottom-3 right-3 z-40 block select-none rounded-lg ${
         breaking ? "block-break" : ""
       }`}
       style={{
@@ -90,62 +100,36 @@ export default function BftClock() {
         background: `conic-gradient(from -90deg, rgba(247,147,26,0.95) ${fill * 360}deg, rgba(247,147,26,0.12) 0deg)`,
         boxShadow: `0 0 ${8 + 18 * fill}px rgba(247,147,26,${0.18 + 0.3 * fill})`,
       }}
-      title={`Bitcoin Time Clock — the calendar that syncs to the block, not the sun. The orange ring is the live mempool filling toward the next block (${Math.round(fill * 100)}% of one block queued). Tick tock, it all comes back to the block.`}
     >
-      <div className="rounded-md border border-edge/80 bg-panel/95 px-3 py-2.5 backdrop-blur-sm">
-      {/* Header */}
-      <div className="mb-1.5 text-center text-[7px] uppercase tracking-[0.25em] text-cyan/70 font-mono">
-        ⧗ BITCOIN TIME CLOCK
-      </div>
+      <span className="block rounded-md border border-edge/80 bg-panel/95 px-3 py-2.5 backdrop-blur-sm">
+        {/* Header */}
+        <span className="mb-1.5 block text-center font-mono text-[7px] uppercase tracking-[0.25em] text-cyan/70">
+          ⧗ BITCOIN TIME CLOCK
+        </span>
 
-      {/* Date — YR · MO · DY, each labelled */}
-      <div className="flex items-end gap-1.5 font-mono">
-        <Seg label="YR" value={String(year).padStart(4, "0")} dim />
-        <span className="mb-0.5 text-[10px] text-white/25">·</span>
-        <Seg label="MO" value={pad2(month)} />
-        <span className="mb-0.5 text-[10px] text-white/25">·</span>
-        <Seg label="DY" value={pad2(day)} />
-      </div>
+        {/* HH:MM — the mini split-flap face (FlipClock: calm chain-exact cards
+            + the one struggling ones digit wearing the honest ~) */}
+        <span className="flex justify-center font-mono text-[24px]">
+          <FlipClock height={height} fill={fill} />
+        </span>
 
-      {/* Divider */}
-      <div className="my-1.5 h-px bg-white/10" />
+        {/* Date — the ₿-marked bitcoin date, marker after (house standard) */}
+        <span className="mt-1.5 block text-center font-mono text-[10px] tracking-[0.18em] text-white/75 tabular-nums">
+          {String(year).padStart(4, "0")}.{pad2(month)}.{pad2(day)}{" "}
+          <span className="text-coin/80 tracking-normal">a₿</span>
+        </span>
 
-      {/* HH:MM — the familiar clock face, straight from bftTime() (bft.ts) */}
-      <div className="flex items-center justify-center gap-0.5 font-mono">
-        <div className="flex flex-col items-center">
-          <span className="text-[6px] uppercase tracking-widest text-white/30">HR</span>
-          <span className="text-[20px] leading-none tabular-nums text-white">
-            {btcHour}
-          </span>
-        </div>
-        {/* blinking colon */}
-        <span className="mb-[-2px] text-[18px] font-bold text-coin/80 animate-pulse">:</span>
-        <div className="flex flex-col items-center">
-          <span className="text-[6px] uppercase tracking-widest text-white/30">MIN</span>
-          <span className="text-[20px] leading-none tabular-nums text-white">
-            {btcMin}
-          </span>
-        </div>
-      </div>
+        {/* Sub-label: beat + height — a ~estimate wears the honest ~ */}
+        <span className="mt-1 block text-center font-mono text-[7px] tabular-nums text-white/25">
+          beat {String(beat).padStart(3, "0")}/144 · ★{estimated ? "~" : ""}
+          {height.toLocaleString()}
+        </span>
 
-      {/* Sub-label: 6 blocks = 1 hour — a ~estimate wears the honest ~ (like the tray clock) */}
-      <div className="mt-1 text-center text-[7px] tabular-nums text-white/25 font-mono">
-        beat {String(beat).padStart(3, "0")}/144 · ★{estimated ? "~" : ""}{height.toLocaleString()}
-      </div>
-      </div>
-    </div>
-  );
-}
-
-/** A single labelled date segment — tiny label on top, value below. */
-function Seg({ label, value, dim }: { label: string; value: string; dim?: boolean }) {
-  return (
-    <div className="flex flex-col items-center">
-      <span className="text-[6px] uppercase tracking-widest text-white/30">{label}</span>
-      <span className={`text-[12px] leading-none tabular-nums ${dim ? "text-white/40" : "text-white/80"}`}>
-        {value}
+        {/* the door's handle */}
+        <span className="mt-1 block text-center font-mono text-[6px] uppercase tracking-[0.3em] text-coin/60">
+          open the clock ▸
+        </span>
       </span>
-    </div>
+    </Link>
   );
 }
-
