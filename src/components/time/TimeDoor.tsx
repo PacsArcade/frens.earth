@@ -72,8 +72,8 @@ export default function TimeDoor({ children }: { children?: ReactNode }) {
           <p className="py-10 font-mono text-sm text-white/40">syncing to the chain…</p>
         ) : (
           <>
-            {/* the face — `yyyy:mm:dd hh:mm a₿` (owner format ruling), LARGE;
-                the date+time groups wrap into two flip rows on small screens */}
+            {/* the face — TIME the hero, LARGE (clock hierarchy ruling):
+                big `hh:mm a₿` flip cards, the `yyyy:mm:dd` date tiny below */}
             <div className="flex justify-center font-mono text-[clamp(26px,6.8vw,46px)]">
               <FlipClock height={height} fill={fill} />
             </div>

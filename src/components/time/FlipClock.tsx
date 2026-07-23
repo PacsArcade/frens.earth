@@ -7,9 +7,14 @@ import { bft, bftTime } from "@/lib/bb/bft";
  * The split-flap BFT flip clock — ONE build for the mini corner badge and
  * the /time hero (sized by the parent's font-size; all card dims are em).
  *
- * OWNER FORMAT RULING (mid-build, binding): the face reads digital-flip
- * style — `yyyy:mm:dd hh:mm a₿` — colons between the date segments, time
- * after, one a₿ marker at the end (e.g. `0018:04:26 02:00 a₿`).
+ * OWNER FORMAT RULING (mid-build, binding): colons between the date
+ * segments (`yyyy:mm:dd`), one a₿ marker on the time (e.g. `02:00 a₿`).
+ *
+ * CLOCK HIERARCHY RULING (owner, binding, supersedes the row order of the
+ * format ruling): "The time should be BIG. The date can be smaller and
+ * below — it's an afterthought." So the face stacks: `hh:mm a₿` flip
+ * cards on top, the hero; `yyyy:mm:dd` in tiny dim cards beneath. The
+ * clock is the key to bitcoin.
  *
  * The pupil study's laws (studies/clock-study-pupil.html), followed here:
  *  - "big mechanical flip digits show hh:mm. ONLY the LIVE minute-ones
@@ -85,24 +90,23 @@ export default function FlipClock({
       className={`fclk ${className ?? ""}`}
       style={{ "--fclk-strain": fill.toFixed(2) } as CSSProperties}
       role="timer"
-      aria-label={`Bitcoin Federated Time ${yyyy}:${mm}:${dd} ${hh}:${min[0]}${tenth} a₿ (last digit estimated)`}
+      aria-label={`Bitcoin Federated Time ${hh}:${min[0]}${tenth} a₿, ${yyyy}:${mm}:${dd} (last time digit estimated)`}
     >
-      {/* the date — yyyy:mm:dd, all calm chain-exact cards */}
-      <span className="fclk-grp">
-        <Cards digits={yyyy} />
-        <span className="fclk-colon">:</span>
-        <Cards digits={mm} />
-        <span className="fclk-colon">:</span>
-        <Cards digits={dd} />
-      </span>
-      <span className="fclk-gap" aria-hidden="true" />
-      {/* the time — hh:m + the one struggling ones digit — and the marker */}
+      {/* THE TIME — the hero: hh:m + the one struggling ones digit + a₿ */}
       <span className="fclk-grp">
         <Cards digits={hh} />
         <span className="fclk-colon">:</span>
         <FlipCard value={min[0]} />
         <FlipCard value={String(tenth)} live />
         <span className="fclk-ab">a₿</span>
+      </span>
+      {/* the date — the afterthought: tiny dim calm chain-exact cards below */}
+      <span className="fclk-grp fclk-date">
+        <Cards digits={yyyy} />
+        <span className="fclk-colon">:</span>
+        <Cards digits={mm} />
+        <span className="fclk-colon">:</span>
+        <Cards digits={dd} />
       </span>
     </span>
   );

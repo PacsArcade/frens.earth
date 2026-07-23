@@ -1526,14 +1526,17 @@ footer {
    • prefers-reduced-motion → "all steady (flip → crossfade)": no spin,
      no tremble — the clock still ticks by a plain value swap.
 
-   OWNER FORMAT RULING (mid-build, binding): the face reads digital-flip
-   style — `yyyy:mm:dd hh:mm a₿` — COLONS between the date segments, time
-   after, ONE a₿ marker at the end (e.g. `0018:04:26 02:00 a₿`).
+   OWNER FORMAT RULING (mid-build, binding): COLONS between the date
+   segments (`yyyy:mm:dd`), ONE a₿ marker on the time.
+
+   CLOCK HIERARCHY RULING (owner, binding): "The time should be BIG. The
+   date can be smaller and below — it's an afterthought." The face stacks:
+   `hh:mm a₿` on top at full size, `yyyy:mm:dd` beneath in tiny dim cards.
 
    Sized in em so the mini corner badge and the /time hero share one build. */
-.fclk { display: inline-flex; flex-wrap: wrap; justify-content: center; align-items: center; row-gap: .18em; }
+.fclk { display: inline-flex; flex-direction: column; align-items: center; gap: .18em; }
 .fclk-grp { display: inline-flex; align-items: stretch; gap: .09em; white-space: nowrap; }
-.fclk-gap { display: inline-block; width: .30em; }
+.fclk-date { font-size: .30em; opacity: .55; }   /* the afterthought row */
 .fclk-ab { align-self: center; font-size: .34em; line-height: 1; color: rgba(247, 201, 72, .85); margin-left: .45em; }
 .fclk-card {
   position: relative; display: inline-flex; align-items: center; justify-content: center;
@@ -1582,4 +1585,39 @@ footer {
 @media (prefers-reduced-motion: reduce) {
   .fclk-card.fclk-flipping .fclk-val { animation: fclk-fadeflap .40s ease; }  /* flip → crossfade */
   .fclk-card.fclk-live .fclk-val { animation: none; }                         /* no tremble — steady */
+}
+
+/* BFT badge — Pac orbits the clock (the pupil-study lap law, ported from
+   pacsarcade.org): TEN laps per block, one lap per block-tenth — ~60 s a
+   lap at the ten-minute pace. He rides the badge's border perimeter on an
+   offset-path rectangle; `offset-rotate: auto` keeps the mouth facing the
+   direction of travel. Park position (top-right corner) is the base rule —
+   it is what prefers-reduced-motion users and non-offset-path browsers
+   see: Pac visible, still, never removed. */
+.bft-pac {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  width: 14px;
+  height: 14px;
+  image-rendering: pixelated;
+  pointer-events: none;
+  z-index: 1;
+}
+@supports (offset-path: inset(0)) {
+  @media (prefers-reduced-motion: no-preference) {
+    .bft-pac {
+      top: auto;
+      right: auto;
+      /* -1px: lap line centered on the badge border; the round matches the
+         badge's rounded-lg corners so the auto-rotation never snaps */
+      offset-path: inset(-1px round 8px);
+      offset-rotate: auto;
+      animation: bft-pac-lap 60s linear infinite;
+    }
+  }
+}
+@keyframes bft-pac-lap {
+  from { offset-distance: 0%; }
+  to { offset-distance: 100%; }
 }

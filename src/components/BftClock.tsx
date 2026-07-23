@@ -13,6 +13,20 @@ import FlipClock from "@/components/time/FlipClock";
  * the whole badge is a door: click it and /time opens — the clock large,
  * the paper, and the experiment. The clock is the first lesson.
  *
+ * CLOCK HIERARCHY RULING (owner, binding): the TIME is the hero — the
+ * flip cards BIG; the date small below, an afterthought. The header row
+ * and the beat/★height microline are gone from the face — those facts
+ * live in the hover tooltip now, honesty one hover away. (The struggling
+ * digit keeps its honest ~ ON the face, per house law.)
+ *
+ * Pac orbits this badge too (ported from pacsarcade.org — the pupil-study
+ * lap law, scale-honest mini): TEN laps per block, one lap per
+ * block-tenth, ~60 s a lap at the ten-minute pace, riding the border on a
+ * CSS offset-path (`.bft-pac` in globals.css). Keying the img on the
+ * height re-anchors the lap phase whenever a new block lands. Under
+ * prefers-reduced-motion (or without offset-path support) Pac parks,
+ * visible and still, on the top-right corner.
+ *
  * The data plumbing is unchanged: height via currentBlockInfo() (the
  * fleet's own /api/chain/tip door, honest ~ estimate fallback), mempool
  * fill vs one block for the ring + the struggling digit, refresh each
@@ -87,7 +101,7 @@ export default function BftClock() {
        it pulses when the block breaks. The whole badge is the TIME DOOR. */
     <Link
       href="/time"
-      title="open the clock"
+      title={`open the clock — Bitcoin Federated Time · beat ${String(beat).padStart(3, "0")}/144 · block ★${estimated ? "~" : ""}${height.toLocaleString()}${estimated ? " (~ genesis-anchored estimate — network unreachable)" : ""}`}
       aria-label="open the clock — Bitcoin Federated Time: the flip clock, the paper, the experiment"
       className={`fixed bottom-3 right-3 z-40 block select-none rounded-lg ${
         breaking ? "block-break" : ""
@@ -98,23 +112,24 @@ export default function BftClock() {
         boxShadow: `0 0 ${8 + 18 * fill}px rgba(247,147,26,${0.18 + 0.3 * fill})`,
       }}
     >
+      {/* Pac laps the badge ten times per block — one lap per block-tenth,
+          ~60 s at the ten-minute pace. The height key snaps the lap phase
+          to zero each time a new block is observed; between blocks the
+          orbit runs on wall time, smooth and constant. */}
+      {/* eslint-disable-next-line @next/next/no-img-element -- 14px pixel sprite; plain img like the org */}
+      <img
+        key={height}
+        src="/art/pac-trip.png"
+        alt=""
+        aria-hidden="true"
+        className="bft-pac"
+      />
       <span className="block rounded-md border border-edge/80 bg-panel/95 px-3 py-2.5 backdrop-blur-sm">
-        {/* Header */}
-        <span className="mb-1.5 block text-center font-mono text-[7px] uppercase tracking-[0.25em] text-cyan/70">
-          ⧗ BITCOIN TIME CLOCK
-        </span>
-
-        {/* the face — `yyyy:mm:dd hh:mm a₿` (owner format ruling), mini
-            split-flap: calm chain-exact cards + the one struggling ones
-            digit wearing the honest ~; wraps date row over time row */}
-        <span className="flex max-w-[148px] justify-center font-mono text-[15px]">
+        {/* the face — TIME the hero: big flip cards (hh:m + the struggling
+            ones digit wearing the honest ~), the yyyy:mm:dd date tiny and
+            dim below (clock hierarchy ruling) */}
+        <span className="flex justify-center font-mono text-[28px]">
           <FlipClock height={height} fill={fill} />
-        </span>
-
-        {/* Sub-label: beat + height — a ~estimate wears the honest ~ */}
-        <span className="mt-1 block text-center font-mono text-[7px] tabular-nums text-white/25">
-          beat {String(beat).padStart(3, "0")}/144 · ★{estimated ? "~" : ""}
-          {height.toLocaleString()}
         </span>
 
         {/* the door's handle */}
