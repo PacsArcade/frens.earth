@@ -1,0 +1,479 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   THE LIVING CLOCK — styles ported whole from studies/clock-study-pupil.html
+   (the pupil study, rev 7), scoped under .lclk and stripped to the square
+   card (the circle analog/moon clock stays in the study). Keyframes carry
+   the lclk- prefix so nothing collides with the site's globals.
+
+   The study's never-laws ride along: bitcoin-orange #F7931A everywhere —
+   the ONLY gold is the reward coin; the 624 EMBER (#FF6400) breathes as a
+   glow, never a fill; alive fiat are RED, frightened fiat teal-mint (never
+   gold, never bitcoin-orange); nothing flashes more than 3×/sec; reduced
+   motion → everything steady, flips become crossfades.
+   ══════════════════════════════════════════════════════════════════════ */
+
+.lclk {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  font-family: ui-monospace, "Cascadia Code", "JetBrains Mono", Consolas, "SF Mono", Menlo, monospace;
+  color: #e8e2d8;
+}
+
+/* ——— the card is a FLIP CARD: FRONT = the BFT clock, BACK = the Day-0 countdown ——— */
+.lclk-card {
+  position: relative;
+  text-align: center;
+  cursor: pointer;
+  outline: none;
+  perspective: 1800px;
+  user-select: none;
+  -webkit-user-select: none;
+  width: min(500px, 94vw);
+}
+.lclk .flip3d {
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.62s cubic-bezier(0.4, 0.15, 0.2, 1);
+  height: 100%;
+}
+.lclk-card.flipped .flip3d { transform: rotateY(180deg); }
+.lclk .face {
+  border-radius: 20px;
+  background: linear-gradient(165deg, #14111a 0%, #0e0c12 55%, #0b0d0c 100%);
+  border: 1px solid rgba(255, 255, 255, 0.045);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+  transition: box-shadow 1.1s ease;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.lclk .face-front { position: relative; padding: 40px 34px 32px; }
+.lclk .face-back {
+  position: absolute;
+  inset: 0;
+  transform: rotateY(180deg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 30px 24px;
+}
+.lclk-card.blockpulse .face {
+  box-shadow: 0 0 26px rgba(247, 147, 26, 0.38), 0 0 78px rgba(247, 147, 26, 0.22), 0 30px 80px rgba(0, 0, 0, 0.6);
+  transition: box-shadow 0.12s ease;
+}
+.lclk-card:focus-visible .face {
+  box-shadow: 0 0 0 2px rgba(247, 201, 72, 0.75), 0 30px 80px rgba(0, 0, 0, 0.6);
+}
+/* the flippable affordance */
+.lclk .flip-hint {
+  position: absolute;
+  top: 11px;
+  right: 15px;
+  z-index: 5;
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  color: #6d6684;
+  opacity: 0.75;
+}
+.lclk .face-back .flip-hint { color: #8a7f6a; }
+
+/* ——— THE DAY-0 COUNTDOWN (back face) — the same split-flap, running backwards ——— */
+.lclk .d0-timer {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+}
+.lclk .d0-head { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.lclk .d0-kick { font-size: 10.5px; letter-spacing: 0.4em; text-transform: uppercase; color: #c98a2e; }
+.lclk .d0-title {
+  font-size: 14.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #f0d9b0;
+  font-weight: 600;
+  text-shadow: 0 0 14px rgba(247, 147, 26, 0.5), 0 0 4px rgba(247, 147, 26, 0.5);
+}
+.lclk .d0-target { font-size: 12.5px; letter-spacing: 0.16em; text-transform: uppercase; color: #b7a98f; }
+.lclk .d0-target .d0-block { color: #f7931a; font-weight: 700; }
+.lclk .d0-oldcal { font-size: 10.5px; letter-spacing: 0.22em; text-transform: uppercase; color: #7d7566; }
+
+/* the countdown flip clock — REUSES .flipclock/.flip, scaled to DDD:HH:MM:SS */
+.lclk .flipclock.countdown {
+  align-items: flex-start;
+  gap: 5px;
+  flex-wrap: nowrap;
+  font-size: clamp(19px, 5.4vw, 40px);
+  margin: 8px auto 4px;
+  padding: 12px 12px;
+}
+.lclk .cd-unit { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.lclk .cd-digits { display: inline-flex; gap: 5px; }
+.lclk .cd-ul { font-size: 10.5px; letter-spacing: 0.16em; text-transform: uppercase; color: #9a8f7a; }
+.lclk .flipclock.countdown .flip-colon {
+  align-self: flex-start;
+  height: 1.12em;
+  display: inline-flex;
+  align-items: center;
+  color: #6f6a60;
+}
+.lclk .d0-blocks { font-size: 12.5px; letter-spacing: 0.12em; text-transform: uppercase; color: #b7a98f; }
+.lclk .d0-blocks b { color: #f7931a; font-weight: 700; font-variant-numeric: tabular-nums; }
+.lclk .d0-note { font-size: 10.5px; line-height: 1.4; color: #7d7566; text-wrap: balance; max-width: 34ch; }
+
+/* ——— DAY 0 celebration — fires ONLY at zero: balloons + the Day-0 surprise ——— */
+.lclk .d0-cheer { display: none; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
+.lclk .d0-cheer-emoji { font-size: 22px; letter-spacing: 0.16em; }
+.lclk .d0-cheer-big {
+  font-size: clamp(26px, 7vw, 46px);
+  font-weight: 700;
+  line-height: 1.04;
+  letter-spacing: 0.03em;
+  color: #f7931a;
+  text-shadow: 0 0 22px rgba(247, 147, 26, 0.6), 0 0 6px rgba(247, 147, 26, 0.55);
+}
+.lclk .d0-cheer-big.flash { animation: lclk-cheerflash 1.6s ease infinite; }
+@keyframes lclk-cheerflash {
+  0%, 100% { text-shadow: 0 0 22px rgba(247, 147, 26, 0.6), 0 0 6px rgba(247, 147, 26, 0.55); }
+  50% { text-shadow: 0 0 40px rgba(255, 103, 0, 0.9), 0 0 14px rgba(247, 147, 26, 0.85); }
+}
+.lclk .d0-cheer-sub { font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: #f0d9b0; }
+.lclk .d0-timer.reached .d0-head,
+.lclk .d0-timer.reached .d0-target,
+.lclk .d0-timer.reached .d0-oldcal,
+.lclk .d0-timer.reached .flipclock.countdown,
+.lclk .d0-timer.reached .d0-blocks,
+.lclk .d0-timer.reached .d0-note { display: none; }
+.lclk .d0-timer.reached .d0-cheer { display: flex; }
+
+/* floating balloons — JS spawns them at Day 0; clipped to the card, behind the text */
+.lclk .balloons { position: absolute; inset: 0; overflow: hidden; pointer-events: none; border-radius: 20px; z-index: 1; }
+.lclk .balloon {
+  position: absolute;
+  bottom: -70px;
+  border-radius: 50% 50% 48% 48% / 45% 45% 55% 55%;
+  opacity: 0;
+  will-change: transform;
+  box-shadow: inset -3px -4px 6px rgba(0, 0, 0, 0.25);
+}
+.lclk .balloon::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  width: 1px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.28);
+  transform: translateX(-50%);
+}
+@keyframes lclk-floatUp {
+  0% { transform: translateY(0) translateX(0); opacity: 0; }
+  12% { opacity: 0.9; }
+  88% { opacity: 0.9; }
+  100% { transform: translateY(calc(-1 * var(--rise, 520px))) translateX(var(--drift, 0)); opacity: 0; }
+}
+
+/* ——— perimeter PAC ring ——— */
+.lclk .perimeter { pointer-events: none; overflow: visible; }
+.lclk .ringframe { position: absolute; inset: 0; width: 100%; height: 100%; }
+.lclk .track { fill: none; stroke: none; } /* path kept for getPointAtLength */
+.lclk .pix { fill: #f7931a; }
+.lclk .pix.front { fill: #ffd9a0; filter: drop-shadow(0 0 4px rgba(247, 147, 26, 0.95)); }
+.lclk .seam { stroke: rgba(247, 147, 26, 0.55); stroke-width: 1.5; }
+/* PAC-MAN — the real 8-bit tricolor Pac's Arcade sprite: crisp pixels */
+.lclk .pac-sprite {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  filter: drop-shadow(0 0 5px rgba(247, 147, 26, 0.6));
+}
+/* estimate mode — the ring & Pac admit they are guessing */
+.lclk .perimeter.est .pac-sprite { opacity: 0.5; filter: none; }
+
+/* ——— the 12-o'clock REWARD COIN = the BLOCK REWARD (the coinbase) ———
+   The ONE place gold is allowed — the art IS the money. */
+.lclk .coin-inner { transform-box: fill-box; transform-origin: center; }
+.lclk .coin-back { fill: #f3b40c; filter: drop-shadow(0 0 6px rgba(247, 201, 72, 0.85)); }
+.lclk .coin-img { pointer-events: none; } /* the real bitcoin.gif spins itself */
+.lclk .rewardcoin.eaten .coin-inner { animation: lclk-coinEat 0.38s ease forwards; }
+.lclk .rewardcoin.appear .coin-inner { animation: lclk-coinAppear 0.5s ease; }
+@keyframes lclk-coinEat {
+  0% { transform: scale(1); filter: brightness(1); }
+  34% { transform: scale(1.7); filter: brightness(2.6); }
+  100% { transform: scale(0); filter: brightness(1); }
+}
+@keyframes lclk-coinAppear {
+  0% { transform: scale(0); }
+  62% { transform: scale(1.16); }
+  100% { transform: scale(1); }
+}
+.lclk .coin-static,
+.lclk .coin-static-b { display: none; } /* static gold ₿ fallback — reduced motion only */
+.lclk .rewardcoin.fruitlap .coin-static,
+.lclk .rewardcoin.fruitlap .coin-static-b { display: none !important; } /* a fruit lap never shows the ₿ fallback */
+/* the fruit tooltips (names + classic points) must be hoverable — the one
+   pointer-aware spot on the otherwise inert ring */
+.lclk .rewardcoin { pointer-events: auto; cursor: help; }
+/* ——— the FRUIT (laps 1–9): big, seated on a dark plate, bobbing gently ——— */
+.lclk .fruit-plate {
+  fill: #0e0c12;
+  stroke: rgba(247, 147, 26, 0.35);
+  stroke-width: 1.5;
+  filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.8));
+}
+.lclk .fruit-face {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: lclk-fruitBob 1.7s ease-in-out infinite;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6));
+}
+@keyframes lclk-fruitBob {
+  0%, 100% { transform: translateY(1.2px); }
+  50% { transform: translateY(-1.2px); }
+}
+.lclk .coin-static { fill: #f3b40c; filter: drop-shadow(0 0 6px rgba(247, 201, 72, 0.85)); }
+.lclk .coin-static-b {
+  fill: #4a3405;
+  font: 700 8px ui-monospace, Consolas, monospace;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+.lclk .perimeter.est .rewardcoin { opacity: 0.5; } /* estimate → the reward dims (still real) */
+
+/* ——— PAC powers up on block-break (size pop + flash) ——— */
+.lclk .pacman { transform-box: fill-box; transform-origin: center; will-change: transform; }
+.lclk .pacman.powerup { animation: lclk-pacPow 0.5s ease; }
+@keyframes lclk-pacPow {
+  0% { transform: scale(1); filter: drop-shadow(0 0 6px rgba(247, 147, 26, 0.85)) brightness(1); }
+  35% { transform: scale(1.5); filter: drop-shadow(0 0 15px rgba(247, 147, 26, 1)) brightness(2); }
+  100% { transform: scale(1); filter: drop-shadow(0 0 6px rgba(247, 147, 26, 0.85)) brightness(1); }
+}
+
+/* ——— the FIAT GHOSTS on the clock-hours (world currencies, NEVER gold/orange) ———
+   ALIVE = red living ghost · FRIGHTENED = teal-mint, eatable · EATEN = gone. */
+.lclk .ghost { will-change: opacity; transition: opacity 0.18s linear; }
+.lclk .ghost .g-pixel rect { shape-rendering: crispEdges; } /* 8-bit — crisp pixels */
+.lclk .g-inner { transform-box: fill-box; transform-origin: center; will-change: opacity; }
+
+/* the fiat-ghost BODY: GLYPH tricolor treatment — three phase-offset layers,
+   counter-phasing opacities = the shimmer (colour lives here, state in JS) */
+.lclk .g-layer { will-change: opacity; }
+.lclk .g-layer-lime .g-body { fill: #5fe6d2; }
+.lclk .g-layer-core .g-body { fill: #45c6b4; }
+.lclk .g-layer-deep .g-body { fill: #1d8b79; }
+.lclk .g-layer-lime { opacity: 0.55; animation: lclk-gShimmerLime 4.2s ease-in-out infinite; }
+.lclk .g-layer-core { opacity: 0.96; animation: lclk-gShimmerCore 4.2s ease-in-out infinite; }
+.lclk .g-layer-deep { opacity: 0.58; animation: lclk-gShimmerDeep 4.2s ease-in-out infinite; }
+/* desync the ghosts so they don't shimmer in lockstep */
+.lclk .ghost:nth-child(2) .g-layer { animation-delay: -1.4s; }
+.lclk .ghost:nth-child(3) .g-layer { animation-delay: -2.8s; }
+.lclk .ghost:nth-child(4) .g-layer { animation-delay: -0.7s; }
+.lclk .ghost:nth-child(5) .g-layer { animation-delay: -3.5s; }
+.lclk .ghost:nth-child(6) .g-layer { animation-delay: -2.1s; }
+.lclk .ghost:nth-child(7) .g-layer { animation-delay: -1.0s; }
+.lclk .ghost:nth-child(8) .g-layer { animation-delay: -3.2s; }
+.lclk .ghost:nth-child(9) .g-layer { animation-delay: -1.8s; }
+.lclk .ghost:nth-child(10) .g-layer { animation-delay: -2.5s; }
+.lclk .ghost:nth-child(11) .g-layer { animation-delay: -3.9s; }
+@keyframes lclk-gShimmerLime { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.7; } }
+@keyframes lclk-gShimmerCore { 0%, 100% { opacity: 0.97; } 50% { opacity: 0.86; } }
+@keyframes lclk-gShimmerDeep { 0%, 100% { opacity: 0.72; } 50% { opacity: 0.44; } }
+
+/* ALIVE — the tricolor re-tinted RED (a living enemy ghost; unused in the
+   block-paced model but kept, per the study: the state still exists) */
+.lclk .ghost.alive .g-layer-lime .g-body { fill: #ff8a8a; }
+.lclk .ghost.alive .g-layer-core .g-body { fill: #ff2323; }
+.lclk .ghost.alive .g-layer-deep .g-body { fill: #c40d0d; }
+.lclk .ghost.alive .g-inner { animation: lclk-gBob 2.42s ease-in-out infinite, lclk-gBlink 2.42s ease-in-out infinite; }
+/* FRIGHTENED — a CALM, SLOW blink (a gentle pulse, NOT a hard flicker) */
+.lclk .ghost.frightened .g-inner { animation: lclk-gBlinkSlow 1.7s ease-in-out infinite; }
+/* PERF: an EATEN ghost is invisible — kill its animations */
+.lclk .ghost.eaten .g-layer,
+.lclk .ghost.eaten .g-inner { animation: none !important; }
+@keyframes lclk-gBob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-1.1px); } }
+@keyframes lclk-gBlink { 0%, 90%, 100% { opacity: 1; } 94% { opacity: 0.38; } }
+@keyframes lclk-gBlinkSlow { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
+
+.lclk .g-glyph {
+  fill: #fdfdff;
+  stroke: #14101c;
+  stroke-width: 0.6;
+  paint-order: stroke;
+  font: 700 7px ui-monospace, Consolas, monospace;
+  text-anchor: middle;
+  dominant-baseline: central;
+  filter: drop-shadow(0 0 1.6px rgba(0, 0, 0, 0.7));
+}
+
+/* ═══════════ the retro FLIP / split-flap clock (white on black) ═══════════ */
+.lclk .flipclock {
+  display: inline-flex;
+  align-items: stretch;
+  gap: 6px;
+  margin: 16px auto 12px;
+  padding: 12px 14px;
+  font-size: clamp(44px, 11.5vw, 88px);
+  background: linear-gradient(180deg, #17171a 0%, #0b0b0d 100%);
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), inset 0 -10px 24px rgba(0, 0, 0, 0.5), 0 14px 34px rgba(0, 0, 0, 0.55);
+}
+.lclk .flip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 0.72em;
+  height: 1.12em;
+  border-radius: 8px;
+  overflow: hidden;
+  background: linear-gradient(180deg, #2a2a2e 0%, #1c1c20 49.5%, #121216 50.5%, #08080a 100%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03), inset 0 2px 6px rgba(255, 255, 255, 0.04), 0 3px 8px rgba(0, 0, 0, 0.5);
+  perspective: 340px;
+}
+.lclk .flip .flip-val {
+  display: block;
+  font-weight: 600;
+  line-height: 1;
+  color: #f2f0ea;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.7);
+  transform-origin: center center;
+  backface-visibility: hidden;
+  will-change: transform;
+}
+.lclk .flip::after {
+  /* the mechanical hinge line across the middle */
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 2px;
+  transform: translateY(-1px);
+  z-index: 3;
+  pointer-events: none;
+  background: rgba(0, 0, 0, 0.62);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+.lclk .flip.flipping .flip-val { animation: lclk-flap 0.55s cubic-bezier(0.32, 0.72, 0.35, 1.12); }
+@keyframes lclk-flap {
+  0% { transform: rotateX(-88deg); filter: brightness(0.42); }
+  55% { transform: rotateX(12deg); filter: brightness(1.15); }
+  100% { transform: rotateX(0deg); filter: brightness(1); }
+}
+@keyframes lclk-fadeflap { from { opacity: 0.15; } to { opacity: 1; } }
+.lclk .flip-colon { align-self: center; color: #f2f0ea; font-weight: 600; padding: 0 1px; opacity: 0.92; }
+/* the LIVE ones digit — the only card that strains/flips idly; wears an honest ~ */
+.lclk .flip.live { position: relative; }
+.lclk .flip.live .flip-est {
+  position: absolute;
+  top: 3px;
+  right: 5px;
+  z-index: 4;
+  font-size: 0.2em;
+  color: rgba(247, 147, 26, 0.9);
+  pointer-events: none;
+}
+
+.lclk .dateline { font-size: 15px; letter-spacing: 0.3em; color: #b9b2c6; margin-bottom: 2px; }
+.lclk .dateline .ab { color: rgba(247, 147, 26, 0.8); letter-spacing: 0.05em; }
+/* the old-calendar conversion — quiet, beneath the a₿ date */
+.lclk .oldcal { font-size: 9.5px; letter-spacing: 0.26em; text-transform: uppercase; color: #6d6684; margin-bottom: 6px; }
+
+/* the live block-progress readout (the minute-ones digit, in percent) */
+.lclk .blockpct {
+  font-size: 11.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #8a7f6a;
+  line-height: 1.6;
+  min-height: 13px;
+  max-width: 40ch;
+  margin: 0 auto 14px;
+  text-wrap: balance;
+}
+.lclk .blockpct b { color: rgba(247, 147, 26, 0.9); font-weight: 600; }
+
+.lclk .oneliner {
+  font-size: 12.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #b7a98f;
+  line-height: 1.7;
+  max-width: 44ch;
+  margin: 0 auto 12px;
+  text-wrap: balance;
+}
+.lclk .oneliner b { color: #f7931a; font-weight: 600; }
+.lclk .nb { white-space: nowrap; text-transform: none; }
+
+.lclk .status { font-size: 12.5px; letter-spacing: 0.08em; color: #7d7690; min-height: 16px; }
+.lclk .status .dot { opacity: 0.5; padding: 0 2px; }
+.lclk .src.live { color: #7fbf8f; }
+.lclk .src.est { color: #d9a05a; }
+.lclk .note { color: #f7931a; }
+
+/* "HACK THE PLANET" — hidden, flashes gold at the block-break BANG (one fade) */
+.lclk .bang {
+  font-size: 12.5px;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: #f3b40c;
+  text-shadow: 0 0 12px rgba(247, 201, 72, 0.7);
+  opacity: 0;
+  min-height: 15px;
+  margin: 4px 0 0;
+}
+.lclk .bang.flash { animation: lclk-bangflash 1.9s ease; }
+@keyframes lclk-bangflash {
+  0% { opacity: 0; }
+  7% { opacity: 1; }
+  34% { opacity: 0.92; }
+  100% { opacity: 0; }
+}
+
+.lclk .levelbadge {
+  color: #f7931a;
+  letter-spacing: 0.18em;
+  font-weight: 600;
+  font-size: 12.5px;
+  text-shadow: 0 0 10px rgba(247, 147, 26, 0.25);
+  cursor: default;
+  margin: 2px auto 10px;
+}
+.lclk .levelbadge .up { color: #e8916a; }
+.lclk .levelbadge .down { color: #7fbf8f; }
+
+@media (prefers-reduced-motion: reduce) {
+  /* everything holds steady: flips become a plain crossfade; the reward coin
+     shows a static gold ₿ (the gif is hidden); ghosts hold colour/state */
+  .lclk .flip.flipping .flip-val { animation: lclk-fadeflap 0.4s ease; }
+  .lclk .coin-inner { display: none; }
+  .lclk .rewardcoin.fruitlap .coin-inner { display: initial; } /* fruit laps keep the plate + fruit */
+  .lclk .coin-static,
+  .lclk .coin-static-b { display: initial; }
+  .lclk .rewardcoin.eaten .coin-inner,
+  .lclk .rewardcoin.appear .coin-inner { animation: none; }
+  .lclk .fruit-face { animation: none; } /* the fruit holds still — no bob */
+  .lclk .pacman.powerup { animation: none; }
+  /* the fiat ghost holds STATIC — colour still tells the state */
+  .lclk .g-layer { animation: none !important; }
+  .lclk .g-inner { animation: none !important; }
+  /* the card FLIP becomes a plain crossfade — no 3D spin */
+  .lclk .flip3d { transform: none !important; transform-style: flat; }
+  .lclk .face {
+    backface-visibility: visible;
+    -webkit-backface-visibility: visible;
+    transition: opacity 0.3s ease, box-shadow 1.1s ease;
+  }
+  .lclk .face-back { transform: none; opacity: 0; }
+  .lclk-card.flipped .face-front { opacity: 0; }
+  .lclk-card.flipped .face-back { opacity: 1; }
+  /* Day-0 celebration holds steady: no floating balloons, no glow flash */
+  .lclk .balloon { animation: none !important; display: none; }
+  .lclk .d0-cheer-big.flash { animation: none; }
+}

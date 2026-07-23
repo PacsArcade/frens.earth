@@ -1,25 +1,52 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { currentBlockInfo, BLOCKS_PER_DAY, moonPhase, yearAnimal } from "@/lib/bb/bft";
-import FlipClock from "@/components/time/FlipClock";
+import dynamic from "next/dynamic";
+import { estimateHeight, moonPhase, yearAnimal } from "@/lib/bb/bft";
+import type { LivingTip } from "@/components/time/living-clock-engine";
 import Converters from "@/components/time/Converters";
 
 /**
  * /time — the room behind the TIME DOOR. One live poll feeds everything:
- * the hero flip clock (large, flipping on real updates), the "watch a
- * block land" strip, and the converters' sense of "now". The paper rides
- * in as server-rendered children between the hero and the experiment.
+ * THE LIVING CLOCK (the pupil study's clock, whole — flip digits, Pac's
+ * ring, the fiat ghosts, the fruit ladder, the Day-0 flip side), the
+ * "watch a block land" strip, and the converters' sense of "now". The
+ * paper rides in as server-rendered children between the hero and the
+ * experiment.
  *
- * Same plumbing as the corner badge — currentBlockInfo() through the
- * fleet's own /api/chain/tip door (genesis-anchored ~ estimate when the
- * network is dark; the honest ~, never a fake pulse), mempool vsize vs
- * one block for the fill. The clock never stops.
+ * ONE data seam (owner ruling 0018.04.22): everything reads the fleet's
+ * own /api/chain/tip door — ?full=1 for the clock's richer needs (tip
+ * timestamp, difficulty) — which walks OUR NODE first, mempool.space as
+ * the honest fallback, server-side and pluggable. No client here ever
+ * phones a third party. Seam dark → the genesis-anchored ~ estimate; the
+ * clock never stops and never fakes a pulse.
+ *
+ * The living clock is heavy on purpose (it's the hero) — loaded lazily,
+ * client-only, so the paper below still paints fast.
  */
+
+const LivingClock = dynamic(() => import("@/components/time/LivingClock"), {
+  ssr: false,
+  loading: () => (
+    <p className="py-10 text-center font-mono text-sm text-white/40">syncing to the chain…</p>
+  ),
+});
+
+/** an honest cold-boot reading — the genesis-anchored ~, before the seam answers */
+function estimateTip(): LivingTip {
+  return {
+    height: estimateHeight(),
+    estimated: true,
+    fill: 0.02,
+    memCount: null,
+    tipTimestamp: null,
+    diffChange: null,
+    diffRemaining: null,
+  };
+}
+
 export default function TimeDoor({ children }: { children?: ReactNode }) {
-  const [height, setHeight] = useState<number | null>(null);
-  const [estimated, setEstimated] = useState(false);
-  const [fill, setFill] = useState(0);
+  const [tip, setTip] = useState<LivingTip>(estimateTip);
   const [breaking, setBreaking] = useState(false);
   const [landed, setLanded] = useState<number | null>(null); // last block seen landing, for the strip
   const prev = useRef<number | null>(null);
@@ -27,74 +54,71 @@ export default function TimeDoor({ children }: { children?: ReactNode }) {
   useEffect(() => {
     let alive = true;
     const tick = () => {
-      currentBlockInfo().then((i) => {
-        if (!alive) return;
-        /* only a NEW REAL block pulses — an ~estimate never fakes a break */
-        if (!i.estimated) {
-          if (prev.current != null && i.height > prev.current) {
-            setBreaking(true);
-            setLanded(i.height);
-            setTimeout(() => alive && setBreaking(false), 4000);
-          }
-          prev.current = i.height;
-        }
-        setHeight(i.height);
-        setEstimated(i.estimated);
-      });
-      fetch("/api/chain/tip", { cache: "no-store" })
+      fetch("/api/chain/tip?full=1", { cache: "no-store" })
         .then((r) => (r.ok ? r.json() : null))
         .then((d) => {
-          if (alive && d?.ok && typeof d.mempoolVsize === "number") {
-            setFill(Math.max(0.02, Math.min(1, d.mempoolVsize / 1_000_000)));
+          if (!alive) return;
+          if (d?.ok && Number.isFinite(d.height) && d.height > 0) {
+            /* only a NEW REAL block pulses — an ~estimate never fakes a break */
+            if (prev.current != null && d.height > prev.current) {
+              setBreaking(true);
+              setLanded(d.height);
+              setTimeout(() => alive && setBreaking(false), 4000);
+            }
+            prev.current = d.height;
+            setTip((t) => ({
+              height: d.height,
+              estimated: false,
+              /* offline / missing fill → hold the last reading */
+              fill:
+                typeof d.mempoolVsize === "number"
+                  ? Math.max(0.02, Math.min(1, d.mempoolVsize / 1_000_000))
+                  : t.fill,
+              memCount: typeof d.mempoolCount === "number" ? d.mempoolCount : t.memCount,
+              tipTimestamp: typeof d.tipTimestamp === "number" ? d.tipTimestamp : null,
+              diffChange: typeof d.difficultyChange === "number" ? d.difficultyChange : null,
+              diffRemaining: typeof d.difficultyRemaining === "number" ? d.difficultyRemaining : null,
+            }));
+          } else {
+            /* the seam is dark — the honest ~ carries; fill holds its last reading */
+            setTip((t) => ({ ...estimateTip(), fill: t.fill, memCount: null }));
           }
         })
         .catch(() => {
-          /* offline → the fill holds its last reading */
+          if (alive) setTip((t) => ({ ...estimateTip(), fill: t.fill, memCount: null }));
         });
     };
     tick();
     const id = setInterval(tick, 30_000);
-    return () => { alive = false; clearInterval(id); };
+    const onVisible = () => {
+      if (!document.hidden) tick();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      alive = false;
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, []);
 
-  const beat = height == null ? null : height % BLOCKS_PER_DAY;
+  const { height, estimated, fill } = tip;
   const moon = height == null ? null : moonPhase(height);
   const animal = height == null ? null : yearAnimal(height);
 
   return (
     <>
-      {/* ═══ THE HERO — the flip clock, large ═══ */}
-      <section
-        className={`mb-12 border-2 border-edge bg-panel/90 p-6 text-center sm:p-8 ${breaking ? "block-break" : ""}`}
-        aria-label="The Bitcoin Federated Time flip clock"
-      >
-        {height == null ? (
-          <p className="py-10 font-mono text-sm text-white/40">syncing to the chain…</p>
-        ) : (
-          <>
-            {/* the face — TIME the hero, LARGE (clock hierarchy ruling):
-                big `hh:mm a₿` flip cards, the `yyyy:mm:dd` date tiny below */}
-            <div className="flex justify-center font-mono text-[clamp(26px,6.8vw,46px)]">
-              <FlipClock height={height} fill={fill} />
-            </div>
+      {/* ═══ THE HERO — THE LIVING CLOCK (the study's card is its own frame) ═══ */}
+      <section className="mb-12" aria-label="The Bitcoin Federated Time living clock">
+        <LivingClock {...tip} />
 
-            <p className="mt-4 font-mono text-xs tabular-nums text-white/45">
-              beat {String(beat).padStart(3, "0")}/144 · ★{estimated ? "~" : ""}
-              {height.toLocaleString()} · {moon!.emoji} {moon!.name} moon · year of the{" "}
-              {animal!.emoji} {animal!.name}
-            </p>
-
-            {/* the honest status — live chain reading, or the ~ estimate */}
-            <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.25em]">
-              {estimated ? (
-                <span className="text-coin/80">
-                  ~ ESTIMATED — network unreachable, counting ~10 min a block from genesis
-                </span>
-              ) : (
-                <span className="text-neon/80">● LIVE — read from the chain tip</span>
-              )}
-            </p>
-          </>
+        {/* the sub-line — moon + year animal on ONE clean line (owner ruling
+            0018.04.22: beat and block-height live on the face, in tooltips
+            and in the experiment strip — never under the clock; LIVE/~ rides
+            the card's own status row) */}
+        {height != null && (
+          <p className="mt-4 whitespace-nowrap text-center font-mono text-[10px] text-white/45">
+            {moon!.emoji} {moon!.name} moon · year of the {animal!.emoji} {animal!.name}
+          </p>
         )}
       </section>
 
@@ -111,11 +135,11 @@ export default function TimeDoor({ children }: { children?: ReactNode }) {
           This strip is live. The bar is the mempool — everyone&apos;s waiting
           payments — filling toward one block&apos;s worth of space. Leave this
           page open: when the next block lands, the clock above snaps its
-          cards, the minute jumps by ten, and the height counts one more. That
+          cards, Pac eats the ₿ at twelve, and the height counts one more. That
           moment is the tick of the only clock the whole world agrees on.
         </p>
 
-        <div className="border-2 border-edge bg-panel p-4">
+        <div className={`border-2 border-edge bg-panel p-4 ${breaking ? "block-break" : ""}`}>
           <div className="flex items-baseline justify-between font-mono text-xs text-white/70">
             <span>
               next block filling{" "}
