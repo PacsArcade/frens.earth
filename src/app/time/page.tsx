@@ -2,12 +2,18 @@ import type { Metadata } from "next";
 import TimeDoor from "@/components/time/TimeDoor";
 
 /**
- * /time — behind the TIME DOOR. Education-first: the flip clock large
- * (the hero), THE PAPER (Bitcoin Federated Time explained for a curious
- * human), and THE EXPERIMENT (watch a block land + two converters).
- * Public page; BFT-only dates (house law); adapted from
- * knowledge-engine/docs/BFT.md + docs/bft-display.md.
+ * /time — behind the TIME DOOR. Education-first: THE LIVING CLOCK large
+ * (the hero — the pupil study's clock, whole), THE PAPER (Bitcoin
+ * Federated Time explained for a curious human), and THE EXPERIMENT
+ * (watch a block land + two converters). Public page; BFT-only dates
+ * (house law).
+ *
+ * OWNER RULING (0018.04.22, binding): any link to "the paper" points to
+ * the STANDALONE repo — github.com/PacsArcade/bitcoin-federated-time —
+ * never a knowledge-engine copy.
  */
+
+const PAPER_URL = "https://github.com/PacsArcade/bitcoin-federated-time";
 
 export const metadata: Metadata = {
   title: "The Clock — Bitcoin Federated Time — frens.earth",
@@ -60,14 +66,24 @@ function ThePaper() {
           ten &quot;minutes&quot; per block.
         </p>
         <p>
-          Look at the flip clock above: the date, the hours and the minute-tens are{" "}
-          <b className="text-white/90">chain-exact</b> — calm cards that flip
+          Look at the clock above: the date, the hours and the minute-tens are{" "}
+          <b className="text-white/90">chain-exact</b> — calm faces that flip
           only when a real block lands. The last digit is the one card
-          allowed to struggle: it shows the coming block filling up, in
-          tenths, and it trembles on its hinge because blocks are random —
-          ten minutes is only the average. That&apos;s why it wears the{" "}
-          <span className="font-mono text-coin">~</span>. One honest
+          allowed to struggle: it shows how far through the coming block we
+          are, in tenths, and it trembles on its hinge because blocks are
+          random — ten minutes is only the average. That&apos;s why it wears
+          the <span className="font-mono text-coin">~</span>. One honest
           struggling digit; everything else is fact.
+        </p>
+        <p>
+          Pac is that digit made visible: <b className="text-white/90">ten
+          laps of the ring make one block</b> — one lap per tenth. Every lap
+          he clears the waiting payments, eats a frightened fiat ghost or
+          two, and takes the fruit waiting at twelve — cherry first, the key
+          ninth, because the key unlocks the tenth lap: the ₿ itself, eaten
+          the moment the block breaks. Every block, bitcoin eats the
+          world&apos;s fiat. Then the board resets, forever. And the whole
+          card flips — click it — to the Day-0 countdown on its back.
         </p>
       </Sect>
 
@@ -128,6 +144,18 @@ function ThePaper() {
           frozen faces. You can test both marks yourself, just below.
         </p>
       </Sect>
+
+      {/* the paper itself lives in its own standalone repo (owner ruling) */}
+      <p className="font-mono text-[11px] uppercase tracking-[0.2em]">
+        <a
+          href={PAPER_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-coin/80 underline underline-offset-4 hover:text-coin"
+        >
+          read the paper on GitHub ↗
+        </a>
+      </p>
     </div>
   );
 }
