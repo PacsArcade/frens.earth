@@ -1506,3 +1506,73 @@ footer {
     radial-gradient(1000px 600px at 50% -10%, #16281e, transparent 60%),
     #0d1210;
 }
+
+/* ————————————————————————————————————————————————————————————————
+   THE TIME DOOR — the split-flap FLIP CLOCK, built to the pupil study's
+   laws (studies/clock-study-pupil.html · the-clock briefs):
+
+   • retro split-flap, WHITE ON BLACK, with the mechanical hinge line
+     across each card's middle.
+   • THE STANDING STRAIN RULE — "the struggle belongs to the SINGLE thing
+     racing the block — the digital ones digit. EVERYTHING else is
+     chain-exact and perfectly still." Hours + minute-TENS are calm cards
+     that flip cleanly ONLY when they actually change (on a block); the
+     minute-ONES is the LIVE card — THE STRUGGLING DIGIT (how full the
+     coming block is, in tenths) — trembling on its hinge as the block
+     fills, snapping a full flip when it ticks.
+   • the colon holds steady (never blinks).
+   • the live card wears the honest ~ (it is an estimate; blocks are
+     random) and a warm colour glow as it strains — colour, not a flash.
+   • prefers-reduced-motion → "all steady (flip → crossfade)": no spin,
+     no tremble — the clock still ticks by a plain value swap.
+
+   Sized in em so the mini corner badge and the /time hero share one build. */
+.fclk { display: inline-flex; align-items: stretch; gap: .09em; }
+.fclk-card {
+  position: relative; display: inline-flex; align-items: center; justify-content: center;
+  width: .72em; height: 1.12em; border-radius: .12em; overflow: hidden;
+  background: linear-gradient(180deg, #2a2a2e 0%, #1c1c20 49.5%, #121216 50.5%, #08080a 100%);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.03), inset 0 .03em .09em rgba(255,255,255,.04), 0 .045em .12em rgba(0,0,0,.5);
+  perspective: 340px;
+}
+.fclk-card::after {              /* the mechanical hinge line across the middle */
+  content: ''; position: absolute; left: 0; right: 0; top: 50%; height: max(1.5px, .03em);
+  transform: translateY(-50%); z-index: 3; pointer-events: none;
+  background: rgba(0,0,0,.62); box-shadow: 0 1px 0 rgba(255,255,255,.05);
+}
+.fclk-val {
+  display: block; font-weight: 600; line-height: 1; color: #f2f0ea;
+  text-shadow: 0 1px 1px rgba(0,0,0,.7);
+  transform-origin: center center; backface-visibility: hidden; will-change: transform;
+}
+.fclk-card.fclk-flipping .fclk-val { animation: fclk-flap .55s cubic-bezier(.32,.72,.35,1.12); }
+@keyframes fclk-flap {
+  0%   { transform: rotateX(-88deg); filter: brightness(.42); }
+  55%  { transform: rotateX(12deg);  filter: brightness(1.15); }
+  100% { transform: rotateX(0deg);   filter: brightness(1); }
+}
+@keyframes fclk-fadeflap { from { opacity: .15; } to { opacity: 1; } }
+.fclk-colon { align-self: center; color: #f2f0ea; font-weight: 600; padding: 0 .02em; opacity: .92; }
+
+/* THE STRUGGLING DIGIT — the one live card: a slow tremble ON the hinge,
+   amplitude riding --fclk-strain (0..1 = how full the coming block is).
+   Its snap-flip (.fclk-flipping) temporarily replaces the tremble, exactly
+   the study's "struggles at its flip … then FLIPS fully (snap)". */
+.fclk-card.fclk-live .fclk-val { animation: fclk-strain 1.9s ease-in-out infinite; }
+@keyframes fclk-strain {
+  0%, 100% { transform: rotateX(0deg); }
+  30%      { transform: rotateX(calc(var(--fclk-strain, 0) * -7deg)); }
+  62%      { transform: rotateX(calc(var(--fclk-strain, 0) * 4deg)); }
+}
+.fclk-card.fclk-live {           /* strains toward the break in COLOUR (never a flash) */
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.03), inset 0 .03em .09em rgba(255,255,255,.04),
+    0 0 calc(.1em + .35em * var(--fclk-strain, 0)) rgba(247,147,26, calc(.10 + .30 * var(--fclk-strain, 0)));
+}
+.fclk-est {                      /* the honest ~ on the live card's corner */
+  position: absolute; top: .06em; right: .08em; z-index: 4;
+  font-size: .20em; line-height: 1; color: rgba(247,147,26,.9); pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .fclk-card.fclk-flipping .fclk-val { animation: fclk-fadeflap .40s ease; }  /* flip → crossfade */
+  .fclk-card.fclk-live .fclk-val { animation: none; }                         /* no tremble — steady */
+}
