@@ -101,6 +101,12 @@ export default function FrenMenu() {
       >
         MY PROFILE
       </Link>
+      <Link
+        href="/me"
+        className="flex min-h-11 items-center border-b-2 border-edge px-4 font-pixel text-[10px] text-cyan"
+      >
+        MY TAG &amp; SESSIONS
+      </Link>
       {isOperator && <AdminDeckRow />}
       {/* the door switcher — every other signed-in door, one press away */}
       {others.map((a) => (
