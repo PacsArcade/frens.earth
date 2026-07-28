@@ -21,10 +21,13 @@ import {
   bftTime,
   currentBlockInfo,
   estimateHeightAt,
-  moonPhase,
   yearAnimal,
   GENESIS_MS,
 } from "@/lib/bb/bft";
+/* THE SKY'S moon, not the calendar's — see lib/bb/moon.ts. BFT's 28-day
+   lunation drifts ~1.53 days a month against the real one, so bft.ts's
+   moonPhase() would show a waning crescent on a night the moon is full. */
+import { skyMoon, moonIlluminationAt } from "@/lib/bb/moon";
 
 const LAST_SAT_HEIGHT = 6_930_000;
 
@@ -82,10 +85,14 @@ function intraBlockSeconds(now: Date, tipTs: number | null): number {
 }
 
 /* moon ring: illumination fraction — new at the bottom, full at the top,
-   waxing up the near side, waning back down */
-function moonIllumination(h: number): number {
-  const lun = (h % 4252) / 4252;
-  return (1 - Math.cos(2 * Math.PI * lun)) / 2;
+   waxing up the near side, waning back down.
+
+   Anchored to the REAL new moon (lib/bb/moon.ts). The old version ran this
+   same cosine off `h % 4252` — the right rhythm from the wrong origin, since
+   block 0 was not a new moon — so the ring filled on its own schedule
+   regardless of the sky. */
+function moonIllumination(now: Date): number {
+  return moonIlluminationAt(now.getTime());
 }
 
 /* display-clamped block seconds: parks at 9:59 when the chain is loaded */
@@ -99,7 +106,7 @@ function ringProgress(r: Ring, h: number, now: Date, tipTs: number | null): numb
   if (r.kind === "wall-s") return (intraDisplay(now, tipTs) % 60) / 60;
   if (r.kind === "wall-m") return ((h % 6) * 600 + intraDisplay(now, tipTs)) / 3600;
   if (r.kind === "intra") return intraDisplay(now, tipTs) / 600;
-  if (r.kind === "moon") return moonIllumination(h);
+  if (r.kind === "moon") return moonIllumination(now);
   if (r.max) return h / r.max;
   return (h % (r.mod as number)) / (r.mod as number);
 }
@@ -115,7 +122,7 @@ function ringBall(r: Ring, h: number, now: Date, tipTs: number | null): number |
     case "week": return Math.floor((h % 1008) / 144);
     case "fortnight": return Math.floor((h % 2016) / 1008);
     case "month": return Math.floor((Math.floor(h / 144) % 364) / 28) + 1; // month we are IN, 1..13
-    case "moon": return moonPhase(h).emoji;
+    case "moon": return skyMoon(now.getTime()).emoji;
     case "year": return Math.floor(Math.floor(h / 144) / 364); // the year we are IN — matches 0018
     case "olympiad": return Math.floor((h % 210000) / 52416);
     case "generation": return Math.floor((h % 1260000) / 210000);
@@ -175,8 +182,10 @@ function cardFor(r: Ring, h: number, now: Date, tipTs: number | null): Card {
     case "month":
       return { big: `${month} / 13`, l1: `day ${dayOfMonth} / 28`, l2: `${compactNum(4032 - (h % 4032))} blocks left` };
     case "moon": {
-      const ph = moonPhase(h);
-      const dmoon = Math.floor((h % 4252) / 144) + 1;
+      /* the moon actually overhead — age counted from the real new moon,
+         not from block 0 (lib/bb/moon.ts) */
+      const ph = skyMoon(now.getTime());
+      const dmoon = Math.floor(ph.ageDays) + 1;
       return { big: ph.emoji, l1: ph.name, l2: `day ${dmoon} of ≈30` };
     }
     case "year": {
