@@ -100,6 +100,25 @@ function intraDisplay(now: Date, tipTs: number | null): number {
   return Math.min(599.999, intraBlockSeconds(now, tipTs));
 }
 
+/* THE CHAIN'S CLOCK, told to the minute.
+   bftTime() derives minutes from HEIGHT ALONE — six blocks to the hour, so its
+   ones digit is ALWAYS 0: it can only read :00 :10 :20 :30 :40 :50. The minute
+   RING already counts the minutes elapsed inside the current block, which is
+   why the ring read 49 while the corner pill and the sun both read :40.
+
+   The house pattern is the same everywhere: the TENS digit is block-derived,
+   the ONES digit is a live chain signal. The FlipClock fills it with mempool
+   tenths; the LivingClock replaces it in updateLiveDigit(). The half-wheel's
+   ones digit is minutes-into-the-block, matching its own minute hand — the
+   chain's hands ruling (a6841d0). It freezes with the block when the block
+   runs long, because intraDisplay parks at 9:59. */
+function chainClock(h: number, now: Date, tipTs: number | null): string {
+  const bid = ((h % 144) + 144) % 144;
+  const hh = Math.floor(bid / 6);
+  const mm = (bid % 6) * 10 + Math.floor(intraDisplay(now, tipTs) / 60);
+  return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+}
+
 function ringProgress(r: Ring, h: number, now: Date, tipTs: number | null): number {
   /* second and minute are the CHAIN's hands, derived from block time —
      when the block freezes at its top, they freeze with it */
@@ -402,7 +421,9 @@ export default function HalfWheel() {
       const tilde = estimated ? "~" : "";
       ctx.textAlign = "left";
       const dateTxt = `${tilde}${bftDate(h)}`;
-      const clockTxt = bftTime(h);
+      /* the live chain minute — the 49, not the rounded 40 (admiral, 0018.05.03).
+         Feeds BOTH the top-left pill and the sun's face below. */
+      const clockTxt = chainClock(h, now, tipTs);
       const datePx = fitPx(ctx, dateTxt, 150, 14, true);
       ctx.font = `bold ${datePx}px ui-monospace, monospace`;
       const dateW = ctx.measureText(dateTxt).width;
