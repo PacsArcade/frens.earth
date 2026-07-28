@@ -1,3 +1,4 @@
+import { skyMoon, moonFracAt } from '@/lib/bb/moon';
 /**
  * THE ORRERY engine — Act I of the orrery study, ported whole.
  *
@@ -141,16 +142,14 @@ function yearAnimal(d: BftD) {
   return ANIMALS[i];
 }
 
-/* ——— the sky's moon: mean synodic from the 2000-01-06 18:14 UTC new moon ——— */
-const SYNODIC = 29.530588853, NM_EPOCH = Date.UTC(2000, 0, 6, 18, 14);
-const MOONS: Array<[string, string]> = [['🌑', 'New Moon'], ['🌒', 'Waxing Crescent'],
-  ['🌓', 'First Quarter'], ['🌔', 'Waxing Gibbous'], ['🌕', 'Full Moon'],
-  ['🌖', 'Waning Gibbous'], ['🌗', 'Last Quarter'], ['🌘', 'Waning Crescent']];
-function moonFracAt(ms: number) {
-  return ((((ms - NM_EPOCH) / 86400000) % SYNODIC + SYNODIC) % SYNODIC) / SYNODIC;
-}
+/* ——— the sky's moon ———
+   Moved to lib/bb/moon.ts so the orrery and the mobile half-wheel read the
+   SAME moon. They disagreed until 2026-07-28: the orrery drew the sky while
+   the half-wheel drew BFT's 28-day calendar lunation, which by then had
+   drifted half a cycle. One source, one moon. */
 function moonAt(ms: number) {
-  return MOONS[Math.round(moonFracAt(ms) * 8) % 8];
+  const m = skyMoon(ms);
+  return [m.emoji, m.name] as [string, string];
 }
 
 /* ——— THE 13 HOUSES (experiment): the real astronomical zodiac has
