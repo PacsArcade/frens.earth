@@ -1,13 +1,14 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
+import { Suspense, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import SigningExplainer from "@/components/SigningExplainer";
 import SignerNudge from "@/components/SignerNudge";
 import SignerDoors from "@/components/SignerDoors";
 import useFrenSession, { applyFrenSession } from "@/hooks/useFrenSession";
 import { useBrand, type DoorAccent } from "@/lib/brand";
+import { isNpubDoorSpace, shortNpub } from "@/lib/npub-door";
 
 /* one-shot environment read, hydration-safe and lint-clean */
 const noopSubscribe = () => () => {};
@@ -30,13 +31,19 @@ const DOOR_ACCENT: Record<DoorAccent, { border: string; label: string; cta: stri
  * play (@frens) and school (@pacsarcade) — with the difference explained
  * instead of assumed.
  */
-export default function LoginPanel() {
+function LoginPanelInner() {
   const router = useRouter();
+  const params = useSearchParams();
   const hasSigner = useHasSigner();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { fren: existing, signOut } = useFrenSession();
   const { copy, doors } = useBrand();
+
+  /* same-origin paths only — a query param is not a teleporter (the
+     signer-return rule) */
+  const rawNext = params.get("next");
+  const next = rawNext && /^\/(?!\/)/.test(rawNext) ? rawNext : null;
 
   /* One submit path for EVERY door — extension, bunker, Android signer app.
      Returns the error to show, or null after taking over navigation. */
@@ -62,8 +69,14 @@ export default function LoginPanel() {
       /* flip the whole header without a hard nav — one store, no stale chip */
       applyFrenSession({ handle: data.handle!, space: data.space!, npub: data.npub ?? null });
       /* space-qualified so the right door opens on ANY host — the
-         pacster@pacsarcade GAME OVER lesson */
-      router.push(`/u/${data.handle}@${data.space}`);
+         pacster@pacsarcade GAME OVER lesson. Npub doors have no tag: their
+         home is /u/<npub>. An honest ?next= wins over both. */
+      router.push(
+        next ??
+          (isNpubDoorSpace(data.space!)
+            ? `/u/${data.npub ?? data.handle}`
+            : `/u/${data.handle}@${data.space}`)
+      );
       return null;
     } catch {
       return "couldn't reach the arcade — check your connection and try again";
@@ -103,10 +116,17 @@ export default function LoginPanel() {
       {existing ? (
         <div className="mx-auto w-full max-w-md border-2 border-neon/60 bg-panel p-6 text-center">
           <p className="mb-3 font-pixel text-xs text-neon glow-neon">
-            ✓ YOU&apos;RE IN AS {existing.handle.toUpperCase()}@{existing.space.toUpperCase()}
+            ✓ YOU&apos;RE IN AS{" "}
+            {isNpubDoorSpace(existing.space)
+              ? shortNpub(existing.handle).toUpperCase()
+              : `${existing.handle.toUpperCase()}@${existing.space.toUpperCase()}`}
           </p>
           <Link
-            href={`/u/${existing.handle}@${existing.space}`}
+            href={
+              isNpubDoorSpace(existing.space)
+                ? `/u/${existing.handle}`
+                : `/u/${existing.handle}@${existing.space}`
+            }
             className="button block w-full text-center"
           >
             ▶ GO TO MY PROFILE
@@ -129,7 +149,7 @@ export default function LoginPanel() {
               <p className="font-pixel text-[9px] uppercase text-white/50">
                 PICK YOUR DOOR — SAME KEY, SAME SIGNATURE, ANY DEVICE
               </p>
-              <SignerDoors kind="login" submit={submitLogin} />
+              <SignerDoors kind="login" submit={submitLogin} next={next ?? undefined} />
               <SignerNudge />
             </div>
           ) : (
@@ -146,7 +166,7 @@ export default function LoginPanel() {
                   ON A PHONE, OR NO EXTENSION HERE? MORE DOORS ▸
                 </summary>
                 <div className="mt-3">
-                  <SignerDoors kind="login" submit={submitLogin} />
+                  <SignerDoors kind="login" submit={submitLogin} next={next ?? undefined} />
                 </div>
               </details>
             </>
@@ -196,5 +216,16 @@ export default function LoginPanel() {
         </p>
       </div>
     </div>
+  );
+}
+
+/* useSearchParams (the ?next= return path) needs a Suspense boundary on
+   prerendered pages — wrapped HERE so every page that mounts the panel
+   stays a one-liner. */
+export default function LoginPanel() {
+  return (
+    <Suspense fallback={null}>
+      <LoginPanelInner />
+    </Suspense>
   );
 }

@@ -12,8 +12,11 @@ import { nip19, SimplePool } from "nostr-tools";
  */
 
 /* Public relays we read kind-0 profiles from — same set the registration
-   machine broadcasts to, so a fresh starter profile is found. */
-export const PROFILE_RELAYS = ["wss://relay.damus.io", "wss://nos.lol", "wss://relay.primal.net"];
+   machine broadcasts to, so a fresh starter profile is found. Forks can
+   override with NEXT_PUBLIC_PROFILE_RELAYS (comma-separated wss:// URLs). */
+export const PROFILE_RELAYS = process.env.NEXT_PUBLIC_PROFILE_RELAYS
+  ? process.env.NEXT_PUBLIC_PROFILE_RELAYS.split(",").map((r) => r.trim()).filter(Boolean)
+  : ["wss://relay.damus.io", "wss://nos.lol", "wss://relay.primal.net"];
 
 export interface NostrProfile {
   name?: string;

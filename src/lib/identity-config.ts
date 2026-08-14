@@ -19,6 +19,11 @@ export const SPACE_TAG = `@${SPACE_NAME}`;
  */
 export const ANCHOR_BLOCKS_OUT = 6789;
 
+/* "npub" is RESERVED as a space name FOREVER — it's the key-only door's
+   session space (src/lib/fren-auth.ts NPUB_SPACE): handle = the npub itself,
+   no registry behind it. Never map a host to it, never let a registry space
+   take the name, or key-only sessions would collide with tag sessions. */
+
 export interface SpaceConfig {
   space: string;
   nip05Domain: string;

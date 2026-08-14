@@ -1,13 +1,27 @@
 import {
   verifyFrenLogin,
+  verifyNpubLogin,
+  isNpubDoor,
   makeFrenToken,
   sessionsFromRequest,
   joinSessionTokens,
   FREN_COOKIE,
+  NO_TAG_REASON,
+  NPUB_SPACE,
 } from "@/lib/fren-auth";
 import { getEntry } from "@/lib/registry";
 import { OPERATOR_COOKIE } from "@/lib/operator-auth";
 import { spaceForHost } from "@/lib/identity-config";
+
+const NPUB_RE = /^npub1[02-9ac-hj-np-z]{58}$/;
+
+/** Npub-door sessions carry the npub IN the handle — no registry entry
+    exists, so getEntry is skipped and the npub derives from the cookie
+    token itself (the N1 law's source of truth). */
+async function npubForSession(handle: string, space: string): Promise<string | null> {
+  if (isNpubDoor(space)) return handle;
+  return (await getEntry(handle, space))?.npub ?? null;
+}
 
 function sessionCookie(value: string, maxAge: number): HeadersInit {
   return {
@@ -22,12 +36,11 @@ export async function GET(request: Request) {
   const sessions = sessionsFromRequest(request);
   if (!sessions.length) return Response.json({ ok: false }, { status: 401 });
   const active = sessions[0];
-  const entry = await getEntry(active.handle, active.space);
   return Response.json({
     ok: true,
     handle: active.handle,
     space: active.space,
-    npub: entry?.npub ?? null,
+    npub: await npubForSession(active.handle, active.space),
     accounts: sessions.map((s) => ({ handle: s.handle, space: s.space })),
   });
 }
@@ -46,7 +59,17 @@ export async function POST(request: Request) {
      school tag when a key holds both */
   const preferred = spaceForHost(request.headers.get("host")).space;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const result = await verifyFrenLogin(body.event as any, preferred);
+  let result = await verifyFrenLogin(body.event as any, preferred);
+  if (!result.ok && result.reason === NO_TAG_REASON) {
+    /* the npub door (W10/N0): the key is real and the challenge is fresh —
+       it just owns no tag. Let it in as itself: handle = the npub,
+       space = "npub". Tag holders never reach this branch. */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const keyOnly = verifyNpubLogin(body.event as any);
+    if (keyOnly.ok) {
+      result = { ok: true, handle: keyOnly.npub, space: NPUB_SPACE };
+    }
+  }
   if (!result.ok) {
     return Response.json(result, { status: 403 });
   }
@@ -54,7 +77,7 @@ export async function POST(request: Request) {
   const others = sessionsFromRequest(request)
     .filter((s) => !(s.handle === result.handle && s.space === result.space))
     .map((s) => s.token);
-  const entry = await getEntry(result.handle, result.space);
+  const npub = await npubForSession(result.handle, result.space);
   const accounts = [
     { handle: result.handle, space: result.space },
     ...sessionsFromRequest(request)
@@ -62,7 +85,7 @@ export async function POST(request: Request) {
       .map((s) => ({ handle: s.handle, space: s.space })),
   ];
   return Response.json(
-    { ok: true, handle: result.handle, space: result.space, npub: entry?.npub ?? null, accounts },
+    { ok: true, handle: result.handle, space: result.space, npub, accounts },
     { headers: sessionCookie(joinSessionTokens([token, ...others]), 2592000) }
   );
 }
@@ -94,13 +117,18 @@ export async function PUT(request: Request) {
     /* already signed in — just move it to the front */
     tokens = [existing.token, ...sessions.filter((s) => s !== existing).map((s) => s.token)];
   } else {
-    /* same-key door: the requested tag must belong to an npub that already
-       has a live session in this browser */
-    const target = await getEntry(handle, space);
-    if (target) {
+    /* same-key door: the requested door must belong to an npub that already
+       has a live session in this browser. Npub doors resolve without the
+       registry — the npub IS the handle, on both sides of the compare. */
+    const targetNpub = isNpubDoor(space)
+      ? NPUB_RE.test(handle)
+        ? handle
+        : null
+      : (await getEntry(handle, space))?.npub ?? null;
+    if (targetNpub) {
       for (const s of sessions) {
-        const owned = await getEntry(s.handle, s.space);
-        if (owned?.npub && owned.npub === target.npub) {
+        const owned = await npubForSession(s.handle, s.space);
+        if (owned && owned === targetNpub) {
           tokens = [makeFrenToken(handle, space), ...sessions.map((x) => x.token)];
           break;
         }
@@ -114,7 +142,7 @@ export async function PUT(request: Request) {
     );
   }
 
-  const entry = await getEntry(handle, space);
+  const npub = await npubForSession(handle, space);
   const seen = new Set<string>();
   const accounts = [{ handle, space }, ...sessions.map((s) => ({ handle: s.handle, space: s.space }))].filter(
     (a) => {
@@ -125,7 +153,7 @@ export async function PUT(request: Request) {
     }
   );
   return Response.json(
-    { ok: true, handle, space, npub: entry?.npub ?? null, accounts },
+    { ok: true, handle, space, npub, accounts },
     { headers: sessionCookie(joinSessionTokens(tokens), 2592000) }
   );
 }
@@ -154,13 +182,12 @@ export async function DELETE(request: Request) {
     );
     if (remaining.length) {
       const active = remaining[0];
-      const entry = await getEntry(active.handle, active.space);
       return Response.json(
         {
           ok: true,
           handle: active.handle,
           space: active.space,
-          npub: entry?.npub ?? null,
+          npub: await npubForSession(active.handle, active.space),
           accounts: remaining.map((s) => ({ handle: s.handle, space: s.space })),
         },
         { headers: sessionCookie(joinSessionTokens(remaining.map((s) => s.token)), 2592000) }

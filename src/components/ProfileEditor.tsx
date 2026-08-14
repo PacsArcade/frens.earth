@@ -11,6 +11,7 @@ import Kind0Doors from "@/components/Kind0Doors";
 import ArtUpload from "@/components/ArtUpload";
 import RelayResults from "@/components/RelayResults";
 import { anyAccepted, publishKind0, type RelayResult } from "@/lib/kind0-publish";
+import { isNpubDoorSpace, shortNpub } from "@/lib/npub-door";
 
 /** The eight fields the form edits — Primal parity, arcade dress. These are
     all NOSTR profile-card fields: none of them touch the etched arcade tag. */
@@ -112,7 +113,9 @@ export default function ProfileEditor({
      is that publishing requires YOUR key in the signer anyway */
   if (!fren || fren.handle !== handle || fren.space !== space) return null;
 
-  const defaultNip05 = `${handle}@${nip05Domain}`;
+  /* npub doors pass an empty domain — no tag means no honest NIP-05 to
+     prefill, so the field starts blank instead of inventing one */
+  const defaultNip05 = nip05Domain ? `${handle}@${nip05Domain}` : "";
 
   function openEditor() {
     setDraft(draftFrom(raw?.content, defaultNip05));
@@ -218,17 +221,21 @@ export default function ProfileEditor({
       </p>
 
       {/* the one thing this form can NEVER touch — answer the question
-          before it's asked: the tag is registry + Bitcoin, not kind-0 */}
+          before it's asked: the tag is registry + Bitcoin, not kind-0
+          (behind the npub door there's no tag — the key is the anchor) */}
       <div className="mb-5 border-2 border-edge bg-void px-3 py-2">
         <p className="mb-1 font-pixel text-[10px] text-white/40">
-          YOUR ARCADE TAG — ETCHED, NEVER CHANGES
+          {isNpubDoorSpace(space)
+            ? "YOUR KEY — THE DOOR YOU CAME IN"
+            : "YOUR ARCADE TAG — ETCHED, NEVER CHANGES"}
         </p>
-        <p className="font-mono text-sm text-coin">
-          {handle}@{space}
+        <p className="break-all font-mono text-sm text-coin">
+          {isNpubDoorSpace(space) ? shortNpub(handle) : `${handle}@${space}`}
         </p>
         <p className="mt-1 font-body text-xs text-white/50">
-          Everything below is your nostr profile card — the outfit, not the player. The tag
-          stays yours no matter what you set here.
+          {isNpubDoorSpace(space)
+            ? "Everything below is your nostr profile card, signed by your own key — this page never touches the key itself."
+            : "Everything below is your nostr profile card — the outfit, not the player. The tag stays yours no matter what you set here."}
         </p>
       </div>
 

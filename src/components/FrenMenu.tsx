@@ -7,6 +7,7 @@ import { PixelAvatar } from "@pacsarcade/arcade-ui";
 import useFrenSession from "@/hooks/useFrenSession";
 import useNostrProfile from "@/hooks/useNostrProfile";
 import { SPACE_ROLES } from "@/lib/identity-config";
+import { isNpubDoorSpace, shortNpub } from "@/lib/npub-door";
 
 /* The admin deck row — for a live operator session OR a fren whose key is on
    the operator allowlist (`eligible`: the door shows, the gate still takes a
@@ -34,10 +35,17 @@ function AdminDeckRow() {
   );
 }
 
-/* Floor accents: pink = school/artist, cyan = play. The same colors the
-   profile banner wears — a fren always knows which door they're behind. */
+/* Floor accents: pink = school/artist, cyan = play, neutral = the key-only
+   npub door. The same colors the profile banner wears — a fren always knows
+   which door they're behind. */
 function accentText(space: string): string {
+  if (isNpubDoorSpace(space)) return "text-white/50";
   return space === "pacsarcade" ? "text-pink" : "text-cyan";
+}
+
+/* Switcher-row name: tags read as themselves, npub doors read shortened. */
+function accountName(a: { handle: string; space: string }): string {
+  return isNpubDoorSpace(a.space) ? shortNpub(a.handle).toUpperCase() : a.handle.toUpperCase();
 }
 
 /**
@@ -67,6 +75,67 @@ export default function FrenMenu() {
   }
 
   const others = accounts.filter((a) => !(a.handle === fren.handle && a.space === fren.space));
+
+  /* the door switcher — every other signed-in door, one press away;
+     shared by the npub-door and tag-door menus */
+  const switcherRows = others.map((a) => (
+    <button
+      key={`${a.handle}@${a.space}`}
+      type="button"
+      onClick={async () => {
+        if (await switchTo(a.handle, a.space)) router.refresh();
+      }}
+      className="flex min-h-11 w-full cursor-pointer items-center gap-2 border-b-2 border-edge px-4 text-left font-pixel text-[10px] text-white/60 hover:text-cyan"
+    >
+      <span aria-hidden>⇄</span>
+      <span className="truncate">
+        {accountName(a)}
+        <span className={`ml-1 normal-case ${accentText(a.space)}`}>@{a.space}</span>
+      </span>
+    </button>
+  ));
+
+  /* the npub door — key-only identity, neutral stripe, no tag rows;
+     the tag-door menu below stays exactly as it was */
+  if (isNpubDoorSpace(fren.space)) {
+    const name = (profile?.display_name || profile?.name || shortNpub(fren.handle)).toUpperCase();
+    return (
+      <>
+        <div className="flex items-center gap-3 border-b-2 border-l-4 border-edge border-l-white/30 bg-void px-4 py-3">
+          {profile?.picture ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={profile.picture}
+              alt=""
+              className="h-10 w-10 flex-none border-2 border-cyan object-cover"
+            />
+          ) : (
+            <PixelAvatar variant="player" seed={fren.handle} size={40} />
+          )}
+          <span className="min-w-0">
+            <span className="block truncate font-pixel text-[10px] text-cyan">{name}</span>
+            <span className="block font-mono text-[10px] text-white/50">
+              {shortNpub(fren.handle)} · key-only door
+            </span>
+          </span>
+        </div>
+        <Link
+          href={`/u/${fren.handle}`}
+          className="flex min-h-11 items-center border-b-2 border-edge px-4 font-pixel text-[10px] text-cyan"
+        >
+          MY PROFILE
+        </Link>
+        <Link
+          href="/me"
+          className="flex min-h-11 items-center border-b-2 border-edge px-4 font-pixel text-[10px] text-cyan"
+        >
+          MY KEY &amp; SESSIONS
+        </Link>
+        {isOperator && <AdminDeckRow />}
+        {switcherRows}
+      </>
+    );
+  }
 
   return (
     <>
@@ -108,23 +177,7 @@ export default function FrenMenu() {
         MY TAG &amp; SESSIONS
       </Link>
       {isOperator && <AdminDeckRow />}
-      {/* the door switcher — every other signed-in door, one press away */}
-      {others.map((a) => (
-        <button
-          key={`${a.handle}@${a.space}`}
-          type="button"
-          onClick={async () => {
-            if (await switchTo(a.handle, a.space)) router.refresh();
-          }}
-          className="flex min-h-11 w-full cursor-pointer items-center gap-2 border-b-2 border-edge px-4 text-left font-pixel text-[10px] text-white/60 hover:text-cyan"
-        >
-          <span aria-hidden>⇄</span>
-          <span className="truncate">
-            {a.handle.toUpperCase()}
-            <span className={`ml-1 normal-case ${accentText(a.space)}`}>@{a.space}</span>
-          </span>
-        </button>
-      ))}
+      {switcherRows}
     </>
   );
 }

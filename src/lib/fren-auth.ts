@@ -13,6 +13,22 @@ export const FREN_COOKIE = "pa-fren";
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000; // a month — it's an arcade, not a bank
 const CHALLENGE_WINDOW_MS = 5 * 60 * 1000;
 
+/** The npub door (W10/N0): a key that owns no tag can still walk in — the
+    session's "space" is this reserved name and the "handle" is the npub
+    itself. identity-config reserves the name forever; no registry space may
+    ever take it, or key-only sessions would collide with tag sessions. */
+export const NPUB_SPACE = "npub";
+
+export function isNpubDoor(space: string): boolean {
+  return space === NPUB_SPACE;
+}
+
+/** The exact rejection verifyFrenLogin gives an untagged key — the session
+    route's cue to open the npub door instead. A constant, so the tag-holder
+    path and its wording stay bit-for-bit unchanged. */
+export const NO_TAG_REASON =
+  "that key doesn't own a tag on the board — check which profile your signer is using, or register free";
+
 function secret(): string {
   const s = process.env.SEAT_SECRET?.trim();
   if (!s) throw new Error("SEAT_SECRET not configured");
@@ -51,15 +67,50 @@ export async function verifyFrenLogin(
   const npub = nip19.npubEncode(event.pubkey);
   const owner = await findHandleByNpub(npub, preferSpace);
   if (!owner) {
-    return {
-      ok: false,
-      reason:
-        "that key doesn't own a tag on the board — check which profile your signer is using, or register free",
-    };
+    return { ok: false, reason: NO_TAG_REASON };
   }
   return { ok: true, ...owner };
 }
 
+/**
+ * The npub door's verifier — the SAME challenge checks as verifyFrenLogin
+ * (fresh PACS-LOGIN, real signature) MINUS the registry lookup: any valid
+ * key gets in as itself. Kind is pinned to 22242 (NIP-42 style) so a signed
+ * note can never double as a login.
+ */
+export function verifyNpubLogin(event: {
+  content?: string;
+  pubkey?: string;
+  sig?: string;
+  kind?: number;
+  created_at?: number;
+  tags?: unknown;
+  id?: string;
+}): { ok: true; npub: string } | { ok: false; reason: string } {
+  if (!event?.content || !event.pubkey || !event.sig) {
+    return { ok: false, reason: "signed challenge required" };
+  }
+  if (event.kind !== 22242) {
+    return { ok: false, reason: "not a login challenge" };
+  }
+  const m = event.content.match(/^PACS-LOGIN-(\d+)$/);
+  if (!m) return { ok: false, reason: "not a login challenge" };
+  if (Math.abs(Date.now() - Number(m[1])) > CHALLENGE_WINDOW_MS) {
+    return { ok: false, reason: "challenge expired — sign a fresh one" };
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  if (!verifyEvent(event as any)) {
+    return { ok: false, reason: "signature check failed" };
+  }
+  return { ok: true, npub: nip19.npubEncode(event.pubkey) };
+}
+
+/* Npub-door tokens reuse this exact grammar: handle = the npub itself,
+   space = NPUB_SPACE. Bech32 npubs are [a-z0-9] with no dots, so
+   parseToken's `.`-split grammar holds untouched.
+   N1 law: every edit API derives the npub from THIS cookie token
+   server-side and compares it to the target path npub — never trust a
+   client-sent npub. */
 export function makeFrenToken(handle: string, space: string): string {
   const exp = Date.now() + SESSION_TTL_MS;
   return `${handle}.${space}.${exp}.${hmac(`${handle}|${space}|${exp}`)}`;

@@ -3,6 +3,7 @@
 import { PixelAvatar } from "@pacsarcade/arcade-ui";
 import useFrenSession from "@/hooks/useFrenSession";
 import useNostrProfile from "@/hooks/useNostrProfile";
+import { isNpubDoorSpace, shortNpub } from "@/lib/npub-door";
 
 /**
  * The face on the marquee — rendered INSIDE SiteHeader's trigger button
@@ -24,6 +25,28 @@ export default function FrenChip() {
         <PixelAvatar variant="ghost" size={32} />
         <span className="hidden whitespace-nowrap font-pixel text-[10px] text-coin glow-coin md:block">
           LOGIN
+        </span>
+      </span>
+    );
+  }
+
+  /* the npub door — no tag: shortened key until the kind-0 name tunes in,
+     neutral accent (tag-door rendering below stays untouched) */
+  if (isNpubDoorSpace(fren.space)) {
+    return (
+      <span className="flex min-w-0 items-center gap-2">
+        {profile?.picture ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={profile.picture}
+            alt=""
+            className="h-8 w-8 flex-none border-2 border-cyan object-cover"
+          />
+        ) : (
+          <PixelAvatar variant="player" seed={fren.handle} size={32} />
+        )}
+        <span className="hidden max-w-28 truncate font-pixel text-[10px] text-white/70 md:block">
+          {(profile?.display_name || profile?.name || shortNpub(fren.handle)).toUpperCase()}
         </span>
       </span>
     );

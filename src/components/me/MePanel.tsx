@@ -7,6 +7,7 @@ import useFrenSession from "@/hooks/useFrenSession";
 import useNostrProfile from "@/hooks/useNostrProfile";
 import ProfileEditor from "@/components/ProfileEditor";
 import { domainForSpace, SPACE_ROLES } from "@/lib/identity-config";
+import { isNpubDoorSpace, shortNpub } from "@/lib/npub-door";
 
 /* Mirrors MAX_SESSIONS in src/lib/fren-auth.ts — that module is server-only
    (node crypto), so the number is restated here rather than imported. */
@@ -24,8 +25,10 @@ const MAX_SESSIONS = 8;
  *    live signal from the big relays and signing through the signer doors.
  */
 
-/* Floor accent — same colors the header menu wears. */
+/* Floor accent — same colors the header menu wears; the key-only npub door
+   stays neutral. */
 function accentText(space: string): string {
+  if (isNpubDoorSpace(space)) return "text-white/50";
   return space === "pacsarcade" ? "text-pink" : "text-cyan";
 }
 
@@ -34,10 +37,13 @@ export default function MePanel() {
   const { fren, accounts, checked, signOut, signOutOne, switchTo } = useFrenSession();
   const { state: signal, raw, applyLocal } = useNostrProfile(fren?.npub);
 
-  /* every tag the ACTIVE key holds, across known spaces — public whois data */
+  /* every tag the ACTIVE key holds, across known spaces — public whois data.
+     Npub doors skip it: no tag is the whole point of that door, and the
+     "tell the operator" empty-state would be a lie there. */
+  const isNpubSession = !!fren && isNpubDoorSpace(fren.space);
   const [holds, setHolds] = useState<{ handle: string; space: string }[] | null>(null);
   useEffect(() => {
-    if (!fren?.npub) return;
+    if (!fren?.npub || isNpubSession) return;
     let alive = true;
     fetch(`/api/frens/whois?npub=${fren.npub}`)
       .then((r) => r.json())
@@ -50,7 +56,7 @@ export default function MePanel() {
     return () => {
       alive = false;
     };
-  }, [fren?.npub]);
+  }, [fren?.npub, isNpubSession]);
 
   const [confirmAllOut, setConfirmAllOut] = useState(false);
 
@@ -91,7 +97,42 @@ export default function MePanel() {
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-8">
-      {/* ── WHO YOU ARE — the tag is the name ─────────────────────────── */}
+      {/* ── WHO YOU ARE — the tag is the name; behind the npub door there
+            IS no tag yet, so the key leads and a claim pointer replaces the
+            tag holdings ─────────────────────────────────────────────────── */}
+      {isNpubSession ? (
+        <section className="border-4 border-cyan bg-panel p-6 text-center shadow-[8px_8px_0_var(--color-pink)]">
+          <p className="mb-2 font-pixel text-[10px] uppercase tracking-widest text-white/40">
+            YOUR KEY — THE DOOR YOU CAME IN
+          </p>
+          <p className="break-all font-arcade text-[clamp(1.6rem,7vw,2.5rem)] leading-tight text-coin glow-coin">
+            {shortNpub(fren.handle)}
+          </p>
+          <p className="mt-1 font-pixel text-[9px] uppercase text-white/40">
+            KEY-ONLY DOOR ·{" "}
+            <Link href={`/u/${fren.handle}`} className="text-cyan underline">
+              PUBLIC PROFILE PAGE
+            </Link>
+          </p>
+          <p className="mx-auto mt-4 max-w-md break-all font-mono text-[10px] leading-relaxed text-white/30">
+            {fren.handle}
+          </p>
+          <p className="mt-1 font-body text-xs text-white/40">
+            the long code is the whole name here — a tag would be friendlier
+          </p>
+          <div className="mt-5 border-t border-dashed border-edge pt-4 text-left">
+            <p className="mb-2 font-pixel text-[9px] uppercase text-white/40">NO TAG YET</p>
+            <p className="font-body text-xs text-white/50">
+              This key holds no tag on the board — claim one free and your
+              npub gets a name every fren can read (and this room grows the
+              full tag toolkit).
+            </p>
+            <Link href="/" className="button mt-3 inline-block !px-4 !py-2 !text-xs">
+              ▶ CLAIM A FREE TAG
+            </Link>
+          </div>
+        </section>
+      ) : (
       <section className="border-4 border-cyan bg-panel p-6 text-center shadow-[8px_8px_0_var(--color-pink)]">
         <p className="mb-2 font-pixel text-[10px] uppercase tracking-widest text-white/40">
           YOUR ACTIVE TAG
@@ -168,6 +209,7 @@ export default function MePanel() {
           </div>
         )}
       </section>
+      )}
 
       {/* ── YOUR DOORS — the 8-session switcher, visible and friendly ──── */}
       <section className="border-2 border-edge bg-panel p-6">
@@ -187,7 +229,7 @@ export default function MePanel() {
                 }`}
               >
                 <span className="min-w-0 flex-1 truncate font-mono text-sm text-coin">
-                  {a.handle}
+                  {isNpubDoorSpace(a.space) ? shortNpub(a.handle) : a.handle}
                   <span className={accentText(a.space)}>@{a.space}</span>
                 </span>
                 {active ? (
@@ -277,7 +319,7 @@ export default function MePanel() {
             npub={fren.npub}
             handle={fren.handle}
             space={fren.space}
-            nip05Domain={domainForSpace(fren.space)}
+            nip05Domain={isNpubSession ? "" : domainForSpace(fren.space)}
             raw={raw}
             signal={signal}
             onPublished={applyLocal}

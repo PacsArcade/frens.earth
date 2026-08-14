@@ -66,7 +66,11 @@ function SignerReturn() {
           return;
         }
         applyFrenSession({ handle: data.handle!, space: data.space!, npub: data.npub ?? null });
-        router.replace(next ?? `/u/${data.handle}@${data.space}`);
+        /* npub doors have no tag — their home is /u/<npub> (the handle IS
+           the npub); tag doors keep the space-qualified form */
+        router.replace(
+          next ?? (data.space === "npub" ? `/u/${data.handle}` : `/u/${data.handle}@${data.space}`)
+        );
       } catch {
         setError("couldn't reach the arcade — check your connection and try again");
       }
