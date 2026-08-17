@@ -189,6 +189,16 @@ export function estimateHeight(nowMs = Date.now()): number {
   return estimateHeightAt(nowMs);
 }
 
+/** The anchored model's own mine-instant (ms) for an ESTIMATED "now" height —
+ *  the moment `estimateHeight` first answers `height`. Offline clock faces
+ *  seed their block age here so the ~ seconds tick continuously with the
+ *  model instead of restarting at page load (the honest-clock law: an age
+ *  must never restart at :00 on reload). Estimate only — wear the `~`. */
+export function estimatedBlockAtMs(height: number): number {
+  const [t0, h0] = CHAIN_ANCHORS[CHAIN_ANCHORS.length - 1];
+  return t0 + (height - 0.5 - h0) * 600_000;
+}
+
 /** `estimated: true` = the network was unreachable and the height is a
     genesis-anchored ~10-min/block guess — display it with the honest `~`. */
 export interface BlockInfo {

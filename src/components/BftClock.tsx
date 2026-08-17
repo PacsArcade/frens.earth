@@ -128,7 +128,12 @@ export default function BftClock() {
         {/* the face — TIME the hero: big flip cards (hh:m + the struggling
             ones digit wearing the honest ~), the yyyy:mm:dd date tiny and
             dim below (clock hierarchy ruling) */}
-        <span className="flex justify-center font-mono text-[28px]">
+        <span
+          className={`flex justify-center font-mono text-[28px] ${estimated ? "opacity-70" : ""}`}
+        >
+          {/* the honest ~ lives ON the face when the height is a network-dark
+              estimate (house law: tooltips don't count) */}
+          {estimated && <span className="self-center pr-1 text-coin/70">~</span>}
           <FlipClock height={height} fill={fill} />
         </span>
 

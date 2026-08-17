@@ -353,6 +353,7 @@ export function createOrrery(root: HTMLElement): OrreryEngine {
   let tip = Math.floor(ms2h(Date.now()));     // honest fallback until the tip answers
   let tipEstimated = true;
   let tipSeen = Date.now();
+  let ageSeeded = false;                      // true once the age rests on a chain stamp or an OBSERVED break
   let tipTs: number | null = null;            // the tip block's CHAIN timestamp (s)
   let tipSrc: 'ship' | 'arcade' | null = null; // 'ship' | 'arcade' | null (~model)
 
@@ -426,12 +427,29 @@ export function createOrrery(root: HTMLElement): OrreryEngine {
     if (destroyed || myKnock !== knockSeq) return;  // a newer knock owns the dial
     if (got) {
       misses = 0;
-      if (got.h !== tip) tipSeen = Date.now();
+      const sameTip = !tipEstimated && got.h === tip;
+      if (got.h !== tip) {
+        /* the wall clock may seed the age ONLY for an OBSERVED break — a
+           height that moved while we watched a live tip. A first sighting
+           (or a return from the ~ model) says nothing about when the block
+           landed (the reload-restarts-age law). */
+        if (!tipEstimated && got.h > tip) ageSeeded = true;
+        tipSeen = Date.now();
+      }
       /* MINER-SKEW CLAMP (the strip clock's law, now here too): a tip
          timestamp from the future would pin blockAge() at 0 and freeze the
          seconds at :00 until the wall clock caught up — clamp to now. */
       tip = got.h;
-      tipTs = got.ts != null ? Math.min(got.ts, Date.now() / 1000) : null;
+      if (got.ts != null) {
+        tipTs = Math.min(got.ts, Date.now() / 1000);
+        ageSeeded = true;
+      } else if (!sameTip) {
+        /* a bare height carries no chain stamp — recover it from the public
+           rail (the pupil's fetchTipTime) rather than fake an age; a held
+           stamp survives a same-tip poll */
+        tipTs = null;
+        void fetchTipTime(got.h);
+      }
       tipEstimated = false; tipSrc = got.src;
       liveAnchor = [tip, tipTs ? tipTs * 1000 : tipSeen];
     } else if (tipEstimated || ++misses >= 2) {
@@ -444,12 +462,36 @@ export function createOrrery(root: HTMLElement): OrreryEngine {
     renderOrrery(); renderRead();
   }
 
+  /* a bare height carries no chain stamp — knock the public rail for the
+     tip block's own timestamp (the pupil's fetchTipTime) so the age never
+     seeds from the page-load instant */
+  async function fetchTipTime(h: number) {
+    try {
+      const r = await fetch('https://mempool.space/api/blocks', {
+        cache: 'no-store',
+        signal: AbortSignal.timeout(KNOCK_TIMEOUT_MS),
+      });
+      const arr = r.ok ? await r.json() : null;
+      const b = Array.isArray(arr)
+        ? arr.find(x => x && x.height === h && Number.isFinite(x.timestamp))
+        : null;
+      if (destroyed || !b || tipEstimated || tip !== h) return;
+      tipTs = Math.min(b.timestamp, Date.now() / 1000);
+      ageSeeded = true;
+      liveAnchor = [tip, tipTs * 1000];
+      renderOrrery(); renderRead();
+    } catch { /* the rail is dark — the ~ model phase carries until the next knock */ }
+  }
+
   /* seconds into the current block — the CHAIN's own timestamp when the
-     seam gives it (the honest age), first-seen wall clock otherwise */
+     seam gives it (the honest age), or the wall clock counted from an
+     OBSERVED break; with neither, the anchored model's own phase wears the
+     face's ~ (an age may never restart at :00 just because the page did) */
   function blockAge() {
     if (tipEstimated) return (((ms2h(Date.now()) % 1) + 1) % 1) * 600;
     if (tipTs != null) return Math.max(Date.now() / 1000 - tipTs, 0);
-    return (Date.now() - tipSeen) / 1000;
+    if (ageSeeded) return (Date.now() - tipSeen) / 1000;
+    return (((ms2h(Date.now()) % 1) + 1) % 1) * 600;
   }
   /* live fractional height: the tick fills in tenths, wearing the ~ */
   function liveH() {
@@ -828,7 +870,10 @@ export function createOrrery(root: HTMLElement): OrreryEngine {
     const live = mode === 'live';
     const t = faceTime(H, live ? blockAge() : 0);
     const est = live && tipEstimated;
-    sunTime.textContent = t.hh + ':' + t.mm + ':' + t.ss + (est ? '~' : '');
+    /* a live tip whose age rides the model (no chain stamp, no observed
+       break yet) is an estimate on its seconds face — it wears the ~ too */
+    const ageEst = live && !tipEstimated && tipTs == null && !ageSeeded;
+    sunTime.textContent = t.hh + ':' + t.mm + ':' + t.ss + (est || ageEst ? '~' : '');
     sunTime.classList.toggle('strain', live && t.strain);
     sunDate.textContent = bftDate(H).str;
     sunVel.textContent = '★ ' + (est ? '~' : '') + (H < 0 ? '−' : '') + nf(Math.floor(H));

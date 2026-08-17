@@ -29,7 +29,7 @@
  * face). The GHOSTY gif sprite was dead weight (hidden by CSS) — dropped.
  */
 
-import { GENESIS_MS, bftDatePlain, bftTime } from "@/lib/bb/bft";
+import { bftDatePlain, bftTime, estimateHeight, estimatedBlockAtMs } from "@/lib/bb/bft";
 
 /** One reading through the seam — /api/chain/tip?full=1, relayed by TimeDoor. */
 export interface LivingTip {
@@ -635,9 +635,16 @@ export function createLivingClock(root: HTMLElement): LivingClockEngine {
      the SAME block-age that drives Pac's lap and the ring fill */
   function updateLiveDigit() {
     if (state.height == null) return;
+    const pctEl = $<HTMLElement>(".blockpct");
+    if (!state.est && state.lastBlockAt == null) {
+      /* a live height with no chain stamp — the age is UNKNOWN: a dash,
+         never a fresh page-load zero (the reload-restarts-age law) */
+      flipTo(3, "-");
+      if (pctEl) pctEl.innerHTML = `awaiting the chain&rsquo;s own stamp for this block&rsquo;s age`;
+      return;
+    }
     const prog = Math.min(0.999, Math.max(0, blockAgeSec() / 600));
     flipTo(3, String(Math.min(9, Math.floor(prog * 10))));
-    const pctEl = $<HTMLElement>(".blockpct");
     if (pctEl)
       pctEl.innerHTML = `~<b>${Math.round(prog * 100)}%</b> of the way to the <span class="nb">next&nbsp;block</span>`;
   }
@@ -820,15 +827,17 @@ export function createLivingClock(root: HTMLElement): LivingClockEngine {
     renderNumbers();
     flashNote(`corrected −${d}`);
   }
-  /* offline / cold-boot: the site's genesis-anchored honest ~ (house law —
-     "counting ~10 min a block from genesis"), never pulsed, never celebrated */
+  /* offline / cold-boot: the site's halving-anchored honest ~ (estimateHeight
+     — house law: the honest "now" is a REAL block, and the flat genesis
+     10-min model runs ~8–9 months behind the chain), never pulsed, never
+     celebrated; the model's own block phase keeps the age ticking so the ~
+     never restarts at :00 on a reload */
   function applyEstimate() {
-    const now = Date.now();
-    const est = Math.max(0, Math.floor((now - GENESIS_MS) / BLOCK_MS));
+    const est = estimateHeight();
     state.est = true;
     state.lastWasLive = false;
     state.height = est;
-    state.lastBlockAt = GENESIS_MS + est * BLOCK_MS;
+    state.lastBlockAt = Math.min(Date.now(), estimatedBlockAtMs(est));
     renderNumbers();
     renderStatus();
   }
@@ -921,7 +930,10 @@ export function createLivingClock(root: HTMLElement): LivingClockEngine {
     if (prev == null || !wasLive) {
       state.height = d.height;
       state.est = false;
-      state.lastBlockAt = Date.now();
+      /* the age seeds ONLY from the chain's own stamp (refined just below)
+         or an observed break — a bare first reading must not restart the
+         lap at page load; until then the live digit wears a dash */
+      state.lastBlockAt = null;
       seed = true; // the honest age lands just below — re-seed the board to it
     } else if (d.height > prev) {
       onBlockBreak(d.height);

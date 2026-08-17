@@ -76,12 +76,13 @@ const REL: Record<string, string> = {
 const SKY_SIGNS = ["CAPRICORN", "AQUARIUS", "PISCES", "ARIES", "TAURUS", "GEMINI",
   "CANCER", "LEO", "VIRGO", "LIBRA", "SCORPIO", "OPHIUCHUS", "SAGITTARIUS"];
 
-function intraBlockSeconds(now: Date, tipTs: number | null): number {
-  if (tipTs) {
-    const s = now.getTime() / 1000 - tipTs;
-    return Math.max(0, Math.min(600, s));
-  }
-  return (now.getTime() / 1000) % 600;
+/* null = the intra-block phase is UNKNOWN: with no chain stamp, the wall
+   clock's own mod-600 is a fabricated reading (the reload-restarts-age law)
+   — the phase goes blank instead of lying */
+function intraBlockSeconds(now: Date, tipTs: number | null): number | null {
+  if (tipTs == null) return null;
+  const s = now.getTime() / 1000 - tipTs;
+  return Math.max(0, Math.min(600, s));
 }
 
 /* moon ring: illumination fraction — new at the bottom, full at the top,
@@ -96,8 +97,9 @@ function moonIllumination(now: Date): number {
 }
 
 /* display-clamped block seconds: parks at 9:59 when the chain is loaded */
-function intraDisplay(now: Date, tipTs: number | null): number {
-  return Math.min(599.999, intraBlockSeconds(now, tipTs));
+function intraDisplay(now: Date, tipTs: number | null): number | null {
+  const s = intraBlockSeconds(now, tipTs);
+  return s == null ? null : Math.min(599.999, s);
 }
 
 /* THE CHAIN'S CLOCK, told to the minute.
@@ -115,16 +117,21 @@ function intraDisplay(now: Date, tipTs: number | null): number {
 function chainClock(h: number, now: Date, tipTs: number | null): string {
   const bid = ((h % 144) + 144) % 144;
   const hh = Math.floor(bid / 6);
-  const mm = (bid % 6) * 10 + Math.floor(intraDisplay(now, tipTs) / 60);
+  const intra = intraDisplay(now, tipTs);
+  /* no chain stamp → the chain-exact face (ones digit 0), never a phase
+     invented from the wall clock */
+  const mm = (bid % 6) * 10 + (intra == null ? 0 : Math.floor(intra / 60));
   return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
 }
 
 function ringProgress(r: Ring, h: number, now: Date, tipTs: number | null): number {
   /* second and minute are the CHAIN's hands, derived from block time —
-     when the block freezes at its top, they freeze with it */
-  if (r.kind === "wall-s") return (intraDisplay(now, tipTs) % 60) / 60;
-  if (r.kind === "wall-m") return ((h % 6) * 600 + intraDisplay(now, tipTs)) / 3600;
-  if (r.kind === "intra") return intraDisplay(now, tipTs) / 600;
+     when the block freezes at its top, they freeze with it; with no chain
+     stamp the intra-block phase is unknown and its arcs rest empty */
+  const intra = intraDisplay(now, tipTs);
+  if (r.kind === "wall-s") return intra == null ? 0 : (intra % 60) / 60;
+  if (r.kind === "wall-m") return ((h % 6) * 600 + (intra ?? 0)) / 3600;
+  if (r.kind === "intra") return intra == null ? 0 : intra / 600;
   if (r.kind === "moon") return moonIllumination(now);
   if (r.max) return h / r.max;
   return (h % (r.mod as number)) / (r.mod as number);
@@ -132,10 +139,13 @@ function ringProgress(r: Ring, h: number, now: Date, tipTs: number | null): numb
 
 /* the count each ball carries — where we ARE, in the ring's own tongue */
 function ringBall(r: Ring, h: number, now: Date, tipTs: number | null): number | string {
+  const intra = intraDisplay(now, tipTs);
   switch (r.label) {
-    case "second": return Math.floor(intraDisplay(now, tipTs)) % 60;
-    case "minute": return (h % 6) * 10 + Math.floor(intraDisplay(now, tipTs) / 60);
-    case "block": return Math.floor(intraDisplay(now, tipTs) / 60);
+    /* phase-only counts blank without a chain stamp; the minute falls back
+       to its chain-exact tens digit */
+    case "second": return intra == null ? "–" : Math.floor(intra) % 60;
+    case "minute": return (h % 6) * 10 + (intra == null ? 0 : Math.floor(intra / 60));
+    case "block": return intra == null ? "–" : Math.floor(intra / 60);
     case "hour": return h % 6;
     case "day": return Math.floor((h % 144) / 6);
     case "week": return Math.floor((h % 1008) / 144);
@@ -167,20 +177,28 @@ function cardFor(r: Ring, h: number, now: Date, tipTs: number | null): Card {
   const pct = (p: number) => `${Math.min(100, p * 100).toFixed(p * 100 < 10 ? 1 : 0)}%`;
   switch (r.label) {
     case "second": {
-      const sec = Math.floor(intraDisplay(now, tipTs)) % 60;
-      const frozen = tipTs !== null && intraBlockSeconds(now, tipTs) >= 600;
+      const intra = intraDisplay(now, tipTs);
+      if (intra == null) return { big: "–", l1: "– / 60 secs", l2: "awaiting the chain's stamp" };
+      const sec = Math.floor(intra) % 60;
+      const raw = intraBlockSeconds(now, tipTs);
+      const frozen = raw != null && raw >= 600;
       return { big: String(sec), l1: `${sec} / 60 secs`, l2: frozen ? "the chain is loaded" : "of the bitcoin minute", tremble: frozen };
     }
     case "minute": {
-      const bmin = (h % 6) * 10 + Math.floor(intraDisplay(now, tipTs) / 60);
-      const frozen = tipTs !== null && intraBlockSeconds(now, tipTs) >= 600;
+      const intra = intraDisplay(now, tipTs);
+      const bmin = (h % 6) * 10 + (intra == null ? 0 : Math.floor(intra / 60));
+      const raw = intraBlockSeconds(now, tipTs);
+      const frozen = raw != null && raw >= 600;
       return { big: String(bmin), l1: `minute ${bmin} / 60`, l2: frozen ? "the chain is loaded" : `of hour ${Number(bftTime(h).slice(0, 2))}`, tremble: frozen };
     }
     case "block": {
-      const s = Math.floor(intraBlockSeconds(now, tipTs));
+      const raw = intraBlockSeconds(now, tipTs);
+      if (raw == null)
+        return { big: "–:––", l1: "awaiting the chain's stamp", l2: "the block's age is unknown" };
+      const s = Math.floor(raw);
       const remain = Math.max(0, 600 - s);
       const mm = Math.floor(remain / 60), ss = remain % 60;
-      const loaded = tipTs !== null && s >= 600;
+      const loaded = s >= 600;
       return {
         big: `${mm}:${String(ss).padStart(2, "0")}`,
         l1: loaded ? "the chain is loaded" : "to the next block",
@@ -296,7 +314,7 @@ export default function HalfWheel() {
 
       /* the loaded chain: block overdue → ember trembles outward */
       const intraS = intraBlockSeconds(now, tipTs);
-      const loaded = tipTs !== null && intraS >= 600;
+      const loaded = intraS != null && intraS >= 600;
 
       /* stars */
       for (let i = 0; i < 34; i++) {
@@ -576,7 +594,8 @@ export default function HalfWheel() {
     const tickId = reduced ? null : window.setInterval(draw, 1000);
     /* the tremble needs a quicker brush when the chain is loaded */
     const trembleId = reduced ? null : window.setInterval(() => {
-      if (height !== null && tipTs !== null && intraBlockSeconds(new Date(), tipTs) >= 600) draw();
+      const s = intraBlockSeconds(new Date(), tipTs);
+      if (height !== null && s != null && s >= 600) draw();
     }, 120);
 
     return () => {

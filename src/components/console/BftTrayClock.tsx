@@ -1,25 +1,28 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { bftDatePlain, bftTime, currentBlockInfo } from "@/lib/bb/bft";
+import { bftDatePlain, bftTime, currentBlockInfo, type BlockInfo } from "@/lib/bb/bft";
 
 /**
  * The ONE BFT tray-clock of the SCAR·LET shell — hh:mm:ss over yyyy.mm.dd,
  * plus the ★-in-a-box block height and the a₿ era marker. Time/date come from
  * bft.ts (the canonical clock — hh:mm is the 144-block day on a 24h face,
- * NEVER reimplemented here); the seconds are a live wall-clock ticker riding
- * on top, exactly like the approved wireframe. Height reads through the
- * fleet's own door (currentBlockInfo → /api/chain/tip → the admiral's node);
- * a genesis-anchored estimate wears the honest `~`.
+ * NEVER reimplemented here); the seconds are the block's own age — wall-
+ * seconds since the tip block's chain stamp, mod 60, wearing the honest `~`
+ * (the honest-clock law: never the wall clock's own getSeconds, and dashes
+ * when the stamp is unknown). Height reads through the fleet's own door
+ * (currentBlockInfo → /api/chain/tip → the admiral's node); a halving-
+ * anchored estimate wears the honest `~`.
  *
  * One clock per breakpoint: variant="rail" is the desktop ribbon foot,
  * variant="bar" the mobile bottom elbow bar. (Both mount; CSS shows one.)
  */
 export default function BftTrayClock({ variant }: { variant: "rail" | "bar" }) {
-  const [info, setInfo] = useState<{ height: number; estimated: boolean } | null>(null);
-  /* seconds seed only ever reaches the DOM after `info` lands client-side,
-     so the SSR placeholder never disagrees with hydration */
-  const [seconds, setSeconds] = useState<number>(() => new Date().getSeconds());
+  const [info, setInfo] = useState<BlockInfo | null>(null);
+  /* a 1 s heartbeat re-renders the block-age seconds; it only ever reaches
+     the DOM after `info` lands client-side, so the SSR placeholder never
+     disagrees with hydration */
+  const [, setBeat] = useState(0);
 
   useEffect(() => {
     let alive = true;
@@ -29,7 +32,7 @@ export default function BftTrayClock({ variant }: { variant: "rail" | "bar" }) {
       });
     read();
     const heightId = setInterval(read, 30_000);
-    const secondId = setInterval(() => setSeconds(new Date().getSeconds()), 1_000);
+    const secondId = setInterval(() => setBeat((b) => b + 1), 1_000);
     return () => {
       alive = false;
       clearInterval(heightId);
@@ -38,7 +41,15 @@ export default function BftTrayClock({ variant }: { variant: "rail" | "bar" }) {
   }, []);
 
   const pad2 = (n: number) => String(n).padStart(2, "0");
-  const time = info ? `${bftTime(info.height)}:${pad2(seconds)}` : "--:--:--";
+  /* THE SECONDS LAW: wall-seconds-since-last-block mod 60, `~`-marked —
+     capped at a held 599 when the chain is loaded; dashes with no stamp */
+  const seconds =
+    info?.tipTimestamp != null
+      ? Math.min(599, Math.max(0, Math.floor(Date.now() / 1000 - info.tipTimestamp))) % 60
+      : null;
+  const time = info
+    ? `${info.estimated ? "~" : ""}${bftTime(info.height)}${seconds != null ? `:~${pad2(seconds)}` : ":--"}`
+    : "--:--:--";
   const date = info ? bftDatePlain(info.height) : "----.--.--";
   const height = info ? `${info.estimated ? "~" : ""}${info.height.toLocaleString()}` : "…";
   const title =

@@ -40,7 +40,6 @@
  */
 
 import {
-  BLOCK_MS,
   FIAT_CARDINALS,
   FIAT_EAT,
   FIAT_SETS,
@@ -49,12 +48,12 @@ import {
   jit,
   strainOf,
 } from "@/components/time/living-clock-engine";
-import { GENESIS_MS, bftDatePlain, bftTime } from "@/lib/bb/bft";
+import { bftDatePlain, bftTime, estimateHeight, estimatedBlockAtMs } from "@/lib/bb/bft";
 
 /** One reading through the seam — height + the chain's own tip timestamp. */
 export interface StripTip {
   height: number;
-  /** true = the seam was dark and height is a genesis-anchored ~ guess */
+  /** true = the seam was dark and height is a halving-anchored ~ guess */
   estimated: boolean;
   /** unix seconds the tip block was mined (chain fact), if the seam knew */
   tipTimestamp: number | null;
@@ -107,8 +106,11 @@ export function createStripClock(root: HTMLElement): StripClockEngine {
   const dNum = $<HTMLElement>(".sclk-d-num");
   const oldcalEl = $<HTMLElement>(".sclk-oldcal");
 
-  const state = { height: null as number | null, est: true, lastBlockAt: Date.now() };
-  const blockAge = () => Math.max(0, (Date.now() - state.lastBlockAt) / 1000);
+  /* lastBlockAt: null = the age is UNKNOWN (a live height with no chain
+     stamp) — the age-derived digits wear dashes rather than a page-load zero */
+  const state = { height: null as number | null, est: true, lastBlockAt: null as number | null };
+  const blockAge = () =>
+    state.lastBlockAt == null ? 0 : Math.max(0, (Date.now() - state.lastBlockAt) / 1000);
 
   /* ═══ THE CHOMP CLIP — Pac's mouth wedge, authored in the sprite's own
      local frame so it rides the rotate() and always faces travel ═══ */
@@ -379,12 +381,20 @@ export function createStripClock(root: HTMLElement): StripClockEngine {
   function drawDigits() {
     if (state.height == null) return;
     const [hh, mm] = bftTime(state.height).split(":");
-    /* the block's own clock: 0..599 s, clamped — a late block HOLDS at
-       m9:59 and strains (the standing strain rule), never lies forward */
-    const totalSec = Math.min(599, Math.floor(blockAge()));
     flipTo(0, hh[0]);
     flipTo(1, hh[1]);
     flipTo(2, mm[0]);
+    if (state.lastBlockAt == null) {
+      /* a live height with no chain stamp — the age is UNKNOWN: dashes,
+         never a fresh page-load count (the reload-restarts-age law) */
+      flipTo(3, "-");
+      flipTo(4, "-");
+      flipTo(5, "-");
+      return;
+    }
+    /* the block's own clock: 0..599 s, clamped — a late block HOLDS at
+       m9:59 and strains (the standing strain rule), never lies forward */
+    const totalSec = Math.min(599, Math.floor(blockAge()));
     flipTo(3, String(Math.floor(totalSec / 60)));
     const ss = totalSec % 60;
     flipTo(4, String(Math.floor(ss / 10)));
@@ -462,10 +472,12 @@ export function createStripClock(root: HTMLElement): StripClockEngine {
     return { lap, lapFrac: Math.min(0.999, prog * 10 - lap) };
   }
 
-  /* offline / cold-boot: the genesis-anchored honest ~ — the clock never
-     stops; the estimate's own block age keeps the seconds ticking */
+  /* offline / cold-boot: the halving-anchored honest ~ (estimateHeight —
+     house law: the flat genesis 10-min model runs ~8–9 months behind the
+     chain and is banned for "now"); the model's own block phase keeps the
+     seconds ticking, so the ~ never restarts at :00 on a reload */
   function applyEstimate() {
-    const est = Math.max(0, Math.floor((Date.now() - GENESIS_MS) / BLOCK_MS));
+    const est = estimateHeight();
     if (state.height !== est || !state.est) {
       state.height = est;
       state.est = true;
@@ -473,7 +485,7 @@ export function createStripClock(root: HTMLElement): StripClockEngine {
       fiatIdx = est % FIAT_SETS.length;
       renderMeta();
     }
-    state.lastBlockAt = GENESIS_MS + est * BLOCK_MS;
+    state.lastBlockAt = Math.min(Date.now(), estimatedBlockAtMs(est));
   }
 
   /* one calm, exact repaint — the reduced-motion pose and the first paint */
@@ -517,8 +529,13 @@ export function createStripClock(root: HTMLElement): StripClockEngine {
        matter when this page loaded (miner-skew clamped to now) */
     if (t.tipTimestamp != null) {
       state.lastBlockAt = Math.min(t.tipTimestamp * 1000, Date.now());
-    } else if (state.height !== t.height || state.est) {
+    } else if (state.height != null && !state.est && t.height > state.height) {
+      /* an OBSERVED break while live — the one honest wall-clock seed */
       state.lastBlockAt = Date.now();
+    } else if (state.height !== t.height || state.est) {
+      /* a bare height with no stamp: the age is unknown — dash it (never
+         restart the count at page load) until a stamp or an observed break */
+      state.lastBlockAt = null;
     }
     state.height = t.height;
     state.est = false;
