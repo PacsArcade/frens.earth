@@ -24,9 +24,10 @@ import {
   yearAnimal,
   GENESIS_MS,
 } from "@/lib/bb/bft";
-/* THE SKY'S moon, not the calendar's — see lib/bb/moon.ts. BFT's 28-day
-   lunation drifts ~1.53 days a month against the real one, so bft.ts's
-   moonPhase() would show a waning crescent on a night the moon is full. */
+/* THE ONE MOON — the real synodic lunation, lib/bb/moon.ts. (History: the
+   old 28-day calendar moon drifted ~1.53 days a month against the sky and
+   once showed a waning crescent on a full-moon night; it is retired —
+   bft.ts's moonPhase() now runs on this same model.) */
 import { skyMoon, moonIlluminationAt } from "@/lib/bb/moon";
 
 const LAST_SAT_HEIGHT = 6_930_000;

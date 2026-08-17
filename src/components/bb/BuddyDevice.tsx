@@ -168,7 +168,7 @@ export default function BuddyDevice({
       if (blockRef.current !== bgHeight) {
         if (bgHeight !== -1 && !reduce) shimmerAt = t; // the block broke mid-visit
         bgHeight = blockRef.current;
-        scene = bftScene(bgHeight);
+        scene = bftScene(bgHeight, Date.now()); // live height → the moon actually up there
         drawBftBackground(bgctx, W, H, scene);
       }
       ctx.drawImage(bg, 0, 0);
@@ -241,8 +241,9 @@ export default function BuddyDevice({
   const animal = yearAnimal(buddy.bornBlock);
   /* One source of truth for the sky: glyph + name + BFT day all come from
      moonPhase/bft — the old footer hardcoded a 🌙 crescent next to the real
-     phase NAME, so mid-month it lied "🌙 Full" (fixed 0018.04.15 a₿). */
-  const moon = moonPhase(currentBlock);
+     phase NAME, so mid-month it lied "🌙 Full" (fixed 0018.04.15 a₿).
+     Live tip → pass Date.now(): the one true synodic moon at this instant. */
+  const moon = moonPhase(currentBlock, Date.now());
   const bftDay = bft(currentBlock).day;
   const tilde = estimatedBlock ? "~" : "";
 

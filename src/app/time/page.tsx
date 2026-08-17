@@ -193,13 +193,14 @@ function ThePaper() {
           month. A year is 26 of them.
         </p>
         <p>
-          Because every month is 28 days, the moon rides along for free: one
-          lunation per month, new moon on day 01, full around day 15 — which
-          is why she keeps her own orbit on the orrery, beside MONTH, at her
-          true phase. Every new year opens on a new moon, and each year
-          carries one of 13 animal signs — the traditional twelve plus the
-          🐈 Astronomical Cat, the famous left-out sign, finally seated to
-          match the 13-month year. (Signs are for wonder, not finance.)
+          The months are 28 days; the moon is not — her real lunation runs
+          ~29.53 days, so she keeps her own orbit on the orrery, beside
+          MONTH, at her true phase. One moon, everywhere: every phase this
+          site shows is the moon actually overhead, never a calendar
+          stand-in. And each year carries one of 13 animal signs — the
+          traditional twelve plus the 🐈 Astronomical Cat, the famous
+          left-out sign, finally seated to match the 13-month year. (Signs
+          are for wonder, not finance.)
         </p>
       </Sect>
 

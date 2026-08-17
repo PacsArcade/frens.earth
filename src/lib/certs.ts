@@ -9,10 +9,12 @@ import { bft, bftDate, moonPhase, yearAnimal, BLOCKS_PER_MONTH } from "./bb/bft"
  * no scarcity theater: the calendar IS the rarity.
  *
  *   GREY CART     any block — the honest classic
- *   SILVER        etched on a full-moon day (block-timed lunation)
+ *   SILVER        etched under the REAL full moon (the sky's synodic moon —
+ *                 one moon only, owner ruling; the calendar lunation is dead)
  *   GOLD          etched on a difficulty-epoch boundary day (height % 2016
  *                 < 144 — the first day of a new epoch) — the Zelda cart
- *   CRYSTAL       etched on BFT New Year (M01·D01 — always a new moon)
+ *   CRYSTAL       etched on BFT New Year day (M01·D01 — a calendar honor;
+ *                 under the one true moon it is no longer always a new moon)
  *   ASTRONOMICAL  etched within a day of a halving (height % 210000 < 144) —
  *                 the 13th tier, where the Astronomical Cat lives
  *
@@ -52,7 +54,7 @@ export function certCase(height: number): CertCaseSpec {
   let why = "etched on an honest working day";
   if (moon.index === 4) {
     tier = "silver";
-    why = "etched under a full moon";
+    why = "etched under a full moon — the real one, overhead";
   }
   if (height % 2016 < DAY) {
     tier = "gold";
@@ -60,7 +62,7 @@ export function certCase(height: number): CertCaseSpec {
   }
   if (d.month === 1 && d.day === 1) {
     tier = "crystal";
-    why = "etched on the Bitcoin new year — a new moon, a new ring";
+    why = "etched on the Bitcoin new year — day one of a new ring";
   }
   if (height % 210000 < DAY) {
     tier = "astronomical";

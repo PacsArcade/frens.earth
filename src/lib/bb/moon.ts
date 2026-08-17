@@ -1,24 +1,19 @@
 /**
- * THE SKY'S MOON — one source of truth for the real lunation.
+ * THE SKY'S MOON — the ONE moon, the only source of truth for the lunation.
  *
- * There are TWO moons in this codebase and they are not the same thing:
+ * ONE MOON ONLY (owner ruling, 0018.05): there used to be two — this file's
+ * real synodic moon, and a "calendar moon" in bft.ts that ran one fake
+ * lunation per 28-day month. The calendar moon is DEAD. `moonPhase(height)`
+ * in bft.ts now computes from this file's model; every surface — orrery,
+ * half-wheel, converters, certs, buddy garden — shows the moon actually
+ * over your head. The BFT calendar keeps its 28-day rhythm (block 0 =
+ * Day 0 = genesis, untouched); the moon keeps her own, riding on top as
+ * display flavor. Consequence, accepted: M01·D01 is NOT always a new moon.
  *
- * 1. THE CALENDAR MOON — `moonPhase(height)` in bft.ts. BFT runs one
- *    lunation per 28-day month by construction, so the phase is a pure
- *    function of the day-of-month. That is deliberate, it is what makes a
- *    BFT date self-describing, and certs.ts leans on it. It is NOT the sky.
- *
- * 2. THE SKY MOON — this file. The actual moon over your head, mean synodic
- *    from a known new moon. This is what the orrery has always drawn (the
- *    pupil study's moon) and what any surface claiming to show "the moon"
- *    must use.
- *
- * ⚠ WHY THEY DRIFT, AND WHY IT BIT US: BFT's month is 28 days; the real
- * synodic month is ~29.53. That is ~1.53 days of drift PER MONTH — a full
- * half-cycle in under ten months. The half-wheel was showing the calendar
- * moon on a ring whose own modulus (4252 blocks ≈ 29.53 days) promised the
- * sky one, so on 2026-07-28 it read waning crescent while the moon outside
- * was full. The two can never be quietly swapped for one another.
+ * ⚠ WHY THE FAKE MOON DIED: BFT's month is 28 days; the real synodic month
+ * is ~29.53 — ~1.53 days of drift PER MONTH, a full half-cycle in under ten
+ * months. On 2026-07-28 the half-wheel read waning crescent while the moon
+ * outside was full. Never again; one moon, honestly.
  *
  * Anchor: the new moon of 2000-01-06 18:14 UTC, mean synodic period. This is
  * wonder-grade (~), not an ephemeris — no perturbations, so the true phase

@@ -3,11 +3,15 @@
  * (`knowledge-engine/services/common/bft.py` + `docs/BFT.md`).
  *
  * 13 months × 28 days × 144 blocks/day; genesis = a₿ 0. Dates render ₿-marked
- * ("a₿ 0016.05.23") so they read as bitcoin dates. The moon is block-timed —
- * one lunation per 28-day month — and each year carries a 12-animal sign
- * (AB 0 / 2009 = Ox; new year M01·D01 is a new moon). Signs are lore, not
- * finance (same house rule as the Observatory's zodiac).
+ * ("a₿ 0016.05.23") so they read as bitcoin dates. THE MOON IS THE SKY'S —
+ * one real synodic moon (lib/bb/moon.ts), everywhere (owner ruling,
+ * 0018.05: the 28-day calendar lunation is retired; M01·D01 is a calendar
+ * day, not a moon claim). Each year carries a 13-animal sign (AB 0 / 2009 =
+ * Ox). Signs are lore, not finance (same house rule as the Observatory's
+ * zodiac).
  */
+
+import { SYNODIC_DAYS, NEW_MOON_EPOCH_MS } from "./moon";
 
 export const BLOCKS_PER_DAY = 144;
 export const BLOCKS_PER_MONTH = 4032; // 28 days · 2 difficulty epochs
@@ -74,10 +78,24 @@ export const MOON_PHASES: ReadonlyArray<readonly [string, string]> = [
   ["🌕", "Full"], ["🌖", "Waning Gibbous"], ["🌗", "Last Quarter"], ["🌘", "Waning Crescent"],
 ];
 
-/** One lunation per BFT month → phase is a pure function of the day-of-month. */
-export function moonPhase(height: number): { emoji: string; name: string; index: number } {
-  const day = bft(height).day;
-  const index = Math.round(((day - 1) / 28) * 8) % 8;
+/** THE SKY'S OWN MOON (one moon only — owner ruling): phase from the real
+ *  synodic month (29.530588853 days) anchored to the known new moon of
+ *  2000-01-06 18:14 UTC (lib/bb/moon.ts) — not the calendar day. The 28-day
+ *  month is our RHYTHM; the moon keeps her own, and the clock honors the
+ *  sky. Ported from the onecocreation reference lib (src/lib/bb/bft.ts).
+ *
+ *  `atMs` — the wall instant this height belongs to. Callers who KNOW it
+ *  (a live tip = Date.now(); a date-derived height = that date) must pass
+ *  it. The default is the CHAIN_ANCHORS estimate below — never the flat
+ *  10-min genesis model, which drifts ~250 days by 2026 (the honest-now
+ *  law) — so even the default lands in the right lunation. */
+export function moonPhase(
+  height: number,
+  atMs: number = estimateMsAtHeight(height),
+): { emoji: string; name: string; index: number } {
+  const days = (atMs - NEW_MOON_EPOCH_MS) / 86_400_000;
+  const age = ((days % SYNODIC_DAYS) + SYNODIC_DAYS) % SYNODIC_DAYS;
+  const index = Math.round((age / SYNODIC_DAYS) * 8) % 8;
   const [emoji, name] = MOON_PHASES[index];
   return { emoji, name, index };
 }
@@ -92,7 +110,7 @@ const YEAR_ANIMALS: ReadonlyArray<readonly [string, string]> = [
   ["🐈", "Astronomical Cat"],
 ];
 
-/** 13-animal year sign. AB 0 (2009) = Ox; the new year falls on a new moon (M01·D01). */
+/** 13-animal year sign. AB 0 (2009) = Ox. */
 export function yearAnimal(height: number): { emoji: string; name: string } {
   const [emoji, name] = YEAR_ANIMALS[(bft(height).year + 1) % 13];
   return { emoji, name };
@@ -187,6 +205,24 @@ export function estimateHeightAt(
 
 export function estimateHeight(nowMs = Date.now()): number {
   return estimateHeightAt(nowMs);
+}
+
+/** Height → ~wall instant (ms): the piecewise inverse of `estimateHeightAt`
+ *  over the same CHAIN_ANCHORS, 600s/block beyond the last. An estimate —
+ *  but anchored, so a historical height lands in the right season (and the
+ *  right lunation for `moonPhase`); the flat genesis model does not. */
+export function estimateMsAtHeight(height: number): number {
+  if (height <= 0) return GENESIS_MS + height * 600_000;
+  const [tLast, hLast] = CHAIN_ANCHORS[CHAIN_ANCHORS.length - 1];
+  if (height >= hLast) return tLast + (height - hLast) * 600_000;
+  for (let i = 1; i < CHAIN_ANCHORS.length; i++) {
+    if (height <= CHAIN_ANCHORS[i][1]) {
+      const [t0, h0] = CHAIN_ANCHORS[i - 1];
+      const [t1, h1] = CHAIN_ANCHORS[i];
+      return Math.round(t0 + ((height - h0) / (h1 - h0)) * (t1 - t0));
+    }
+  }
+  return GENESIS_MS + height * 600_000;
 }
 
 /** The anchored model's own mine-instant (ms) for an ESTIMATED "now" height —
