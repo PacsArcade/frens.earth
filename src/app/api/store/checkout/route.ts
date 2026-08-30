@@ -11,6 +11,7 @@ import {
 } from "@/lib/store";
 import { liveAdapter } from "@/lib/payments";
 import { frenFromRequest } from "@/lib/fren-auth";
+import { hasStructuredAddress } from "@/lib/dropship";
 
 export const dynamic = "force-dynamic";
 
@@ -39,7 +40,7 @@ export async function POST(request: Request) {
     orderId?: string;
     size?: string;
     contact?: { email?: string };
-    shipping?: { name?: string; address?: string };
+    shipping?: OrderRecord["shipping"];
   };
   try {
     body = await request.json();
@@ -84,6 +85,16 @@ export async function POST(request: Request) {
     );
   }
 
+  // a drop-ship PARTNER line needs Printful's structured address fields —
+  // refuse honestly, before any charge, rather than draft a half-built
+  // recipient later (S6 ruling 6; dropship.ts's own stricter gate)
+  if (item.partner && !hasStructuredAddress(body.shipping)) {
+    return NextResponse.json(
+      { ok: false, reason: "this item ships via a fulfillment partner — a complete address (name, street, city, country) is required before checkout" },
+      { status: 400 }
+    );
+  }
+
   // the gate's subject: packages + digital goods buy AS someone
   let entitlementSubject: string | undefined;
   if (item.kind === "digital" || item.kind === "package") {
@@ -114,7 +125,11 @@ export async function POST(request: Request) {
     chargeIds: [],
     entitlementSubject,
     contact: body.contact,
-    shipping: item.fulfillment === "self" ? body.shipping : undefined,
+    // a real gap the source port also fixed while in the neighborhood: gate
+    // on fulfillment "self" OR a partner line, not fulfillment alone — a
+    // partner item's kind/fulfillment already reads "self" in practice, but
+    // this stays honest even if that assumption ever loosens
+    shipping: item.fulfillment === "self" || item.partner ? body.shipping : undefined,
     createdAtMs: Date.now(),
     events: [],
   };

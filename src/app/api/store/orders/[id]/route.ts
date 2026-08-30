@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getOrder, getItem, recordChargeEvent } from "@/lib/store";
 import { sessionsFromRequest } from "@/lib/fren-auth";
 import { getAdapter } from "@/lib/payments";
+import { settleDropshipFromOrder } from "@/lib/dropship";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +34,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
         const state = await adapter.status(chargeId);
         if (state !== order.state && state !== "charge_created") {
           order = (await recordChargeEvent(order.id, { type: state, chargeId })) ?? order;
+          // this poll is a settle-fanout point too (S6 ruling 6) — a
+          // partner-fulfilled line's draft can start here as honestly as
+          // from the webhook; settleDropshipFromOrder is idempotent
+          await settleDropshipFromOrder(order).catch(() => {});
         }
       } catch {
         /* processor unreachable — serve the record of fact, honestly stale */

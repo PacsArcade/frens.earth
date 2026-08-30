@@ -16,7 +16,8 @@
     "start": "next start",
     "lint": "eslint",
     "reset:registry": "node scripts/reset-registry.mjs",
-    "sync:briefs": "node scripts/sync-briefs.mjs"
+    "sync:briefs": "node scripts/sync-briefs.mjs",
+    "test:dropship": "node scripts/dropship-lane-c.test.mjs"
   },
   "dependencies": {
     "@pacsarcade/arcade-ui": "https://github.com/PacsArcade/arcade-ui/archive/8e2dd386e0d541a525ac4f3c69ac75c454396e47.tar.gz",

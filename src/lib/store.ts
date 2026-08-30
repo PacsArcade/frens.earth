@@ -58,12 +58,22 @@ export interface ItemMedia {
  * GET (the artist editing their own shelf). A buyer reaches the file
  * exclusively through /api/store/download/[orderId] — the order id is the
  * capability; the path stays server-side.
+ *
+ * `partnerVariantIds` rides the same rule (drop-ship rail, S6 ruling 6) — a
+ * Printful sync-variant-id is operational plumbing, not a secret, but it has
+ * no reason on a public response either; same operator-gated-only surface
+ * (/api/admin/store).
  */
 export function stripPrivateMedia(item: StoreItem): StoreItem {
   const media = item.media;
   const d = media?.deliverable;
-  if (!media || !d || d.blobPath == null) return item;
-  return { ...item, media: { ...media, deliverable: { kind: d.kind, label: d.label } } };
+  const hasBlobPath = media && d && d.blobPath != null;
+  const hasVariantIds = item.partnerVariantIds != null;
+  if (!hasBlobPath && !hasVariantIds) return item;
+  const next: StoreItem = { ...item };
+  if (hasBlobPath) next.media = { ...media!, deliverable: { kind: d!.kind, label: d!.label } };
+  if (hasVariantIds) delete next.partnerVariantIds;
+  return next;
 }
 
 export interface StoreItem {
@@ -83,8 +93,62 @@ export interface StoreItem {
   /** sale price rides the gold rail; presence = on sale */
   sale?: Price;
   fulfillment: ItemKind;
+  /** drop-ship partner filling the order (Printful / Fourthwall) — the
+      admin UI only offers a partner once its API env is configured */
+  partner?: "printful" | "fourthwall";
+  /**
+   * The PARTNER's own catalog identifier(s) this item maps to (drop-ship
+   * rail, S6 ruling 6). Printful's Orders API needs a `sync_variant_id` per
+   * line — keyed by this item's size label, or by "" when the item has no
+   * sizes. Absent = the item can be listed and even sold, but a real
+   * drop-ship order can never be PLACED for it — dropship.ts refuses
+   * honestly ("no Printful variant mapping") instead of guessing one.
+   */
+  partnerVariantIds?: Record<string, string>;
+  /**
+   * Fourthwall's public API has no confirmed order-submission endpoint for
+   * orders originated elsewhere — see docs/fulfillment-dropship.md. A
+   * Fourthwall-partnered item gets a MANUAL bridge in v1: this is the
+   * product's own Fourthwall page, shown on the admin desk as a direct
+   * link, never auto-submitted anywhere.
+   */
+  partnerProductUrl?: string;
   status: ItemStatus;
   entitlementTier?: string;
+}
+
+/**
+ * DROP-SHIP FULFILLMENT (S6 ruling 6, ported from vanilla-template's Lane
+ * C): the state machine an order's `dropship` field walks through once it
+ * carries a partner-fulfilled line. `draft_pending`/`draft_created`/
+ * `draft_failed` never spend anything — Printful drafts are free to hold.
+ * `submitted` is the ONE state an operator reaches on purpose (the
+ * confirm-to-submit door in the admin desk) — that is the moment real
+ * fulfillment (and the artist's Printful balance) is touched. `shipped`
+ * carries tracking once the partner reports it; the order's own `state`
+ * flips to "fulfilled" at the same moment (markFulfilled) so the artist
+ * never has two different fulfillment stories to reconcile.
+ */
+export type DropshipState =
+  | "draft_pending" // partner not configured yet, or the draft call hasn't run
+  | "draft_created" // a draft exists at the partner — awaiting operator confirm
+  | "draft_failed" // the partner refused the draft — retryable
+  | "submitted" // operator confirmed — real fulfillment requested
+  | "submit_failed" // the confirm call failed — retryable
+  | "shipped" // the partner reports it left the building
+  | "manual_bridge" // no verified order-submission API (Fourthwall v1) — human re-enters it
+  | "cancel_needed"; // the order was refunded/disputed AFTER a submit — needs a human cancel
+
+export interface DropshipRecord {
+  partner: "printful" | "fourthwall";
+  state: DropshipState;
+  partnerOrderId?: string;
+  trackingNumber?: string;
+  trackingUrl?: string;
+  /** why the last attempt didn't land — never a silent retry-forever */
+  lastError?: string;
+  createdAtMs: number;
+  updatedAtMs: number;
 }
 
 /** What a v1 record on disk/blob may look like — read-compat input shape. */
@@ -132,7 +196,36 @@ export interface OrderRecord {
   /** handle@space — REQUIRED for digital/package (the gate's subject) */
   entitlementSubject?: string;
   contact?: { email?: string };
-  shipping?: { name?: string; address?: string };
+  /**
+   * `address` is the ORIGINAL free-text field — still what a self-fulfilled
+   * ("the artist packs it") item collects. A drop-ship PARTNER item (S6
+   * ruling 6) additionally needs STRUCTURED fields — Printful's Orders API
+   * wants address1/city/state/zip/country as separate values, not one blob
+   * to parse apart. Both may be present; dropship.ts reads only the
+   * structured half and refuses honestly if it's incomplete rather than
+   * guessing a split of `address`.
+   */
+  shipping?: {
+    name?: string;
+    address?: string;
+    address1?: string;
+    address2?: string;
+    city?: string;
+    state?: string;
+    zip?: string;
+    /** ISO-3166-1 alpha-2, e.g. "US" — required for a partner order */
+    country?: string;
+    phone?: string;
+  };
+  /**
+   * Drop-ship fulfillment state (S6 ruling 6) — set the moment an order
+   * carrying a partner-fulfilled line settles. A DRAFT costs the artist
+   * nothing to create; only `state: "submitted"` (an operator's explicit
+   * confirm click, never automatic) actually spends against the partner
+   * account. Rides the order record itself — same private KV/dev-file
+   * driver every other order field already uses, no new storage.
+   */
+  dropship?: DropshipRecord;
   createdAtMs: number;
   settledAtMs?: number;
   /** contact+shipping stripped on schedule (call #3) */
@@ -263,6 +356,22 @@ export function validateItem(item: StoreItem): { ok: true } | { ok: false; reaso
         }
       }
     }
+  }
+  if (item.partner != null && !["printful", "fourthwall"].includes(item.partner)) {
+    return { ok: false, reason: "partner as printful or fourthwall" };
+  }
+  if (item.partnerVariantIds != null) {
+    if (typeof item.partnerVariantIds !== "object" || Array.isArray(item.partnerVariantIds)) {
+      return { ok: false, reason: "partnerVariantIds as a size → id map" };
+    }
+    for (const [size, id] of Object.entries(item.partnerVariantIds)) {
+      if (size.length > 32 || typeof id !== "string" || !id.trim() || id.length > 128) {
+        return { ok: false, reason: "partnerVariantIds entries as short size labels → non-empty partner ids" };
+      }
+    }
+  }
+  if (item.partnerProductUrl != null && (typeof item.partnerProductUrl !== "string" || item.partnerProductUrl.length > 500)) {
+    return { ok: false, reason: "partnerProductUrl as a URL" };
   }
   return { ok: true };
 }
@@ -482,6 +591,34 @@ export async function recordChargeEvent(
   order.state = next;
   if (next === "settled") order.settledAtMs = Date.now();
   order.events.push({ type: ev.type, chargeId: ev.chargeId, atMs: Date.now() });
+  await writeOrder(order);
+  return order;
+}
+
+/**
+ * The one write path for `order.dropship` (S6 ruling 6) — re-read, mutate
+ * the one field, write back. Callers pass the fields that changed;
+ * `partner`/`createdAtMs` persist across calls once set. Never flips
+ * `order.state` itself — a "shipped" dropship state pairs with a SEPARATE
+ * `markFulfilled()` call so the fulfilled flip always runs through its one
+ * sanctioned function.
+ */
+export async function setDropship(
+  orderId: string,
+  patch: { partner: DropshipRecord["partner"]; state: DropshipRecord["state"] } & Partial<
+    Omit<DropshipRecord, "partner" | "state" | "createdAtMs" | "updatedAtMs">
+  >,
+): Promise<OrderRecord | null> {
+  const order = await getOrder(orderId);
+  if (!order) return null;
+  const now = Date.now();
+  const existing = order.dropship;
+  order.dropship = {
+    ...existing,
+    ...patch,
+    createdAtMs: existing?.createdAtMs ?? now,
+    updatedAtMs: now,
+  };
   await writeOrder(order);
   return order;
 }
