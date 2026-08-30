@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { btcpayAdapter } from "@/lib/payments";
 import { recordChargeEvent } from "@/lib/store";
+import { settleDropshipFromOrder } from "@/lib/dropship";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +11,11 @@ export const dynamic = "force-dynamic";
  * unverifiable POST gets a 200-shaped nothing (no oracle for forgers), a
  * verified event flips the order through the ONE sanctioned commit
  * function. Retries are no-ops there, so a 2xx is always safe to return.
+ *
+ * settleDropshipFromOrder() runs right after — the settle-fanout point a
+ * partner-fulfilled line needs (S6 ruling 6). It's idempotent and reads
+ * the order's own state, so calling it on every event (not just a fresh
+ * settle) is safe and never double-drafts.
  */
 export async function POST(request: Request) {
   const rawBody = await request.text();
@@ -23,6 +29,9 @@ export async function POST(request: Request) {
   } catch {
     /* verified but unparseable — nothing to flip */
   }
-  if (orderId) await recordChargeEvent(orderId, event);
+  if (orderId) {
+    const order = await recordChargeEvent(orderId, event);
+    if (order) await settleDropshipFromOrder(order).catch(() => {});
+  }
   return NextResponse.json({ ok: true });
 }

@@ -23,8 +23,12 @@ export async function GET(request: Request) {
   return NextResponse.json({
     ok: true,
     orders,
-    // the reconcile view's raw material: settled but not yet fulfilled
-    needsAttention: orders.filter((o) => o.state === "settled").map((o) => o.id),
+    // the reconcile view's raw material: settled but not yet fulfilled.
+    // A drop-ship order (order.dropship set — S6 ruling 6) is EXCLUDED
+    // here: it routes through the Pending fulfillment desk's own
+    // draft/confirm/ship flow instead, so an operator can't accidentally
+    // skip that story with this generic one-click button.
+    needsAttention: orders.filter((o) => o.state === "settled" && !o.dropship).map((o) => o.id),
   });
 }
 

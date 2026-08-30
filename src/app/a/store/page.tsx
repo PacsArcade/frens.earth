@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { upload as blobDirectUpload } from "@vercel/blob/client";
 import { bftDateTime, estimateHeight } from "@/lib/bb/bft";
 import type { StoreItem, OrderRecord } from "@/lib/store";
+import DropshipDesk from "@/components/console/DropshipDesk";
 
 /**
  * /a/store — the artist's shelf manager. The API is the gate (operator
@@ -33,6 +34,8 @@ interface ShelfData {
   railBtcpay?: boolean;
   /** blob store live → deliverables upload browser → blob directly */
   deliverableDirect?: boolean;
+  /** drop-ship partner env state (S6 ruling 6) — gates the item editor's partner selector */
+  partners?: { printful: boolean; fourthwall: boolean };
 }
 
 /** mirror of the server's deliverable-name hygiene — keeps pathnames sane */
@@ -64,6 +67,7 @@ async function fetchShelf(): Promise<ShelfData | null> {
       attention: dord.ok ? dord.needsAttention : undefined,
       railBtcpay: di.ok ? Boolean(di.rails?.btcpay) : undefined,
       deliverableDirect: di.ok ? Boolean(di.uploads?.deliverableDirect) : undefined,
+      partners: di.ok ? di.partners : undefined,
     };
   } catch {
     return null;
@@ -75,9 +79,13 @@ export default function StoreRoom() {
   const [orders, setOrders] = useState<OrderRecord[]>([]);
   const [attention, setAttention] = useState<string[]>([]);
   const [railBtcpay, setRailBtcpay] = useState(false);
+  const [partners, setPartners] = useState({ printful: false, fourthwall: false });
   const [denied, setDenied] = useState(false);
   const [draft, setDraft] = useState<StoreItem>(BLANK);
   const [sizesText, setSizesText] = useState("");
+  // drop-ship variant map as "size:id, size:id" text — mirrors sizesText's
+  // own comma-separated convention (S6 ruling 6)
+  const [variantIdsText, setVariantIdsText] = useState("");
   const [uploading, setUploading] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const [directUp, setDirectUp] = useState(false);
@@ -97,6 +105,7 @@ export default function StoreRoom() {
     if (d.attention) setAttention(d.attention);
     if (d.railBtcpay !== undefined) setRailBtcpay(d.railBtcpay);
     if (d.deliverableDirect !== undefined) setDirectUp(d.deliverableDirect);
+    if (d.partners) setPartners(d.partners);
   }, []);
 
   const load = useCallback(async () => apply(await fetchShelf()), [apply]);
@@ -124,6 +133,7 @@ export default function StoreRoom() {
     if (data.ok) {
       setDraft(BLANK);
       setSizesText("");
+      setVariantIdsText("");
       setDNote(null);
       setDReplace(false);
       load();
@@ -133,12 +143,29 @@ export default function StoreRoom() {
   /** The form's save — folds the comma-separated sizes text into the draft. */
   async function saveDraft() {
     const sizes = sizesText.split(",").map((s) => s.trim()).filter(Boolean);
-    await save({ ...draft, sizes: sizes.length ? sizes : undefined });
+    // "S:m-id, M:l-id" (or a bare "one-id" for a sizeless item, keyed "")
+    const partnerVariantIds: Record<string, string> = {};
+    for (const pair of variantIdsText.split(",")) {
+      const trimmed = pair.trim();
+      if (!trimmed) continue;
+      const [size, id] = trimmed.includes(":") ? trimmed.split(":") : ["", trimmed];
+      if (id?.trim()) partnerVariantIds[size.trim()] = id.trim();
+    }
+    await save({
+      ...draft,
+      sizes: sizes.length ? sizes : undefined,
+      partnerVariantIds: Object.keys(partnerVariantIds).length ? partnerVariantIds : undefined,
+    });
   }
 
   function edit(item: StoreItem) {
     setDraft(item);
     setSizesText(item.sizes?.join(", ") ?? "");
+    setVariantIdsText(
+      item.partnerVariantIds
+        ? Object.entries(item.partnerVariantIds).map(([size, id]) => (size ? `${size}:${id}` : id)).join(", ")
+        : ""
+    );
     setDNote(null);
     setDReplace(false);
   }
@@ -284,6 +311,8 @@ export default function StoreRoom() {
         </div>
       )}
 
+      <DropshipDesk />
+
       {/* the money rails, honestly: one live berth, two SOON berths — the
           fiat plan stays visible without a single fake config form */}
       <h2 className="mt-6 font-bold tracking-widest text-cyan-300">RAILS</h2>
@@ -345,6 +374,13 @@ export default function StoreRoom() {
                     {" "}
                     · +{item.media.deliverable.kind}
                     {item.media.deliverable.blobPath ? " ✓" : " (no file)"}
+                  </span>
+                )}
+                {item.partner && (
+                  <span className={partners[item.partner] ? "text-cyan-300" : "text-neutral-500"}>
+                    {" "}
+                    · {item.partner === "printful" ? "Printful" : "Fourthwall"}
+                    {partners[item.partner] ? "" : " — not configured"}
                   </span>
                 )}
               </span>
@@ -595,6 +631,55 @@ export default function StoreRoom() {
             className="w-28 border border-neutral-700 bg-black px-2 py-2 text-base sm:text-sm"
           />
         </div>
+
+        {/* drop-ship fulfillment partner (S6 ruling 6, merch only) — a
+            partner can only be picked while its API env is actually set;
+            docs/fulfillment-dropship.md is the runbook */}
+        {draft.kind === "self" && (
+          <div className="border border-neutral-700 p-2">
+            <p className="text-xs text-neutral-400">
+              fulfillment partner (optional) — ships via Printful/Fourthwall instead of by hand
+            </p>
+            <select
+              value={draft.partner ?? ""}
+              onChange={(e) =>
+                setDraft({ ...draft, partner: (e.target.value || undefined) as StoreItem["partner"] })
+              }
+              className="mt-2 min-h-11 border border-neutral-700 bg-black px-2 py-2 text-base sm:text-sm"
+            >
+              <option value="">none — you ship it by hand</option>
+              <option value="printful" disabled={!partners.printful}>
+                Printful{partners.printful ? "" : " (set PRINTFUL_API_KEY to enable)"}
+              </option>
+              <option value="fourthwall" disabled={!partners.fourthwall}>
+                Fourthwall{partners.fourthwall ? "" : " (set FOURTHWALL_API_TOKEN to enable)"}
+              </option>
+            </select>
+            {draft.partner === "printful" && (
+              <input
+                placeholder="Printful sync variant ids: S:sync-id, M:sync-id (or a bare id if sizeless)"
+                value={variantIdsText}
+                onChange={(e) => setVariantIdsText(e.target.value)}
+                className="mt-2 w-full border border-neutral-700 bg-black px-2 py-2 text-base sm:text-sm"
+              />
+            )}
+            {draft.partner && (
+              <input
+                placeholder="partner product URL (Fourthwall's own page for this item, or Printful's)"
+                value={draft.partnerProductUrl ?? ""}
+                onChange={(e) => setDraft({ ...draft, partnerProductUrl: e.target.value || undefined })}
+                className="mt-2 w-full border border-neutral-700 bg-black px-2 py-2 text-base sm:text-sm"
+              />
+            )}
+            {draft.partner === "printful" && !variantIdsText.trim() && (
+              <p className="mt-1 text-[10px] text-neutral-500">
+                no variant mapping yet — this item can list and sell, but a real drop-ship order can never be
+                placed until at least one size maps to a Printful sync variant id
+              </p>
+            )}
+          </div>
+        )}
+
         <button
           onClick={() => saveDraft()}
           disabled={uploading || dUploading}
