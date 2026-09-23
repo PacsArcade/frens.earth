@@ -39,10 +39,10 @@ const FRENS_MARK_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 
 
 /* The press blurbs — warm and true, the spirit of the mission. */
 const PRESS_ONELINER =
-  "frens.earth gives anyone a free, sovereign @frens handle — your name, your keys, verified on nostr and tied to Bitcoin — from Pac's Arcade, a 501(c)(3) bitcoin-education non-profit.";
+  "frens.earth gives anyone a free, sovereign @frens handle — your name, your keys, verified on nostr and tied to Bitcoin — from Pac's Arcade, a bitcoin-education non-profit in formation.";
 
 const PRESS_PARAGRAPH =
-  "frens.earth is the home world of Pac's Arcade, a 501(c)(3) non-profit that teaches bitcoin the hands-on way. Claim a free @frens tag and it's yours forever: a name bound to keys only you hold, verifiable on nostr today and anchored to Bitcoin at the next batch — no rent, no resets, nobody to ask. Learn, play, and grow with your frens. Tick tock: everything gets tied to the block.";
+  "frens.earth is the home world of Pac's Arcade, a non-profit in formation that teaches bitcoin the hands-on way. Claim a free @frens tag and it's yours forever: a name bound to keys only you hold, verifiable on nostr today and anchored to Bitcoin at the next batch — no rent, no resets, nobody to ask. Learn, play, and grow with your frens. Tick tock: everything gets tied to the block.";
 
 /** Copy-to-clipboard button with an honest state machine: idle → copied ✓,
     or → copy failed when the clipboard API is blocked. Reverts after a beat. */
