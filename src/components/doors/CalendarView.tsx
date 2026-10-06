@@ -123,34 +123,36 @@ export default function CalendarView() {
         </section>
 
         <section className="door-panel door-list" aria-label="Events this month">
-          <h2 className="door-h2">This month</h2>
-          {inMonth.length === 0 ? (
-            <p className="door-state__text">
-              No {filter === "all" ? "" : `${FILTERS.find((f) => f.key === filter)?.label.toLowerCase()} `}events in this month. Try Back or Next.
-            </p>
-          ) : (
-            <ul className="door-rows">
-              {inMonth.map((e) => (
-                <li key={e.id}>
-                  <Link href={`/calendar/${e.id}`} className="door-ev">
-                    <span className="door-ev__day">{pad(dayOf(e.startMs) + 1)}</span>
-                    <span className="door-ev__body">
-                      <span className="door-ev__title">{e.title}</span>
-                      <span className="door-ev__meta">
-                        {stampOf(e)} a₿{e.place ? ` · ${e.place}` : ""}
+          <div className="door-list__in" tabIndex={0} role="region" aria-label="Events this month, scrollable">
+            <h2 className="door-h2">This month</h2>
+            {inMonth.length === 0 ? (
+              <p className="door-state__text">
+                No {filter === "all" ? "" : `${FILTERS.find((f) => f.key === filter)?.label.toLowerCase()} `}events in this month. Try Back or Next.
+              </p>
+            ) : (
+              <ul className="door-rows">
+                {inMonth.map((e) => (
+                  <li key={e.id}>
+                    <Link href={`/calendar/${e.id}`} className="door-ev">
+                      <span className="door-ev__day">{pad(dayOf(e.startMs) + 1)}</span>
+                      <span className="door-ev__body">
+                        <span className="door-ev__title">{e.title}</span>
+                        <span className="door-ev__meta">
+                          {stampOf(e)} a₿{e.place ? ` · ${e.place}` : ""}
+                        </span>
+                        <span className="door-ev__old">{oldDate(e.startMs)}</span>
+                        <span className="door-chips">
+                          <span className="door-chip">{TYPE_NAME[e.type]}</span>
+                          {e.roomLink && <span className="door-chip">Online room</span>}
+                          <span className="door-chip">{names[e.pubkey] ?? shortNpub(e.pubkey)}</span>
+                        </span>
                       </span>
-                      <span className="door-ev__old">{oldDate(e.startMs)}</span>
-                      <span className="door-chips">
-                        <span className="door-chip">{TYPE_NAME[e.type]}</span>
-                        {e.roomLink && <span className="door-chip">Online room</span>}
-                        <span className="door-chip">{names[e.pubkey] ?? shortNpub(e.pubkey)}</span>
-                      </span>
-                    </span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </section>
       </div>
     </>

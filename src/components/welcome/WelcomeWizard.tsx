@@ -230,8 +230,9 @@ export default function WelcomeWizard({
               lives in a website (including this one): it lives in a{" "}
               <span className="text-cyan">signer</span> — a small app that
               holds the key and stamps signatures when you approve — and every
-              site just asks the signer. A key is not a wallet, and signing
-              can never move money.
+              site just asks the signer. A key is not a wallet. But if you
+              connect a wallet to your signer, approving a request can move
+              money, so read what you approve.
             </p>
           </div>
 
@@ -258,6 +259,10 @@ export default function WelcomeWizard({
                   </p>
                   <p className="font-body text-xs text-white/70">
                     Install a signer extension, add your key, reload:{" "}
+                    <a href="https://sidecar.top" target="_blank" rel="noopener noreferrer" className="text-cyan underline">
+                      Sidecar
+                    </a>{" "}
+                    (signer with a wallet built in),{" "}
                     <a href="https://github.com/fiatjaf/nos2x" target="_blank" rel="noopener noreferrer" className="text-cyan underline">
                       nos2x
                     </a>{" "}
@@ -471,14 +476,15 @@ export default function WelcomeWizard({
             STEP 4 · CATCH ZAPS <span className="text-white/40">(OPTIONAL)</span>
           </p>
           <p className="mb-4 font-body text-xs leading-relaxed text-white/60">
-            A lightning address is how frens zap you — tiny bitcoin tips,
-            straight to you. Any lightning address works (it looks like an
-            email; it isn&apos;t one): a custodial wallet like Wallet of Satoshi
-            or Alby gets you one in minutes, and you can swap it for a
-            sovereign one any time. You can also just add one later at /me —
-            nothing here expires. Nostr wallet connect settings, which let an
-            app ask your wallet to pay within limits you set, live in your
-            wallet app, not here.
+            A lightning address is how frens zap you with tiny bitcoin tips. It
+            looks like an email, but it isn&apos;t one.{" "}
+            <a href="https://coinos.io" target="_blank" rel="noopener noreferrer" className="text-cyan underline">
+              coinos
+            </a>{" "}
+            is an easy first wallet and gives you one in minutes. The Sidecar
+            signer has a wallet built in too. You can also add one later at
+            /me. Nostr wallet connect settings live in your wallet app, not
+            here.
           </p>
 
           {!npub ? (

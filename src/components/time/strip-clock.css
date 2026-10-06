@@ -282,6 +282,8 @@
 .clock-strip .sclk-d-num { order: 0; color: #e8e2d8; font-variant-numeric: tabular-nums; }
 .clock-strip .sclk-clock { order: 1; font-size: inherit; gap: 0; display: inline-flex; align-items: baseline; }
 .clock-strip .sclk-ab { order: 2; color: rgba(247, 147, 26, 0.9); letter-spacing: 0.04em; }
+/* the real Bitcoin sign (the strip font has no glyph): two strokes above and below the B */
+.sclk-btc { display: inline-block; height: 1.05em; width: 0.75em; vertical-align: -0.17em; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: butt; stroke-linejoin: miter; }
 .clock-strip .sclk .flip {
   width: auto;
   height: auto;

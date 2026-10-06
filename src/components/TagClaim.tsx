@@ -624,7 +624,7 @@ export default function TagClaim({
           <span className="blink mx-0.5 inline-block h-5 w-2.5 shrink-0 bg-coin sm:h-6 sm:w-3" aria-hidden />
           <span className="shrink-0 font-arcade text-xl text-pink glow-pink select-none sm:text-2xl">{spaceTag}</span>
         </div>
-        <p className={`mt-3 font-pixel text-xs ${statusLine.cls}`} role="status">
+        <p className={`mt-3 font-pixel text-xs text-pretty! ${statusLine.cls}`} role="status">
           {statusLine.text}
         </p>
         {availability === "taken" && takenNpub && (

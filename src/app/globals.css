@@ -1852,8 +1852,7 @@ p, li { text-wrap: pretty; }
 
 .door-bar { display: flex; justify-content: flex-end; }
 .door-bar__group { width: min(100%, 520px); }
-.door-cal { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 20px; align-items: start; }
-.door-month { position: sticky; top: 16px; }
+.door-cal { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 20px; align-items: stretch; }
 .door-month__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
 .door-month__nav { width: 220px; }
 .door-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
@@ -1866,7 +1865,9 @@ p, li { text-wrap: pretty; }
 .door-pill b { flex: none; font-family: var(--font-pixel); color: #53e0d4; }
 .door-pill span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .door-more { font-size: 0.62rem; color: rgba(255, 255, 255, 0.6); }
-.door-list { max-height: calc(100vh - 48px); overflow-y: auto; overscroll-behavior: contain; position: sticky; top: 16px; }
+.door-list { position: relative; padding: 0; }
+.door-list__in { position: absolute; inset: 0; padding: 22px; overflow-y: auto; overscroll-behavior: contain; border-radius: inherit; scrollbar-width: thin; scrollbar-color: rgba(83, 224, 212, 0.6) transparent; }
+.door-list__in:focus-visible { outline: 2px solid #53e0d4; outline-offset: -4px; }
 .door-rows { list-style: none; margin: 14px 0 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 .door-ev { display: flex; gap: 12px; padding: 12px; border-radius: 14px; border: 1px solid rgba(255, 255, 255, 0.12); background: rgba(0, 0, 0, 0.22); }
 .door-ev:hover { border-color: #53e0d4; }
@@ -1921,8 +1922,8 @@ p, li { text-wrap: pretty; }
 
 @media (max-width: 960px) {
   .door-cal { grid-template-columns: minmax(0, 1fr); }
-  .door-month, .door-list { position: static; }
-  .door-list { max-height: 70vh; }
+  .door-list { position: static; padding: 22px; }
+  .door-list__in { position: static; padding: 0; overflow: visible; }
   .door-market { grid-template-columns: minmax(0, 1fr); }
   .door-cats ul { flex-direction: row; overflow-x: auto; }
   .door-cats--open ul { flex-wrap: wrap; max-height: 40vh; overflow-x: hidden; overflow-y: auto; }
