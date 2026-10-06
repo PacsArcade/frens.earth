@@ -25,6 +25,10 @@ export default function ArcadeHeader() {
       links={[
         // Doors that exist only: the shelf, the game, then the arcade's LEARN and GROW.
         { href: "/store", label: "SHELF" },
+        // The three doors read from public nostr relays (kinds in src/lib/doors).
+        { href: "/calendar", label: "CALENDAR" },
+        { href: "/market", label: "MARKET" },
+        { href: "/rooms", label: "ROOMS" },
         // PLAY = frens.earth's own game — Bitcoin Buddy (/bb), the only game here for now.
         // LEARN/GROW stay under Pac's Arcade until frens.earth grows its own.
         { href: "/bb", label: "PLAY" },
