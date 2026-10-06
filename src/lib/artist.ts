@@ -1,8 +1,7 @@
-import { promises as fs } from "fs";
 import path from "path";
-import { put, get } from "@vercel/blob";
 import { nip19 } from "nostr-tools";
-import { blobStoreEnabled, getEntry } from "./registry";
+import { getEntry } from "./registry";
+import { readDoc, writeDoc } from "./private-store";
 import { frenFromRequest } from "./fren-auth";
 import { spacesConfigured, spacesRpc, SpacesNodeError } from "./spaces";
 
@@ -19,8 +18,8 @@ import { spacesConfigured, spacesRpc, SpacesNodeError } from "./spaces";
  *                never touch this app (house law).
  *   - WATCHES  — names an artist keeps an eye on, persisted per-npub.
  *
- * Storage mirrors tickets/merges: dual driver — Vercel Blob in prod, JSON
- * files in data/ for dev (gitignored, never tracked). Auction reads go to
+ * Storage mirrors tickets/merges: the private store (private-store.ts) —
+ * JSON files in data/ for dev (gitignored, never tracked). Auction reads go to
  * this deployment's spaced node via spaces.ts and DEGRADE HONESTLY: every
  * query returns "not configured" / "unreachable" instead of pretending.
  */
@@ -36,39 +35,15 @@ const ROSTER_BLOB = "artist/roster.json";
 const rosterFile = () => path.join(process.cwd(), "data", "artists.json");
 
 async function readJson<T>(blobPath: string, file: string): Promise<T | null> {
-  if (blobStoreEnabled()) {
-    try {
-      const res = await get(blobPath, { access: "public" });
-      if (res && res.statusCode === 200) {
-        return JSON.parse(await new Response(res.stream).text()) as T;
-      }
-    } catch {
-      /* missing/unreadable — treat as empty */
-    }
-    return null;
-  }
   try {
-    return JSON.parse(await fs.readFile(file, "utf8")) as T;
+    return await readDoc<T>({ key: blobPath, file });
   } catch {
-    return null;
+    return null; // missing/unreadable — treat as empty
   }
 }
 
 async function writeJson(blobPath: string, file: string, value: unknown): Promise<void> {
-  const body = JSON.stringify(value, null, 2);
-  if (blobStoreEnabled()) {
-    await put(blobPath, body, {
-      access: "public",
-      addRandomSuffix: false,
-      allowOverwrite: true,
-      contentType: "application/json",
-    });
-    return;
-  }
-  await fs.mkdir(path.dirname(file), { recursive: true });
-  const tmp = file + ".tmp";
-  await fs.writeFile(tmp, body, "utf8");
-  await fs.rename(tmp, file);
+  await writeDoc({ key: blobPath, file }, value);
 }
 
 function decodeNpub(raw: string): string | null {

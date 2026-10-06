@@ -1,15 +1,13 @@
-import { promises as fs } from "fs";
 import path from "path";
-import { put, get } from "@vercel/blob";
-import { blobStoreEnabled } from "./registry";
+import { readDoc, writeDoc } from "./private-store";
 
 /**
  * Tickets — the Duty Roster, bundled into frens.earth so it works with OR
  * without the MUD game running. Two roles (enforced in the API routes):
  *   - a `user@frens` RAISES tickets — the customer-facing side.
  *   - the admiral + crew (operators) WORK them — claim, note, resolve.
- * Storage mirrors the registry's dual driver: a single board doc in Vercel
- * Blob (prod) or data/tickets.json (dev). Low-volume by nature; last write
+ * Storage: a single board doc in the private store (private-store.ts;
+ * data/tickets.json in dev). Low-volume by nature; last write
  * wins, which is fine for a support roster.
  */
 
@@ -48,46 +46,20 @@ interface Board {
   tickets: Ticket[];
 }
 
-const BLOB_PATH = "tickets/board.json";
-function filePath(): string {
-  return path.join(process.cwd(), "data", "tickets.json");
-}
+const BOARD_DOC = () => ({ key: "tickets/board.json", file: path.join(process.cwd(), "data", "tickets.json") });
 
 async function readBoard(): Promise<Board> {
-  if (blobStoreEnabled()) {
-    try {
-      const res = await get(BLOB_PATH, { access: "public" });
-      if (res && res.statusCode === 200) {
-        return JSON.parse(await new Response(res.stream).text()) as Board;
-      }
-    } catch {
-      /* missing/unreadable — start empty */
-    }
-    return { seq: 0, tickets: [] };
-  }
   try {
-    return JSON.parse(await fs.readFile(filePath(), "utf8")) as Board;
+    const board = await readDoc<Board>(BOARD_DOC());
+    if (board) return board;
   } catch {
-    return { seq: 0, tickets: [] };
+    /* missing/unreadable — start empty */
   }
+  return { seq: 0, tickets: [] };
 }
 
 async function writeBoard(board: Board): Promise<void> {
-  const body = JSON.stringify(board, null, 2);
-  if (blobStoreEnabled()) {
-    await put(BLOB_PATH, body, {
-      access: "public",
-      addRandomSuffix: false,
-      allowOverwrite: true,
-      contentType: "application/json",
-    });
-    return;
-  }
-  const p = filePath();
-  await fs.mkdir(path.dirname(p), { recursive: true });
-  const tmp = p + ".tmp";
-  await fs.writeFile(tmp, body, "utf8");
-  await fs.rename(tmp, p);
+  await writeDoc(BOARD_DOC(), board);
 }
 
 /** Newest first; optionally only those a given handle raised. */

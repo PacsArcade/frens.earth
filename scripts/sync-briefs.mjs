@@ -9,8 +9,8 @@
  * ── PRIVACY (the hard rule) ──────────────────────────────────────────────────
  * This repo is PUBLIC and the briefs are internal strategy, so their CONTENT is
  * NEVER committed. This script reads the operator's local briefs and writes them
- * into the dual-driver store: the GITIGNORED data/briefs/ dir (dev) or Vercel
- * Blob (prod). Nothing it writes is tracked by git.
+ * into the GITIGNORED data/briefs/ dir (dev). Nothing it writes is tracked by
+ * git. A deployed site takes its briefs from the console pull instead.
  *
  * Source (first match wins):
  *   1. --dir <path>           (explicit)
@@ -18,10 +18,7 @@
  *   3. a `design-briefs` folder found walking up from this repo — i.e.
  *      C:\dev\pacsarcade\design-briefs when the repo is C:\dev\pacsarcade\frens.earth
  *
- * Target:
- *   • dev (default): data/briefs/<slug>.json   (gitignored)
- *   • prod: set REGISTRY_DRIVER=blob + BLOB_READ_WRITE_TOKEN to write
- *     briefs/content/<slug>.json in Vercel Blob (the same store the app reads).
+ * Target: data/briefs/<slug>.json   (gitignored)
  *
  * Usage:  npm run sync:briefs [-- --dir <path-to-briefs>]
  */
@@ -98,12 +95,13 @@ if (files.length === 0) {
   process.exit(1);
 }
 
-const useBlob = process.env.REGISTRY_DRIVER === "blob" && !!process.env.BLOB_READ_WRITE_TOKEN;
-let put = null;
-if (useBlob) ({ put } = await import("@vercel/blob"));
+if (process.env.REGISTRY_DRIVER === "blob") {
+  console.error("[sync-briefs] this script writes local files only; a deployed site pulls its briefs from the console.");
+  process.exit(1);
+}
 
 const dataDir = join(root, "data", "briefs");
-if (!useBlob) mkdirSync(dataDir, { recursive: true });
+mkdirSync(dataDir, { recursive: true });
 
 let n = 0;
 for (const file of files) {
@@ -115,20 +113,11 @@ for (const file of files) {
   // pulled from a public repo via the console, never synced from a local dir.
   const record = { slug, title, body, source: file, tier: "personal" };
   const json = JSON.stringify(record, null, 2);
-  if (useBlob) {
-    await put(`briefs/content/${slug}.json`, json, {
-      access: "public",
-      addRandomSuffix: false,
-      allowOverwrite: true,
-      contentType: "application/json",
-    });
-  } else {
-    writeFileSync(join(dataDir, `${slug}.json`), json);
-  }
+  writeFileSync(join(dataDir, `${slug}.json`), json);
   n++;
 }
 
 console.log(
   `[sync-briefs] wrote ${n} brief${n === 1 ? "" : "s"} from ${briefsDir} → ` +
-    `${useBlob ? "Vercel Blob (briefs/content/)" : dataDir} (gitignored — never committed)`,
+    `${dataDir} (gitignored — never committed)`,
 );
