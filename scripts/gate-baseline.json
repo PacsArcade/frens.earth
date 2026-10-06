@@ -1,0 +1,6 @@
+{
+  "note": "Ratchets: the gate fails when a count goes UP. When a count goes DOWN, lower the number here in the same change.",
+  "eslintErrors": 38,
+  "eslintWarnings": 2,
+  "tscErrors": 0
+}
