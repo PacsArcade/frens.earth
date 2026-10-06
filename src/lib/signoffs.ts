@@ -1,8 +1,5 @@
-import { promises as fs } from "fs";
-import path from "path";
-import { put, get, list } from "@vercel/blob";
 import { verifyEvent } from "nostr-tools";
-import { blobStoreEnabled } from "./registry";
+import { readDocTexts, writeDocText } from "./private-store";
 import { isOperatorHex } from "./operator-auth";
 import { serverBlockInfo } from "./chain-tip-server";
 
@@ -178,79 +175,27 @@ interface SignRecord {
   sig: string;
 }
 
-/* Storage — one blob PER TICKET (the decisions/registry per-entry pattern):
-   eventually-consistent Blob reads make a shared board doc clobber-prone, so
-   every sign-off records into its own path. Dev keeps a single JSON file
-   (single process → no clobber). */
+/* Storage — one document PER TICKET (the decisions/registry per-entry
+   pattern): a shared board doc is clobber-prone under concurrent writes, so
+   every sign-off records into its own key in the private store. */
 const BLOB_DIR = "signoffs/records/";
 const recordBlobPath = (id: string) => `${BLOB_DIR}${id}.json`;
-function filePath(): string {
-  return path.join(process.cwd(), "data", "signoffs.json");
-}
-
-async function readBlobText(pathname: string): Promise<string | null> {
-  try {
-    const res = await get(pathname, { access: "public" });
-    if (!res || res.statusCode !== 200) return null;
-    return await new Response(res.stream).text();
-  } catch {
-    return null;
-  }
-}
 
 async function readRecords(): Promise<SignRecord[]> {
-  if (blobStoreEnabled()) {
-    const byId = new Map<string, SignRecord>();
-    let cursor: string | undefined;
-    do {
-      const page = await list({ prefix: BLOB_DIR, cursor });
-      const texts = await Promise.all(page.blobs.map((b) => readBlobText(b.pathname)));
-      for (const t of texts) {
-        if (!t) continue;
-        try {
-          const r = JSON.parse(t) as SignRecord;
-          if (r?.id) byId.set(r.id, r);
-        } catch {
-          /* skip a malformed record rather than break the board */
-        }
-      }
-      cursor = page.hasMore ? page.cursor : undefined;
-    } while (cursor);
-    return [...byId.values()];
+  const byId = new Map<string, SignRecord>();
+  for (const t of await readDocTexts(BLOB_DIR)) {
+    try {
+      const r = JSON.parse(t) as SignRecord;
+      if (r?.id) byId.set(r.id, r);
+    } catch {
+      /* skip a malformed record rather than break the board */
+    }
   }
-  try {
-    return (JSON.parse(await fs.readFile(filePath(), "utf8")) as { records: SignRecord[] })
-      .records ?? [];
-  } catch {
-    return [];
-  }
+  return [...byId.values()];
 }
 
 async function writeRecord(record: SignRecord): Promise<void> {
-  if (blobStoreEnabled()) {
-    await put(recordBlobPath(record.id), JSON.stringify(record), {
-      access: "public",
-      addRandomSuffix: false,
-      allowOverwrite: true,
-      contentType: "application/json",
-    });
-    return;
-  }
-  // dev only — single process, so a plain file read-modify-write is safe
-  const p = filePath();
-  let board: { records: SignRecord[] } = { records: [] };
-  try {
-    board = JSON.parse(await fs.readFile(p, "utf8")) as { records: SignRecord[] };
-  } catch {
-    /* first write — start empty */
-  }
-  const i = board.records.findIndex((r) => r.id === record.id);
-  if (i >= 0) board.records[i] = record;
-  else board.records.push(record);
-  await fs.mkdir(path.dirname(p), { recursive: true });
-  const tmp = p + ".tmp";
-  await fs.writeFile(tmp, JSON.stringify(board, null, 2), "utf8");
-  await fs.rename(tmp, p);
+  await writeDocText({ key: recordBlobPath(record.id) }, JSON.stringify(record));
 }
 
 /** The board: committed seeds with any signed record merged on top — open

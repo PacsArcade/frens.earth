@@ -1,5 +1,6 @@
 import { operatorFromCookieHeader } from "@/lib/operator-auth";
 import { readNodeConfig, writeNodeConfig, type NodeConfig } from "@/lib/nodeconfig";
+import { docsWritable, DOCS_NOT_CONFIGURED } from "@/lib/private-store";
 
 export const dynamic = "force-dynamic";
 
@@ -69,6 +70,9 @@ export async function PUT(request: Request) {
       certTemplate: String(body.ceremony.certTemplate ?? "").slice(0, 60) || "bft-auto",
       welcomeMessage: String(body.ceremony.welcomeMessage ?? "").slice(0, 2000),
     };
+  }
+  if (!docsWritable()) {
+    return Response.json({ ok: false, reason: DOCS_NOT_CONFIGURED }, { status: 503 });
   }
   const next = await writeNodeConfig(patch);
   return Response.json({ ok: true, config: masked(next) });

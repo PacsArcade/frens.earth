@@ -1,8 +1,6 @@
-import { promises as fs } from "fs";
 import path from "path";
-import { put, get, list } from "@vercel/blob";
 import { verifyEvent } from "nostr-tools";
-import { blobStoreEnabled } from "./registry";
+import { readDocText, readDocTexts, writeDocText } from "./private-store";
 import { isOperatorHex } from "./operator-auth";
 import { effectiveBriefsToken, effectiveBriefsRepo, effectiveSharedBriefsRepo } from "./nodeconfig";
 import { serverBlockInfo } from "./chain-tip-server";
@@ -12,9 +10,9 @@ import { serverBlockInfo } from "./chain-tip-server";
  *
  * ── PRIVACY (the hard rule) ─────────────────────────────────────────────────
  * This repo is PUBLIC and the briefs are internal strategy, so brief CONTENT
- * NEVER touches git. It lives ONLY in the dual-driver store — a single doc per
- * brief in Vercel Blob (prod) or a GITIGNORED data/briefs/ dir (dev) — exactly
- * the pattern decisions/merges/registry use for their records. The committed
+ * NEVER touches git. It lives ONLY in the private store (private-store.ts) — a single doc
+ * per brief, or a GITIGNORED data/briefs/ dir (dev) — the same store the
+ * other operator documents use. The committed
  * code here is the reader + the store + the puller; it carries ZERO content.
  *
  * ── TWO TIERS ────────────────────────────────────────────────────────────────
@@ -37,8 +35,7 @@ import { serverBlockInfo } from "./chain-tip-server";
  * Each brief carries at most one review record — a sign-off or a send-back,
  * BFT-stamped, and bound to a per-action operator signature
  * (`PACS-BRIEF-<slug>-<ts>-<signoff|sendback>`), the console's signed-action
- * model. Reviews store per-item (one blob per slug in prod, one JSON file in
- * dev) so they never clobber each other — the same fix decisions' rulings use.
+ * model. Reviews store per-item (one document per slug) so they never clobber each other — the same fix decisions' rulings use.
  * Writes are operator-gated in the API route AND signature-verified here.
  */
 
@@ -98,26 +95,13 @@ const contentBlobPath = (tier: BriefTier, slug: string) => `${CONTENT_BLOB_DIR[t
 const reviewBlobPath = (tier: BriefTier, slug: string) => `${REVIEW_BLOB_DIR[tier]}${slug}.json`;
 
 /** Local dev store — GITIGNORED (see .gitignore). Content is one file per brief
-    under data/briefs/ (personal) or data/briefs-shared/ (shared); reviews are a
-    single JSON per tier (one dev process → no clobber). */
+    under data/briefs/ (personal) or data/briefs-shared/ (shared); reviews are one
+    file per brief under data/private-docs/briefs/ (the private store's dev driver). */
 function contentDir(tier: BriefTier): string {
   return path.join(process.cwd(), "data", tier === "shared" ? "briefs-shared" : "briefs");
 }
 function contentFilePath(tier: BriefTier, slug: string): string {
   return path.join(contentDir(tier), `${slug}.json`);
-}
-function reviewsFilePath(tier: BriefTier): string {
-  return path.join(process.cwd(), "data", tier === "shared" ? "brief-reviews-shared.json" : "brief-reviews.json");
-}
-
-async function readBlobText(pathname: string): Promise<string | null> {
-  try {
-    const res = await get(pathname, { access: "public" });
-    if (!res || res.statusCode !== 200) return null;
-    return await new Response(res.stream).text();
-  } catch {
-    return null;
-  }
 }
 
 /** Filename/path → a URL-safe, stable slug. Kept in lockstep with the same
@@ -166,42 +150,16 @@ export function parseBrief(markdown: string, filename: string): { title: string;
     tier, so we stamp it on read (a legacy v1 doc with no `tier` field still
     classifies correctly by where it lives). */
 async function listContentsForTier(tier: BriefTier): Promise<BriefContent[]> {
-  if (blobStoreEnabled()) {
-    const out: BriefContent[] = [];
-    let cursor: string | undefined;
-    do {
-      const page = await list({ prefix: CONTENT_BLOB_DIR[tier], cursor });
-      const texts = await Promise.all(page.blobs.map((b) => readBlobText(b.pathname)));
-      for (const t of texts) {
-        if (!t) continue;
-        try {
-          const c = JSON.parse(t) as BriefContent;
-          if (c?.slug) out.push({ ...c, tier });
-        } catch {
-          /* skip a malformed doc rather than break the library */
-        }
-      }
-      cursor = page.hasMore ? page.cursor : undefined;
-    } while (cursor);
-    return out;
-  }
-  try {
-    const dir = contentDir(tier);
-    const files = await fs.readdir(dir);
-    const out: BriefContent[] = [];
-    for (const f of files) {
-      if (!f.endsWith(".json")) continue;
-      try {
-        const c = JSON.parse(await fs.readFile(path.join(dir, f), "utf8")) as BriefContent;
-        if (c?.slug) out.push({ ...c, tier });
-      } catch {
-        /* skip a malformed doc */
-      }
+  const out: BriefContent[] = [];
+  for (const t of await readDocTexts(CONTENT_BLOB_DIR[tier], contentDir(tier))) {
+    try {
+      const c = JSON.parse(t) as BriefContent;
+      if (c?.slug) out.push({ ...c, tier });
+    } catch {
+      /* skip a malformed doc rather than break the library */
     }
-    return out;
-  } catch {
-    return [];
   }
+  return out;
 }
 
 /** Both tiers, merged — shared + personal. */
@@ -214,72 +172,38 @@ export async function listBriefContents(): Promise<BriefContent[]> {
 }
 
 export async function getBriefContent(tier: BriefTier, slug: string): Promise<BriefContent | null> {
-  if (blobStoreEnabled()) {
-    const t = await readBlobText(contentBlobPath(tier, slug));
-    if (!t) return null;
-    try {
-      return { ...(JSON.parse(t) as BriefContent), tier };
-    } catch {
-      return null;
-    }
-  }
   try {
-    return { ...(JSON.parse(await fs.readFile(contentFilePath(tier, slug), "utf8")) as BriefContent), tier };
+    const t = await readDocText({ key: contentBlobPath(tier, slug), file: contentFilePath(tier, slug) });
+    if (!t) return null;
+    return { ...(JSON.parse(t) as BriefContent), tier };
   } catch {
     return null;
   }
 }
 
-/** Write one brief into its tier's store — used by the repo pullers and the dev
-    sync script's blob path. The content lands in Blob (prod) or the gitignored
+/** Write one brief into its tier's store — used by the repo pullers. The
+    content lands in the private store (prod) or the gitignored
     data/briefs[-shared]/ dir (dev); it is NEVER committed to this public repo. */
 export async function putBriefContent(brief: BriefContent): Promise<void> {
-  const body = JSON.stringify(brief, null, 2);
-  if (blobStoreEnabled()) {
-    await put(contentBlobPath(brief.tier, brief.slug), body, {
-      access: "public",
-      addRandomSuffix: false,
-      allowOverwrite: true,
-      contentType: "application/json",
-    });
-    return;
-  }
-  const p = contentFilePath(brief.tier, brief.slug);
-  await fs.mkdir(path.dirname(p), { recursive: true });
-  const tmp = p + ".tmp";
-  await fs.writeFile(tmp, body, "utf8");
-  await fs.rename(tmp, p);
+  await writeDocText(
+    { key: contentBlobPath(brief.tier, brief.slug), file: contentFilePath(brief.tier, brief.slug) },
+    JSON.stringify(brief, null, 2),
+  );
 }
 
 // ── review store (dual driver, per-item, tier-namespaced) ───────────────────
 
 async function readReviewsForTier(tier: BriefTier): Promise<BriefReview[]> {
-  if (blobStoreEnabled()) {
-    const bySlug = new Map<string, BriefReview>();
-    let cursor: string | undefined;
-    do {
-      const page = await list({ prefix: REVIEW_BLOB_DIR[tier], cursor });
-      const texts = await Promise.all(page.blobs.map((b) => readBlobText(b.pathname)));
-      for (const t of texts) {
-        if (!t) continue;
-        try {
-          const r = JSON.parse(t) as BriefReview;
-          if (r?.slug) bySlug.set(r.slug, { ...r, tier });
-        } catch {
-          /* skip a malformed review */
-        }
-      }
-      cursor = page.hasMore ? page.cursor : undefined;
-    } while (cursor);
-    return [...bySlug.values()];
+  const bySlug = new Map<string, BriefReview>();
+  for (const t of await readDocTexts(REVIEW_BLOB_DIR[tier])) {
+    try {
+      const r = JSON.parse(t) as BriefReview;
+      if (r?.slug) bySlug.set(r.slug, { ...r, tier });
+    } catch {
+      /* skip a malformed review */
+    }
   }
-  try {
-    const reviews =
-      (JSON.parse(await fs.readFile(reviewsFilePath(tier), "utf8")) as { reviews: BriefReview[] }).reviews ?? [];
-    return reviews.map((r) => ({ ...r, tier }));
-  } catch {
-    return [];
-  }
+  return [...bySlug.values()];
 }
 
 /** Every review, both tiers. */
@@ -292,31 +216,7 @@ async function readReviews(): Promise<BriefReview[]> {
 }
 
 async function writeReview(review: BriefReview): Promise<void> {
-  if (blobStoreEnabled()) {
-    await put(reviewBlobPath(review.tier, review.slug), JSON.stringify(review), {
-      access: "public",
-      addRandomSuffix: false,
-      allowOverwrite: true,
-      contentType: "application/json",
-    });
-    return;
-  }
-  // dev only — single process, so a plain file read-modify-write is safe
-  const p = reviewsFilePath(review.tier);
-  let store: { reviews: BriefReview[] } = { reviews: [] };
-  try {
-    store = JSON.parse(await fs.readFile(p, "utf8")) as { reviews: BriefReview[] };
-    if (!Array.isArray(store.reviews)) store.reviews = [];
-  } catch {
-    /* first write — start empty */
-  }
-  const i = store.reviews.findIndex((r) => r.slug === review.slug);
-  if (i >= 0) store.reviews[i] = review;
-  else store.reviews.push(review);
-  await fs.mkdir(path.dirname(p), { recursive: true });
-  const tmp = p + ".tmp";
-  await fs.writeFile(tmp, JSON.stringify(store, null, 2), "utf8");
-  await fs.rename(tmp, p);
+  await writeDocText({ key: reviewBlobPath(review.tier, review.slug) }, JSON.stringify(review));
 }
 
 // ── the joined view ─────────────────────────────────────────────────────────

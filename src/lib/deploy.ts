@@ -1,8 +1,6 @@
-import { promises as fs } from "fs";
 import path from "path";
-import { put, get } from "@vercel/blob";
 import { verifyEvent } from "nostr-tools";
-import { blobStoreEnabled } from "./registry";
+import { readDoc, writeDoc } from "./private-store";
 import { isOperatorHex } from "./operator-auth";
 import { readNodeConfig, writeNodeConfig } from "./nodeconfig";
 import { serverBlockInfo } from "./chain-tip-server";
@@ -76,40 +74,18 @@ export interface DeployRecord {
 }
 
 const LOG_CAP = 20;
-const BLOB_PATH = "deploys/log.json";
-const filePath = () => path.join(process.cwd(), "data", "deploys.json");
+const LOG_DOC = () => ({ key: "deploys/log.json", file: path.join(process.cwd(), "data", "deploys.json") });
 
 async function readLog(): Promise<DeployRecord[]> {
-  if (blobStoreEnabled()) {
-    try {
-      const res = await get(BLOB_PATH, { access: "public" });
-      if (res && res.statusCode === 200) return JSON.parse(await new Response(res.stream).text());
-    } catch {
-      /* start empty */
-    }
-    return [];
-  }
   try {
-    return JSON.parse(await fs.readFile(filePath(), "utf8"));
+    return (await readDoc<DeployRecord[]>(LOG_DOC())) ?? [];
   } catch {
     return [];
   }
 }
 
 async function writeLog(log: DeployRecord[]): Promise<void> {
-  const body = JSON.stringify(log, null, 2);
-  if (blobStoreEnabled()) {
-    await put(BLOB_PATH, body, {
-      access: "public",
-      addRandomSuffix: false,
-      allowOverwrite: true,
-      contentType: "application/json",
-    });
-    return;
-  }
-  const p = filePath();
-  await fs.mkdir(path.dirname(p), { recursive: true });
-  await fs.writeFile(p, body, "utf8");
+  await writeDoc(LOG_DOC(), log);
 }
 
 /** Record one ship, newest kept, capped ~20. `at` is the block height the
