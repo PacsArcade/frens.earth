@@ -55,7 +55,7 @@ function accentText(space: string): string {
 /**
  * The menu's identity rows — who you are up top (accent-striped by floor),
  * then your doors. Signed in: identity block, MY PROFILE, and a SWITCH row
- * for every other door signed in on this browser. Signed out: the LOGIN
+ * for every other door signed in on this browser. Signed out: the SIGN IN
  * door. SIGN OUT lives in the menu footer (split with easy-eyes).
  */
 export default function FrenMenu() {

@@ -1,13 +1,13 @@
 import { nip19 } from "nostr-tools";
 import { BLOCKS_PER_DAY, BLOCKS_PER_MONTH, bftDatePlain, bftTime, estimateHeightAt } from "@/lib/bb/bft";
 
-/** Shown when no kind 0 name is found: npub1...last4. */
+/** Shown when no kind 0 name is found: npub...last4. */
 export function shortNpub(pubkey: string): string {
   try {
     const n = nip19.npubEncode(pubkey);
-    return `npub1...${n.slice(-4)}`;
+    return `npub...${n.slice(-4)}`;
   } catch {
-    return "npub1...";
+    return "npub...";
   }
 }
 

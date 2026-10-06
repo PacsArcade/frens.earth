@@ -1891,6 +1891,8 @@ p, li { text-wrap: pretty; }
 .door-cat { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 8px; min-height: 40px; padding: 0 12px; border-radius: 12px; border: 1px solid transparent; background: transparent; color: #fff; font-size: 0.9rem; text-align: left; cursor: pointer; }
 .door-cat span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .door-cat em { font-style: normal; font-size: 0.8rem; color: rgba(255, 255, 255, 0.6); }
+.door-cats__more { width: 100%; margin-top: 6px; }
+.door-cats--open ul { max-height: 60vh; overflow-y: auto; overscroll-behavior: contain; }
 .door-cat[aria-pressed="true"] { border: 1.5px solid #53e0d4; background: rgba(83, 224, 212, 0.14); }
 .door-market__main { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 .door-searchrow { display: flex; align-items: center; gap: 12px; }
@@ -1923,6 +1925,8 @@ p, li { text-wrap: pretty; }
   .door-list { max-height: 70vh; }
   .door-market { grid-template-columns: minmax(0, 1fr); }
   .door-cats ul { flex-direction: row; overflow-x: auto; }
+  .door-cats--open ul { flex-wrap: wrap; max-height: 40vh; overflow-x: hidden; overflow-y: auto; }
+  .door-cats__more { width: auto; flex: none; margin-top: 0; }
   .door-cat { width: auto; flex: none; }
   .door-searchrow { flex-direction: column; align-items: stretch; }
   .door-searchrow__btns { width: 100%; }

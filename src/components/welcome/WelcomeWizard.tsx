@@ -33,7 +33,7 @@ type StepKey = "signer" | "claim" | "face" | "wallet" | "done";
 const STEPS: { key: StepKey; label: string }[] = [
   { key: "signer", label: "1 · SIGNER" },
   { key: "claim", label: "2 · TAG" },
-  { key: "face", label: "3 · FACE" },
+  { key: "face", label: "3 · PROFILE" },
   { key: "wallet", label: "4 · ZAPS" },
   { key: "done", label: "★ GO PLAY" },
 ];
@@ -197,7 +197,7 @@ export default function WelcomeWizard({
       <div className="text-center">
         <h1 className="font-arcade text-4xl text-coin glow-coin">WELCOME, FREN</h1>
         <p className="mx-auto mt-3 max-w-lg font-body text-sm text-white/70">
-          The whole nostr walk-in — signer, tag, face, zaps — one step at a
+          The whole nostr walk-in — signer, tag, profile, zaps — one step at a
           time, in any order you like. We walked it alone once; you don&apos;t
           have to.
         </p>
@@ -219,7 +219,7 @@ export default function WelcomeWizard({
       {/* ── STEP 1: SIGNER ─────────────────────────────────────────────── */}
       {step === "signer" && (
         <section className="border-2 border-edge bg-panel p-6">
-          <p className="mb-1 font-pixel text-xs text-cyan glow-cyan">STEP 1 — YOUR SIGNER</p>
+          <p className="mb-1 font-pixel text-xs text-cyan glow-cyan">STEP 1 · YOUR SIGNER</p>
           <div className="mb-4 border-2 border-edge bg-void px-3 py-2">
             <p className="mb-1 font-pixel text-[10px] text-white/40">WHAT IS A KEY?</p>
             <p className="font-body text-xs leading-relaxed text-white/70">
@@ -340,7 +340,7 @@ export default function WelcomeWizard({
       {step === "claim" && (
         <section>
           <div className="mb-4 border-2 border-edge bg-panel p-4 text-center">
-            <p className="font-pixel text-xs text-cyan glow-cyan">STEP 2 — CLAIM YOUR TAG</p>
+            <p className="font-pixel text-xs text-cyan glow-cyan">STEP 2 · CLAIM YOUR TAG</p>
             <p className="mt-2 font-body text-xs text-white/60">
               name@{space} — verified on nostr the moment you claim, queued for
               the Bitcoin anchor batch. The same machine as the front page,
@@ -361,7 +361,7 @@ export default function WelcomeWizard({
       {/* ── STEP 3: FACE — name + picture, sign & publish ──────────────── */}
       {step === "face" && (
         <section className="border-2 border-edge bg-panel p-6">
-          <p className="mb-1 font-pixel text-xs text-cyan glow-cyan">STEP 3 — SHOW YOUR FACE</p>
+          <p className="mb-1 font-pixel text-xs text-cyan glow-cyan">STEP 3 · CUSTOMIZE PROFILE</p>
           <p className="mb-4 font-body text-xs text-white/50">
             Your name and picture live in a small signed card (kind 0) that
             every nostr app reads. We read your current card first, change only
@@ -468,7 +468,7 @@ export default function WelcomeWizard({
       {step === "wallet" && (
         <section className="border-2 border-edge bg-panel p-6">
           <p className="mb-1 font-pixel text-xs text-cyan glow-cyan">
-            STEP 4 — CATCH ZAPS <span className="text-white/40">(OPTIONAL)</span>
+            STEP 4 · CATCH ZAPS <span className="text-white/40">(OPTIONAL)</span>
           </p>
           <p className="mb-4 font-body text-xs leading-relaxed text-white/60">
             A lightning address is how frens zap you — tiny bitcoin tips,
@@ -476,12 +476,14 @@ export default function WelcomeWizard({
             email; it isn&apos;t one): a custodial wallet like Wallet of Satoshi
             or Alby gets you one in minutes, and you can swap it for a
             sovereign one any time. You can also just add one later at /me —
-            nothing here expires.
+            nothing here expires. Nostr wallet connect settings, which let an
+            app ask your wallet to pay within limits you set, live in your
+            wallet app, not here.
           </p>
 
           {!npub ? (
             <p className="font-body text-sm text-white/70">
-              Same as the face step — this edits your signed card, so it needs
+              Same as the profile step — this edits your signed card, so it needs
               your key connected. Use step 3 to connect, or{" "}
               <Link href="/login" className="text-cyan underline">
                 sign in
