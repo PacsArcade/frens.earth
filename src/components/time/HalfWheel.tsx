@@ -587,7 +587,6 @@ export default function HalfWheel() {
       if (tickId) window.clearInterval(tickId);
       if (trembleId) window.clearInterval(trembleId);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   /* the date door — one input, the converter's answer, mobile edition */
