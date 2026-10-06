@@ -1,7 +1,9 @@
 # REVIEW: glass doors (lane C1, reading only)
 
-Branch `glass/doors` (from `glass/round-3`). Local only, not pushed.
-Revision: `4381c22`
+Branch `glass/doors` (from `glass/round-3`), pull request on PacsArcade/frens.earth.
+Revision: `4381c22` (the doors), merged with round 3b (clock strip) at `f70a5eb`.
+
+Number One, block 970,118: round 3b merged in clean (ArcadeHeader keeps the new links and the clock strip; the corner clock is gone on this branch too). Gates rerun after the merge: `npm run lint` 40 problems (delta zero), `npm run build` green with the five routes listed. The pictures below predate the merge and the 3-line title clamp, so they still show the old corner clock; the Vercel preview on the pull request is the current look.
 
 ## Routes
 - `/calendar`, `/calendar/[id]` (id = event id, 64 hex), `/market`, `/market/[id]` (id = listing event id), `/rooms`. Each in the site shell with ArcadeHeader and EarthFooter. Server wrapper plus a client view; relay reads run in the browser.
