@@ -66,7 +66,7 @@ export default function ArtUpload({
         disabled={busy}
         className="cursor-pointer border border-cyan/60 px-2 py-0.5 font-pixel text-[9px] uppercase text-cyan hover:bg-cyan/10 disabled:opacity-40"
       >
-        {busy ? "BEAMING UP…" : `${label} ▸`}
+        {busy ? "BEAMING UP…" : label}
       </button>
       <span className="font-body text-xs text-white/40">hosted on this ship — up to 2 MB</span>
       {error && <span className="font-pixel text-[9px] uppercase text-ghost">{error}</span>}

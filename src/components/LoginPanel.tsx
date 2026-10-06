@@ -109,7 +109,7 @@ export default function LoginPanel() {
             href={`/u/${existing.handle}@${existing.space}`}
             className="button block w-full text-center"
           >
-            ▶ GO TO MY PROFILE
+            GO TO MY PROFILE
           </Link>
           <button
             onClick={signOut}

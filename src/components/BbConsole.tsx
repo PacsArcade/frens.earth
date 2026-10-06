@@ -128,10 +128,10 @@ export default function BbConsole() {
           Bitcoin Buddies are pixel pets born at a block and kept alive with your key.
           Connect any nostr key to hatch and care for one.
         </p>
-        <button onClick={connect} className="button w-full sm:w-auto">▶ CONNECT YOUR KEY</button>
+        <button onClick={connect} className="button w-full sm:w-auto">CONNECT YOUR KEY</button>
         {connectErr && <p className="font-mono text-xs text-ghost">{connectErr}</p>}
         <a href="/" className="font-mono text-[11px] uppercase tracking-widest text-pink hover:underline">
-          Claim your @frens tag ▸
+          Claim your @frens tag
         </a>
       </div>
     );
@@ -163,7 +163,7 @@ export default function BbConsole() {
         </div>
         {!fren && (
           <a href="/" className="font-mono text-[10px] uppercase tracking-wider text-pink hover:underline">
-            Claim a tag ▸
+            Claim a tag
           </a>
         )}
       </section>
@@ -189,11 +189,11 @@ export default function BbConsole() {
             href={`/u/${fren.handle}@${fren.space}`}
             className="font-pixel text-[8px] uppercase text-cyan hover:glow-cyan"
           >
-            MY PROFILE ▸
+            MY PROFILE
           </a>
         ) : (
           <a href="/" className="font-pixel text-[8px] uppercase text-pink hover:underline">
-            CLAIM A TAG ▸
+            CLAIM A TAG
           </a>
         )}
       </aside>

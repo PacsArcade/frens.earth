@@ -23,6 +23,8 @@ export default function ArcadeHeader() {
       // frens.earth's own mark — a sprouting planet, not the arcade's coin.
       coinSrc="/frens-mark.svg"
       links={[
+        // Doors that exist only: the shelf, the game, then the arcade's LEARN and GROW.
+        { href: "/store", label: "SHELF" },
         // PLAY = frens.earth's own game — Bitcoin Buddy (/bb), the only game here for now.
         // LEARN/GROW stay under Pac's Arcade until frens.earth grows its own.
         { href: "/bb", label: "PLAY" },

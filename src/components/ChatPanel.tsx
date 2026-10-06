@@ -180,7 +180,7 @@ export default function ChatPanel() {
               data-accent="cyan"
               className="btn-pill btn-pill--solid"
             >
-              {saving ? "SAVING…" : saved ? "✓ SAVED" : "▶ SAVE & TEST"}
+              {saving ? "SAVING…" : saved ? "✓ SAVED" : "SAVE & TEST"}
             </button>
             <button onClick={loadStatus} disabled={busy} data-accent="cyan" className="btn-pill">
               {busy ? "TESTING…" : "TEST CONNECTION"}

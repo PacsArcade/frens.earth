@@ -71,13 +71,8 @@ function StepChip({
     <button
       type="button"
       onClick={onClick}
-      className={`cursor-pointer border-2 px-2 py-1.5 font-pixel text-[9px] uppercase ${
-        active
-          ? "border-cyan text-cyan glow-cyan"
-          : done
-            ? "border-neon/60 text-neon"
-            : "border-edge text-white/40 hover:text-cyan"
-      }`}
+      aria-pressed={active}
+      className={`btn-pill touch-manipulation ${done && !active ? "text-neon" : ""}`}
     >
       {done && !active ? "✓ " : ""}
       {label}

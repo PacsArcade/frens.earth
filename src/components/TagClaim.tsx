@@ -419,8 +419,8 @@ export default function TagClaim({
             Your profile page is live — your start screen for the nostr verse. Everything below
             is waiting for you there too.
           </p>
-          <Link href={`/u/${claimed.handle}`} className="button block w-full">
-            ▶ ENTER YOUR PROFILE
+          <Link href={`/u/${claimed.handle}`} className="button w-full">
+            ENTER YOUR PROFILE
           </Link>
           <p className="mt-3 font-body text-xs text-white/50">
             {nip05Domain}/u/{claimed.handle} — bookmark it, share it, come back any time.
@@ -677,7 +677,7 @@ export default function TagClaim({
                   />
                   <button
                     onClick={() => checkOwnership(ownershipValue)}
-                    className="button shrink-0 !px-4 !py-2 !text-xs"
+                    className="button shrink-0"
                   >
                     Check
                   </button>
@@ -759,11 +759,11 @@ export default function TagClaim({
 
         {availability === "available" && keyMode === "choose" && !npub && (
           <div className="flex flex-col gap-4 sm:flex-row">
-            <button onClick={() => setKeyMode("have")} className="button flex-1">
+            <button onClick={() => setKeyMode("have")} className="button flex-1 basis-0">
               I have keys
             </button>
-            <button onClick={forgeKeys} className="button flex-1">
-              New player — forge keys
+            <button onClick={forgeKeys} className="button flex-1 basis-0">
+              New player, forge keys
             </button>
           </div>
         )}
@@ -789,7 +789,7 @@ export default function TagClaim({
                 className="min-w-0 flex-1 border-2 border-edge bg-void px-3 py-2 font-body text-sm text-cyan outline-none focus:border-cyan"
                 aria-label="Paste your npub public key"
               />
-              <button onClick={acceptPastedKey} className="button shrink-0 !px-4 !py-2 !text-xs">
+              <button onClick={acceptPastedKey} className="button shrink-0">
                 Use it
               </button>
             </div>
@@ -885,7 +885,7 @@ export default function TagClaim({
           disabled={availability !== "available" || !npub || !savedConfirmed || claiming}
           className="button w-full disabled:cursor-not-allowed disabled:opacity-40"
         >
-          {claiming ? "INSERTING COIN…" : "CLAIM YOUR TAG — FREE"}
+          {claiming ? "INSERTING COIN…" : "CLAIM YOUR TAG, FREE"}
         </button>
         {claimError && (
           <p className="mt-3 font-pixel text-xs text-ghost glow-ghost">{claimError.toUpperCase()}</p>

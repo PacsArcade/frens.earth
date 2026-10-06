@@ -175,13 +175,13 @@ export default function SignerDoors({
                 <div className="flex gap-2">
                   <button
                     onClick={copyInvite}
-                    className="button min-h-11 flex-1 touch-manipulation text-center"
+                    className="button flex-1 basis-0 touch-manipulation text-center"
                   >
                     {copied ? "COPIED ✓" : "COPY INVITE"}
                   </button>
                   <button
                     onClick={cancelInvite}
-                    className="min-h-11 flex-1 touch-manipulation border-2 border-edge font-pixel text-[9px] uppercase text-white/50"
+                    className="btn-pill flex-1 basis-0 touch-manipulation"
                   >
                     NEVER MIND
                   </button>
