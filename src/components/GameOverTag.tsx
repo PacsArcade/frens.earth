@@ -61,8 +61,8 @@ export default function GameOverTag({
         REGISTRATION IS FREE — THE ARCADE&apos;S TREAT
       </p>
       <p className="font-pixel text-xs text-white/40">
-        <Link href="https://pacsarcade.org" className="text-cyan hover:glow-cyan">
-          BACK TO PAC&apos;S ARCADE
+        <Link href="/" className="text-cyan hover:glow-cyan">
+          BACK TO FRENS.EARTH
         </Link>
       </p>
     </main>

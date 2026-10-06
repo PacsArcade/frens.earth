@@ -70,15 +70,8 @@ export const frensEarthTheme: BrandTheme = {
       cta: "CLAIM YOUR TAG",
       accent: "neon",
     },
-    {
-      tag: "@PACSARCADE",
-      role: "THE SCHOOL ACCOUNT",
-      blurb:
-        "When you're ready to go deeper: classes → etched certs → the artist gate. School is a walk up the road — same keys, same frens.",
-      href: "https://pacsarcade.org/register",
-      cta: "ENROLL AT THE ARCADE",
-      accent: "pink",
-    },
+    // One door only: every door on frens.earth opens on frens.earth (owner
+    // ruling 970,133). The school door lives on the arcade's own site.
   ],
   roleLabels: {
     frens: "HOME",

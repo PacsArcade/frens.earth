@@ -24,17 +24,16 @@ export default function ArcadeHeader() {
       // frens.earth's own mark — a sprouting planet, not the arcade's coin.
       coinSrc="/frens-mark.svg"
       links={[
-        // Doors that exist only: the shelf, the game, then the arcade's LEARN and GROW.
+        // Doors that exist only, and every one of them on frens.earth itself
+        // (owner ruling 970,133: the footer credit is the ONLY arcade link).
         { href: "/store", label: "SHELF" },
         // The three doors read from public nostr relays (kinds in src/lib/doors).
         { href: "/calendar", label: "CALENDAR" },
         { href: "/market", label: "MARKET" },
         { href: "/rooms", label: "ROOMS" },
         // PLAY = frens.earth's own game — Bitcoin Buddy (/bb), the only game here for now.
-        // LEARN/GROW stay under Pac's Arcade until frens.earth grows its own.
+        // LEARN and GROW come back when frens.earth grows its own.
         { href: "/bb", label: "PLAY" },
-        { href: "https://pacsarcade.org/classes", label: "LEARN" },
-        { href: "https://pacsarcade.org/campaigns", label: "GROW" },
       ]}
       identityAsTrigger
       identitySlot={<FrenChip />}
