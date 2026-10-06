@@ -1621,3 +1621,193 @@ footer {
   from { offset-distance: 0%; }
   to { offset-distance: 100%; }
 }
+
+/* ==========================================================================
+   GLASS ROUND 3 (the Admiral's three marked rounds; kit: frens-glass-969999
+   css/frens3.css + buttons-proposed.css). DARK ONLY. Unlayered on purpose, so
+   it overrides the older @layer rules and the arcade-ui classes by cascade.
+   Rounded translucent glass buttons: radius 12, blur 14 saturate 1.3, inset
+   top highlight; tiers primary = teal, secondary = white, money = gold,
+   danger = rose. One size per group: 36 tall on desktop, 44 under 860 wide.
+   ========================================================================== */
+:root {
+  --pb-r: 12px;
+  --pb-h: 36px;
+  --pb-h-lg: 56px;
+  --glass-hi: inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  --glass-teal: linear-gradient(180deg, rgba(83, 224, 212, 0.34), rgba(83, 224, 212, 0.16));
+  --glass-white: linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.05));
+  --glass-gold: linear-gradient(180deg, rgba(247, 201, 72, 0.34), rgba(247, 201, 72, 0.14));
+  --glass-rose: linear-gradient(180deg, rgba(255, 92, 138, 0.18), rgba(255, 92, 138, 0.06));
+}
+@media (max-width: 860px) {
+  :root { --pb-h: 44px; }
+}
+
+/* shared glass body */
+.button,
+.btn-pill,
+.pa-btn,
+.glass-btn,
+header button[aria-label="Menu"] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5em;
+  min-height: var(--pb-h);
+  padding: 0 22px;
+  border: 0;
+  border-radius: var(--pb-r);
+  font-family: var(--font-roboto), sans-serif;
+  font-weight: 700;
+  font-size: 0.82rem;
+  letter-spacing: 0.12em;
+  line-height: 1.2;
+  text-transform: uppercase;
+  text-align: center;
+  white-space: nowrap;
+  color: #fff;
+  cursor: pointer;
+  -webkit-backdrop-filter: blur(14px) saturate(1.3);
+  backdrop-filter: blur(14px) saturate(1.3);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+.button:hover,
+.btn-pill:hover:not(:disabled),
+.pa-btn:hover:not(:disabled),
+.glass-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  color: #fff;
+}
+.button:active,
+.btn-pill:active:not(:disabled),
+.pa-btn:active:not(:disabled),
+.glass-btn:active:not(:disabled) { transform: none; }
+.button:focus-visible,
+.btn-pill:focus-visible,
+.pa-btn:focus-visible,
+.glass-btn:focus-visible,
+header button[aria-label="Menu"]:focus-visible {
+  outline: 2px solid #53e0d4;
+  outline-offset: 3px;
+}
+.button:disabled,
+.btn-pill:disabled,
+.pa-btn:disabled,
+.glass-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+/* primary = teal glass */
+.button,
+.btn-pill--solid,
+.pa-btn--coin,
+.pa-btn--neon,
+.pa-btn--cyan {
+  background: var(--glass-teal);
+  color: #fff;
+  box-shadow: inset 0 0 0 1.5px rgba(83, 224, 212, 0.85), var(--glass-hi), 0 8px 22px -12px rgba(83, 224, 212, 0.7);
+}
+.button:hover,
+.btn-pill--solid:hover:not(:disabled),
+.pa-btn--coin:hover:not(:disabled),
+.pa-btn--neon:hover:not(:disabled),
+.pa-btn--cyan:hover:not(:disabled) {
+  background: var(--glass-teal);
+  box-shadow: inset 0 0 0 1.5px #53e0d4, var(--glass-hi), 0 12px 26px -12px rgba(83, 224, 212, 0.9);
+}
+
+/* secondary = white glass */
+.btn-pill,
+.btn-pill--muted,
+.pa-btn--ghost,
+.glass-btn--secondary,
+header button[aria-label="Menu"] {
+  background: var(--glass-white);
+  color: #fff;
+  box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.28), var(--glass-hi);
+}
+.btn-pill:hover:not(:disabled),
+.btn-pill--muted:hover:not(:disabled),
+.pa-btn--ghost:hover:not(:disabled),
+.glass-btn--secondary:hover:not(:disabled),
+header button[aria-label="Menu"]:hover {
+  background: var(--glass-white);
+  box-shadow: inset 0 0 0 1.5px #53e0d4, var(--glass-hi);
+  color: #fff;
+}
+.btn-pill[aria-pressed="true"],
+.glass-btn[aria-pressed="true"] {
+  background: linear-gradient(180deg, rgba(83, 224, 212, 0.26), rgba(83, 224, 212, 0.1));
+  box-shadow: inset 0 0 0 2px #53e0d4, var(--glass-hi);
+}
+
+/* money = gold glass: sats and checkout only */
+.glass-btn--money {
+  background: var(--glass-gold);
+  color: #fff;
+  box-shadow: inset 0 0 0 1.5px rgba(247, 201, 72, 0.85), var(--glass-hi);
+}
+.glass-btn--money:hover:not(:disabled) {
+  background: var(--glass-gold);
+  box-shadow: inset 0 0 0 1.5px #f7c948, var(--glass-hi), 0 12px 26px -12px rgba(247, 201, 72, 0.8);
+}
+
+/* danger = rose glass */
+.glass-btn--danger {
+  background: var(--glass-rose);
+  color: #fff;
+  box-shadow: inset 0 0 0 1.5px #ff5c8a, var(--glass-hi);
+}
+.glass-btn--danger:hover:not(:disabled) { background: rgba(255, 92, 138, 0.5); }
+
+/* the header burger / identity chip keeps its own shape, glass skin */
+header button[aria-label="Menu"] {
+  padding: 0 10px;
+  min-width: 44px;
+  min-height: 44px;
+  letter-spacing: 0;
+  border-radius: var(--pb-r);
+  border: 0;
+}
+/* arcade-ui puts border colours on the burger with Tailwind utilities */
+header button[aria-label="Menu"][aria-expanded="true"] {
+  box-shadow: inset 0 0 0 2px #53e0d4, var(--glass-hi);
+}
+
+/* the lone hero size, and the retired small size */
+.button.button--lg { min-height: var(--pb-h-lg); padding: 0 34px; font-size: 1rem; }
+.pa-btn--sm, .pa-btn--md, .pa-btn--lg { padding: 0 22px; font-size: 0.82rem; }
+.pa-btn--full { display: flex; width: 100%; }
+
+/* one size per group: a row of buttons is equal width and equal height */
+.btn-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 12px; }
+.btn-row > .button, .btn-row > .glass-btn { width: 100%; }
+@media (max-width: 860px) {
+  .button, .btn-pill, .glass-btn { min-height: 44px; }
+}
+/* a long label never wraps mid-phrase: tighten the tracking so it fits */
+@media (max-width: 480px) {
+  .button, .btn-pill, .glass-btn { letter-spacing: 0.06em; padding: 0 12px; font-size: 0.78rem; }
+}
+
+/* ---- cards: how-it-works are one height, single-line titles, centred button ---- */
+.card { border-radius: 14px; display: flex; flex-direction: column; }
+.card h3 { white-space: nowrap; text-wrap: nowrap; }
+.card > .button, .card > .glass-btn { margin-top: auto; align-self: center; }
+
+/* ---- store shelf card: one size ---- */
+.shelf-card { border-radius: 14px; }
+.shelf-card__stage { aspect-ratio: 1 / 1; width: 100%; flex: none; }
+.shelf-card__name { height: 2.7em; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-wrap: balance; }
+.shelf-card__sizes { height: 3.2em; overflow: hidden; }
+@media (max-width: 1100px) { .shelf-card__sizes { height: 3.2em; } }
+.shelf-card__price { margin-top: auto; display: flex; flex-direction: column; gap: 2px; line-height: 1.35; }
+
+/* ---- footer sits at the bottom of the viewport on short pages ---- */
+main.min-h-screen:has(> footer) { display: flex; flex-direction: column; }
+main.min-h-screen:has(> footer) > :where(header, section, div, article, form, nav):not([class*="fixed"]):not([class*="absolute"]) { width: 100%; }
+main.min-h-screen:has(> footer) > footer { margin-top: auto; }
+
+/* ---- wrapping ---- */
+h1, h2, h3, h4 { text-wrap: balance; }
+p, li { text-wrap: pretty; }
+.card h3 { text-wrap: nowrap; }

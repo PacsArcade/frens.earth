@@ -47,12 +47,12 @@ export default function GameOverTag({
         <p className="border-2 border-cyan/60 px-4 py-3 font-pixel text-[10px] uppercase text-cyan">
           THIS TAG LIVES BEHIND THE OTHER DOOR —{" "}
           <Link href={`/u/${handle}@${elsewhereSpace}`} className="underline hover:glow-cyan">
-            VIEW {handle.toUpperCase()}@{elsewhereSpace.toUpperCase()} ▸
+            VIEW {handle.toUpperCase()}@{elsewhereSpace.toUpperCase()}
           </Link>
         </p>
       )}
       <Link href={pressStartHref} className="button pulse-neon">
-        ▶ NEW PLAYER — PRESS START
+        NEW PLAYER, PRESS START
       </Link>
       <Link href={registerHref} className="font-pixel text-xs text-cyan hover:glow-cyan">
         SEARCH ANOTHER TAG

@@ -234,3 +234,74 @@
   .sclk-glayer { animation: none !important; }
   .sclk-ghost .sclk-ginner { animation: none !important; }
 }
+
+/* ═══ ROUND 3b: THE CLOCK STRIP ═══════════════════════════════════════════
+   One thin dark-glass line directly under the header: "0018.07.17  22:00:53 aB".
+   Far right on wide screens, full width and centred on phones. It is in the
+   normal flow (never fixed), so it can never cover content. The engine keeps
+   its ids/classes; this only restyles them: ghosts, track, height, old
+   calendar and the flip-card chrome are hidden, digits read as plain text. */
+.clock-strip {
+  background: rgba(10, 10, 10, 0.72);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.clock-strip-in {
+  max-width: 64rem;
+  margin: 0 auto;
+  padding: 4px 16px;
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  font-family: var(--font-roboto), Roboto, ui-monospace, "JetBrains Mono", Menlo, monospace;
+}
+.clock-strip .sclk { display: block; font-family: inherit; color: #e8e2d8; }
+.clock-strip .sclk-card {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6em;
+  padding: 0;
+  max-width: none;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none !important;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+.clock-strip .sclk-peri,
+.clock-strip .sclk-height,
+.clock-strip .sclk-oldcal,
+.clock-strip .flip::after,
+.clock-strip .flip-est { display: none !important; }
+.clock-strip .sclk-facts,
+.clock-strip .sclk-date { display: contents; }
+.clock-strip .sclk-d-num { order: 0; color: #e8e2d8; font-variant-numeric: tabular-nums; }
+.clock-strip .sclk-clock { order: 1; font-size: inherit; gap: 0; display: inline-flex; align-items: baseline; }
+.clock-strip .sclk-ab { order: 2; color: rgba(247, 147, 26, 0.9); letter-spacing: 0.04em; }
+.clock-strip .sclk .flip {
+  width: auto;
+  height: auto;
+  background: none;
+  box-shadow: none !important;
+  overflow: visible;
+  border-radius: 0;
+  perspective: none;
+}
+.clock-strip .sclk .flip .flip-val {
+  color: #e8e2d8 !important;
+  text-shadow: none;
+  font-weight: 400;
+  transform: none !important;
+  animation: none !important;
+  font-variant-numeric: tabular-nums;
+}
+.clock-strip .sclk .flip-colon { font-weight: 400; padding: 0; opacity: 1; }
+@media (max-width: 640px) {
+  .clock-strip-in { justify-content: center; padding: 4px 12px; }
+  .clock-strip .sclk-card { font-size: 12px; }
+}
+.clock-strip .sclk-date, .clock-strip .sclk-d-num { font-size: inherit; letter-spacing: inherit; }

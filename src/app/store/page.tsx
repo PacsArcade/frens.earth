@@ -49,9 +49,9 @@ function ItemCard({ item }: { item: StoreItem }) {
     <li>
       <Link
         href={`/store/${item.id}`}
-        className="group flex h-full flex-col overflow-hidden rounded-md border border-edge bg-panel transition-colors hover:border-pink"
+        className="shelf-card group flex h-full flex-col overflow-hidden border border-edge bg-panel transition-colors hover:border-pink"
       >
-        <div className="relative aspect-square w-full overflow-hidden bg-void">
+        <div className="shelf-card__stage relative overflow-hidden bg-void">
           {shot ? (
             // product shots are external URLs (dev-file or the artist's own repo) — plain img, bounded
             // eslint-disable-next-line @next/next/no-img-element
@@ -77,16 +77,18 @@ function ItemCard({ item }: { item: StoreItem }) {
           )}
         </div>
         <div className="flex flex-1 flex-col gap-1.5 p-3">
-          <span className="text-sm font-bold leading-snug text-white group-hover:text-pink">{item.title}</span>
-          <p className="line-clamp-2 flex-1 text-xs leading-relaxed text-white/50">{item.blurb}</p>
-          {item.sizes && item.sizes.length > 0 && (
-            <p className="font-pixel text-[8px] uppercase tracking-wide text-white/35">{item.sizes.join(" · ")}</p>
-          )}
-          <p className="mt-1 text-sm font-bold" style={{ color: "var(--primary)" }}>
-            {effective.sats != null ? satsLabel(effective.sats) : effective.fiat ? fiatLabel(effective.fiat) : ""}
-            {item.sale && <span className="ml-2 text-[10px] font-normal text-pink">ON SALE</span>}
+          <span className="shelf-card__name text-sm font-bold text-white group-hover:text-pink">{item.title}</span>
+          <p className="line-clamp-2 h-[3.3em] overflow-hidden text-xs leading-relaxed text-white/50">{item.blurb}</p>
+          <p className="shelf-card__sizes font-pixel text-[8px] uppercase leading-relaxed tracking-wide text-white/35">
+            {item.sizes && item.sizes.length > 0 ? item.sizes.join(" · ") : ""}
+          </p>
+          <p className="shelf-card__price text-sm font-bold" style={{ color: "var(--primary)" }}>
+            <span>
+              {effective.sats != null ? satsLabel(effective.sats) : effective.fiat ? fiatLabel(effective.fiat) : ""}
+              {item.sale && <span className="ml-2 text-[10px] font-normal text-pink">ON SALE</span>}
+            </span>
             {effective.sats != null && effective.fiat && (
-              <span className="ml-2 text-[10px] font-normal text-white/40">~{fiatLabel(effective.fiat)}</span>
+              <span className="text-[10px] font-normal text-white/40">~{fiatLabel(effective.fiat)}</span>
             )}
           </p>
         </div>

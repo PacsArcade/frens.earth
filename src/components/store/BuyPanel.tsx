@@ -92,16 +92,14 @@ export default function BuyPanel({ item, railLive }: { item: StoreItem; railLive
       {needsSize && (
         <fieldset className="mt-4">
           <legend className="text-xs text-neutral-400">size — pick one before buying</legend>
-          <div className="mt-1 flex flex-wrap gap-1">
+          <div className="mt-1 flex flex-wrap gap-2">
             {sizes.map((s) => (
               <button
                 key={s}
                 type="button"
                 aria-pressed={size === s}
                 onClick={() => setSize(s)}
-                className={`min-h-11 touch-manipulation border px-3 py-1 text-xs ${
-                  size === s ? "border-white font-bold text-white" : "border-neutral-600 text-neutral-300"
-                }`}
+                className="btn-pill min-w-14 touch-manipulation"
               >
                 {s}
               </button>
@@ -213,7 +211,7 @@ export default function BuyPanel({ item, railLive }: { item: StoreItem; railLive
           (needsStructured ? !structuredComplete : needsShipping && (!shipName || !shipAddr)) ||
           (needsSize && !size)
         }
-        className="mt-4 min-h-11 w-full touch-manipulation border border-yellow-500 px-4 py-2 text-sm font-bold tracking-widest text-yellow-400 disabled:opacity-40"
+        className="glass-btn glass-btn--money mt-4 w-full touch-manipulation"
       >
         {busy ? "OPENING INVOICE…" : needsSize && !size ? "PICK A SIZE FIRST" : "BUY WITH BITCOIN"}
       </button>

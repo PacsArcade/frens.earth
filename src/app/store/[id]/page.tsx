@@ -76,7 +76,7 @@ export default async function ItemPage({ params }: { params: Promise<{ id: strin
         {item.media?.preview && (
           <p className="mt-2 text-xs">
             <a href={item.media.preview} className="text-cyan underline hover:glow-cyan" target="_blank" rel="noopener noreferrer">
-              ▶ preview
+              preview
             </a>
           </p>
         )}

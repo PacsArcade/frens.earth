@@ -11,7 +11,7 @@ export default function FrenNotFound() {
         Pick one that fits and press start.
       </p>
       <Link href="/" className="button">
-        ▶ NEW PLAYER — PRESS START
+        NEW PLAYER, PRESS START
       </Link>
       <p className="font-pixel text-xs text-white/40">
         <Link href="https://pacsarcade.org" className="text-cyan hover:glow-cyan">

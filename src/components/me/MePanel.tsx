@@ -71,7 +71,7 @@ export default function MePanel() {
           with your key to open it.
         </p>
         <Link href="/login" className="button block w-full text-center">
-          ▶ SIGN IN
+          SIGN IN
         </Link>
         <p className="mt-4 font-body text-xs text-white/50">
           New here?{" "}
@@ -220,7 +220,7 @@ export default function MePanel() {
           })}
         </ul>
         <div className="mt-4 flex flex-wrap items-center gap-4">
-          <Link href="/login" className="button !px-4 !py-2 !text-xs">
+          <Link href="/login" className="button">
             + ADD ANOTHER TAG
           </Link>
           {confirmAllOut ? (

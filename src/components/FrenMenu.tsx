@@ -23,6 +23,18 @@ function useIsOperator(): boolean {
   return isOp;
 }
 
+/* Phone menu order (the Admiral's pin): sign in first, then welcome, then the doors. */
+function WelcomeRow() {
+  return (
+    <Link
+      href="/welcome"
+      className="flex min-h-11 items-center border-b-2 border-edge px-4 font-pixel text-[10px] text-cyan"
+    >
+      WELCOME
+    </Link>
+  );
+}
+
 function AdminDeckRow() {
   return (
     <Link
@@ -59,8 +71,9 @@ export default function FrenMenu() {
           href="/login"
           className="flex min-h-11 items-center border-b-2 border-edge px-4 font-pixel text-[10px] text-coin glow-coin"
         >
-          🕹️ LOGIN
+          SIGN IN
         </Link>
+        <WelcomeRow />
         {isOperator && <AdminDeckRow />}
       </>
     );
@@ -107,6 +120,7 @@ export default function FrenMenu() {
       >
         MY TAG &amp; SESSIONS
       </Link>
+      <WelcomeRow />
       {isOperator && <AdminDeckRow />}
       {/* the door switcher — every other signed-in door, one press away */}
       {others.map((a) => (

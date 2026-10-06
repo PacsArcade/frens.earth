@@ -443,7 +443,7 @@ function RequestTab({
           disabled={filing || !name.trim() || taken}
           className="button mt-4 block w-full text-center disabled:cursor-not-allowed disabled:opacity-40"
         >
-          {filing ? "FILING…" : taken ? "TAKEN — TRY ANOTHER" : "▶ FILE THE REQUEST"}
+          {filing ? "FILING…" : taken ? "TAKEN — TRY ANOTHER" : "FILE THE REQUEST"}
         </button>
         {err && <p className="mt-3 font-pixel text-[10px] uppercase text-ghost">{err}</p>}
         <p className="mt-3 font-body text-xs text-white/50">

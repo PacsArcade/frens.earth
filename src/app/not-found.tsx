@@ -84,7 +84,7 @@ export default function NotFound() {
       </div>
 
       <div className="flex flex-col items-center gap-4">
-        <Link href="/" className="button">◄ RETURN TO THE FLOOR</Link>
+        <Link href="/" className="button">RETURN TO THE FLOOR</Link>
         <span className="bb404-blink font-pixel text-[10px] uppercase tracking-[0.3em] text-white/50">Insert coin to continue</span>
       </div>
     </section>

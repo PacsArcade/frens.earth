@@ -151,7 +151,7 @@ export default function StripClock() {
             HEIGHT <b className="sclk-h-num">—</b>
           </span>
           <span className="sclk-date">
-            <span className="sclk-d-num">————.——.——</span> <span className="sclk-ab">a₿</span>
+            <span className="sclk-d-num">————.——.——</span> <span className="sclk-ab">aB</span>
           </span>
           <span className="sclk-oldcal">OLD CAL · —</span>
         </span>
