@@ -13,11 +13,6 @@ export default function FrenNotFound() {
       <Link href="/" className="button">
         NEW PLAYER, PRESS START
       </Link>
-      <p className="font-pixel text-xs text-white/40">
-        <Link href="https://pacsarcade.org" className="text-cyan hover:glow-cyan">
-          BACK TO PAC&apos;S ARCADE
-        </Link>
-      </p>
     </main>
   );
 }

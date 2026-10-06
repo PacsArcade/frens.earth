@@ -5,7 +5,7 @@ import Link from "next/link";
 import { bftDate, estimateHeight } from "@/lib/bb/bft";
 import type { HandleStatus } from "@/lib/registry";
 import { ANCHOR_BLOCKS_OUT, SPACE_ROLES } from "@/lib/identity-config";
-import { ARTIST_GATE_CERT_COUNT, CLASSES_URL } from "@/lib/classes";
+import { ARTIST_GATE_CERT_COUNT } from "@/lib/classes";
 import { PixelAvatar, useTipHeight } from "@pacsarcade/arcade-ui";
 import ArcadeHeader from "@/components/ArcadeHeader";
 import EarthFooter from "@/components/EarthFooter";
@@ -256,28 +256,20 @@ export default function FrenProfile({
                 <span className="text-pink">@frens</span>{" "}is the play-and-support account:
                 games, classes, backing other frens&apos; runs. Running a campaign of your own is
                 school business — it takes an{" "}
-                <span className="text-pink">@pacsarcade</span>{" "}account.{" "}
-                <a
-                  href="https://pacsarcade.org/register"
-                  className="font-pixel text-[10px] uppercase text-cyan underline hover:glow-cyan"
-                >
-                  ENROLL AT PACSARCADE.ORG ▸
-                </a>
+                <span className="text-pink">@pacsarcade</span>{" "}account.
               </p>
             </div>
           ) : (
             <div className="border-2 border-ghost/60 bg-panel p-5">
               {/* the rail: circles on a line, lit in order */}
               <div className="flex items-start">
+                {/* lights only, no doors: the school's own rooms are not linked
+                    from frens.earth (owner ruling 970,133) */}
                 {[
-                  { label: "NOSTR TAG", done: true, href: null },
-                  {
-                    label: "MATRIX",
-                    done: matrixProvisioned,
-                    href: matrixProvisioned ? null : "https://pacsarcade.org/login",
-                  },
-                  { label: `CERTS 0/${ARTIST_GATE_CERT_COUNT}`, done: false, href: CLASSES_URL },
-                  { label: "WALLET", done: false, href: null },
+                  { label: "NOSTR TAG", done: true },
+                  { label: "MATRIX", done: matrixProvisioned },
+                  { label: `CERTS 0/${ARTIST_GATE_CERT_COUNT}`, done: false },
+                  { label: "WALLET", done: false },
                 ].map((m, i, all) => (
                   <div key={m.label} className="flex flex-1 items-start">
                     {i > 0 && (
@@ -295,20 +287,11 @@ export default function FrenProfile({
                       >
                         {m.done ? "✓" : "⚿"}
                       </span>
-                      {m.href ? (
-                        <a
-                          href={m.href}
-                          className="whitespace-nowrap font-pixel text-[8px] uppercase text-cyan underline hover:glow-cyan"
-                        >
-                          {m.label}
-                        </a>
-                      ) : (
-                        <span
-                          className={`whitespace-nowrap font-pixel text-[8px] uppercase ${m.done ? "text-white/80" : "text-white/40"}`}
-                        >
-                          {m.label}
-                        </span>
-                      )}
+                      <span
+                        className={`whitespace-nowrap font-pixel text-[8px] uppercase ${m.done ? "text-white/80" : "text-white/40"}`}
+                      >
+                        {m.label}
+                      </span>
                     </span>
                   </div>
                 ))}
@@ -416,9 +399,6 @@ export default function FrenProfile({
                   Zelda cartridge — and halvings mint the{" "}
                   <span className="text-pink">astronomical</span> tier.
                 </p>
-                <a href={CLASSES_URL} className="button mt-4 inline-block text-center">
-                  SEE THE CLASSES ▸
-                </a>
               </div>
             </div>
           </div>
@@ -623,47 +603,50 @@ export default function FrenProfile({
         {/* The right of exit — pending names only; etched is forever */}
         <ReleaseTag handle={handle} space={space} status={status} nip05Domain={nip05Domain} />
 
-        {/* The three doors — the whole arcade from any profile, no dupes */}
+        {/* The three doors — frens.earth's own (the same three the header
+            carries; words are each door page's own description). No door
+            here leaves the site: owner ruling 970,133. */}
         <section className="border-b-0 py-0">
           <p className="mb-2 text-center font-pixel text-[10px] uppercase tracking-widest text-white/40">
-            THE THREE DOORS OF THE ARCADE
+            THE THREE DOORS OF FRENS.EARTH
           </p>
           <div className="grid gap-5 sm:grid-cols-3">
             <div className="flex flex-col gap-3 border-2 border-coin/40 bg-panel p-5">
-              <p className="font-pixel text-xs text-coin">PLAY</p>
+              <p className="font-pixel text-xs text-coin">CALENDAR</p>
               <p className="flex-1 font-body text-sm text-white/70">
-                The game portal — P.O.K.E. worlds where playing IS learning.
+                Meetups, classes and rooms anyone can publish to nostr. Dates in Bitcoin time
+                first.
               </p>
-              <a
-                href="https://pacsarcade.org/play"
+              <Link
+                href="/calendar"
                 className="self-start font-pixel text-[10px] text-cyan underline hover:glow-cyan"
               >
-                INSERT COIN ▸
-              </a>
+                OPEN THE CALENDAR
+              </Link>
             </div>
             <div className="flex flex-col gap-3 border-2 border-pink/40 bg-panel p-5">
-              <p className="font-pixel text-xs text-pink">LEARN</p>
+              <p className="font-pixel text-xs text-pink">MARKET</p>
               <p className="flex-1 font-body text-sm text-white/70">
-                Free classes, live with Pacman — every one etches a cert.
+                Classifieds from nostr, priced in sats. You talk to the seller directly.
               </p>
-              <a
-                href={CLASSES_URL}
+              <Link
+                href="/market"
                 className="self-start font-pixel text-[10px] text-cyan underline hover:glow-cyan"
               >
-                SEE CLASSES ▸
-              </a>
+                OPEN THE MARKET
+              </Link>
             </div>
             <div className="flex flex-col gap-3 border-2 border-cyan/40 bg-panel p-5">
-              <p className="font-pixel text-xs text-cyan">GROW</p>
+              <p className="font-pixel text-xs text-cyan">ROOMS</p>
               <p className="flex-1 font-body text-sm text-white/70">
-                The community floor — frens funding frens, wallet to wallet.
+                Live and scheduled audio rooms on nostr. Join opens the room in its own tab.
               </p>
-              <a
-                href="https://pacsarcade.org/campaigns"
+              <Link
+                href="/rooms"
                 className="self-start font-pixel text-[10px] text-cyan underline hover:glow-cyan"
               >
-                WALK THE FLOOR ▸
-              </a>
+                OPEN THE ROOMS
+              </Link>
             </div>
           </div>
         </section>

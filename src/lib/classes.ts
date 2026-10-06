@@ -91,6 +91,3 @@ export const FOUNDATION_COURSES: Course[] = [
 
 /** Every foundation cert = the artist gate requirement. */
 export const ARTIST_GATE_CERT_COUNT = FOUNDATION_COURSES.length;
-
-/** The classes live on the arcade site — absolute so frens.earth can link it. */
-export const CLASSES_URL = "https://pacsarcade.org/classes";
