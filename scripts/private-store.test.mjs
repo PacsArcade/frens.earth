@@ -163,6 +163,59 @@ try {
   await rm(tmp, { recursive: true, force: true });
 }
 
+// ---- a vault that does not answer ---------------------------------------------
+{
+  process.env.REDIS_URL = "redis://127.0.0.1:1"; // nothing listens there
+  process.env.BLOB_READ_WRITE_TOKEN = "not-a-real-token";
+  process.env.REGISTRY_DRIVER = "blob";
+  ps.resetVaultForTest();
+  const older = new Map([["down/a.json", FAKE], ["down/list/1.json", '{"id":"1"}']]);
+  const removed = [];
+  const warns = [];
+  const realWarn = console.warn;
+  console.warn = (l) => warns.push(String(l));
+  ps.setLegacyBlobForTest({
+    read: async (k) => older.get(k) ?? null,
+    list: async (p) => [...older.keys()].filter((k) => k.startsWith(p)),
+    remove: async (k) => removed.push(k),
+  });
+  try {
+    let t0 = Date.now();
+    let err = "";
+    try {
+      await ps.kv(["GET", "x"]);
+    } catch (e) {
+      err = e.message;
+    }
+    check("down: a vault call fails instead of waiting", err.startsWith("order store: not answering") && Date.now() - t0 < 6000, `${err} after ${Date.now() - t0} ms`);
+    t0 = Date.now();
+    check("down: a read serves the older copy", (await ps.readDocText({ key: "down/a.json" })) === FAKE);
+    check("down: and at once while the vault rests", Date.now() - t0 < 500, `${Date.now() - t0} ms`);
+    check("down: a prefix read serves the older copies", (await ps.readDocTexts("down/list/")).length === 1);
+    let none = "";
+    try {
+      await ps.readDocText({ key: "down/none.json" });
+    } catch (e) {
+      none = e.message;
+    }
+    check("down: a read with no older copy fails, it does not pretend to be empty", none.startsWith("order store: not answering"), none);
+    let refused = "";
+    try {
+      await ps.writeDocText({ key: "down/a.json" }, "{}");
+    } catch (e) {
+      refused = e.message;
+    }
+    check("down: a write is refused", refused.startsWith("order store: not answering"), refused);
+    check("down: nothing removed", removed.length === 0 && older.size === 2);
+    check("down: one log line, no names, no content", warns.length === 1 && !warns[0].includes("down/") && !warns[0].includes("not-a-real-token"), warns.join("|"));
+  } finally {
+    console.warn = realWarn;
+    ps.setLegacyBlobForTest();
+    ps.resetVaultForTest();
+    for (const k of ["REDIS_URL", "BLOB_READ_WRITE_TOKEN", "REGISTRY_DRIVER"]) delete process.env[k];
+  }
+}
+
 // ---- a real key-value server -------------------------------------------------
 if (REDIS) {
   process.env.REDIS_URL = REDIS;

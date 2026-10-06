@@ -21,6 +21,11 @@ import { blobStoreEnabled } from "./registry";
  * remove the old file. Any failed step serves the old content and removes
  * nothing. Once a document has its private copy, that copy is the document:
  * a write, or a prefix read that finds both, removes the older one.
+ *
+ * Every vault call is bounded (VAULT_TIMEOUT_MS) and never retried in place:
+ * a vault that does not answer fails the call, then is left alone for a
+ * moment (VAULT_REST_MS) so it costs one wait, not one per request. A read
+ * that cannot reach the vault serves the older blob copy when there is one.
  */
 
 /**
@@ -40,34 +45,75 @@ export function vaultConfigured(): boolean {
   return restEnv() !== null || !!process.env.REDIS_URL;
 }
 
-type RedisLike = { sendCommand: (cmd: string[]) => Promise<unknown> };
+type RedisLike = { sendCommand: (cmd: string[]) => Promise<unknown>; destroy?: () => void };
 let redisClient: RedisLike | null = null;
+
+/** How long one vault call may take before it counts as unanswered. */
+const VAULT_TIMEOUT_MS = 4000;
+/** After an unanswered call the vault is left alone this long. */
+const VAULT_REST_MS = 30_000;
+let vaultRestsUntil = 0;
+
+/** The vault could not be reached at all (as opposed to answering with an error). */
+class VaultUnanswered extends Error {}
+
+/** Tests only: forget the client and the rest period. */
+export function resetVaultForTest(): void {
+  dropClient();
+  vaultRestsUntil = 0;
+}
+
+function dropClient(): void {
+  const dead = redisClient;
+  redisClient = null;
+  try {
+    dead?.destroy?.();
+  } catch {
+    /* already closed */
+  }
+}
 
 async function getRedis(): Promise<RedisLike> {
   if (redisClient) return redisClient;
   const { createClient } = await import("redis");
   const client = createClient({
     url: process.env.REDIS_URL,
-    socket: { connectTimeout: 5000 },
+    // one bounded attempt: a store that is gone must fail the call, not hold it open
+    socket: { connectTimeout: VAULT_TIMEOUT_MS - 1000, reconnectStrategy: false },
+    disableOfflineQueue: true,
   });
   client.on("error", () => {
     redisClient = null; // next call reconnects instead of riding a dead socket
   });
-  await client.connect();
+  try {
+    await client.connect();
+  } catch (err) {
+    try {
+      client.destroy();
+    } catch {
+      /* never opened */
+    }
+    throw new VaultUnanswered(err instanceof Error ? err.message : "no connection");
+  }
   redisClient = client as unknown as RedisLike;
   return redisClient;
 }
 
-export async function kv(cmd: unknown[]): Promise<{ result: unknown } | null> {
-  if (!vaultConfigured()) return null;
+async function kvOnce(cmd: unknown[]): Promise<{ result: unknown }> {
   const rest = restEnv();
   if (rest) {
-    const res = await fetch(rest.url, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${rest.token}`, "Content-Type": "application/json" },
-      body: JSON.stringify(cmd),
-      cache: "no-store",
-    });
+    let res: Response;
+    try {
+      res = await fetch(rest.url, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${rest.token}`, "Content-Type": "application/json" },
+        body: JSON.stringify(cmd),
+        cache: "no-store",
+        signal: AbortSignal.timeout(VAULT_TIMEOUT_MS),
+      });
+    } catch {
+      throw new VaultUnanswered("KV did not answer");
+    }
     if (!res.ok) throw new Error(`order store: KV ${res.status}`);
     return (await res.json()) as { result: unknown };
   }
@@ -76,8 +122,30 @@ export async function kv(cmd: unknown[]): Promise<{ result: unknown } | null> {
     const result = await client.sendCommand(cmd.map(String));
     return { result };
   } catch (err) {
-    redisClient = null;
+    dropClient();
+    if (err instanceof VaultUnanswered) throw err;
     throw new Error(`order store: redis ${err instanceof Error ? err.message : "error"}`);
+  }
+}
+
+export async function kv(cmd: unknown[]): Promise<{ result: unknown } | null> {
+  if (!vaultConfigured()) return null;
+  if (Date.now() < vaultRestsUntil) throw new Error("order store: not answering");
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const limit = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new VaultUnanswered("no answer in time")), VAULT_TIMEOUT_MS);
+  });
+  try {
+    return await Promise.race([kvOnce(cmd), limit]);
+  } catch (err) {
+    if (err instanceof VaultUnanswered) {
+      dropClient();
+      vaultRestsUntil = Date.now() + VAULT_REST_MS;
+      throw new Error(`order store: not answering (${err.message})`);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
   }
 }
 
@@ -161,6 +229,26 @@ async function legacyRead(pathname: string): Promise<string | null> {
   } catch {
     return null;
   }
+}
+
+/** Every older copy under a prefix, read only. */
+async function legacyTexts(prefix: string): Promise<string[]> {
+  let keys: string[] = [];
+  try {
+    keys = await legacy.list(prefix);
+  } catch {
+    /* unreadable — an honest empty */
+  }
+  const texts = await Promise.all(keys.map((k) => legacyRead(k)));
+  return texts.filter((t): t is string => t !== null);
+}
+
+let warnedUnreachable = 0;
+/** One line a minute at most, no document names and no content. */
+function warnUnreachable(): void {
+  if (Date.now() - warnedUnreachable < 60_000) return;
+  warnedUnreachable = Date.now();
+  console.warn("private store: the vault is not answering, serving older copies where they exist");
 }
 
 /** The private copy is the document now: its older copy goes. Best effort. */
@@ -298,7 +386,16 @@ function moveIO(ref: DocRef): MoveIO {
 export async function readDocText(ref: DocRef): Promise<string | null> {
   const d = driver();
   if (d === "none") return blobStoreEnabled() ? legacyRead(ref.key) : null; // read-only fallback
-  const own = await rawGet(ref);
+  let own: string | null;
+  try {
+    own = await rawGet(ref);
+  } catch (err) {
+    // the vault did not answer: an older copy, if one is still there, keeps the site running
+    const older = d === "vault" && blobStoreEnabled() ? await legacyRead(ref.key) : null;
+    if (older === null) throw err;
+    warnUnreachable();
+    return older;
+  }
   if (own !== null) return own;
   if (d === "vault" && blobStoreEnabled()) {
     // null can also mean another request just finished the move: look again
@@ -333,19 +430,17 @@ export async function writeDoc(ref: DocRef, value: unknown, pretty = true): Prom
 /** The text of every document under a key prefix (older copies move on the way). */
 export async function readDocTexts(prefix: string, dir?: string): Promise<string[]> {
   const d = driver();
-  if (d === "none") {
-    if (!blobStoreEnabled()) return [];
-    let keys: string[] = [];
-    try {
-      keys = await legacy.list(prefix);
-    } catch {
-      /* unreadable — an honest empty */
-    }
-    const texts = await Promise.all(keys.map((k) => legacyRead(k)));
-    return texts.filter((t): t is string => t !== null);
+  if (d === "none") return blobStoreEnabled() ? legacyTexts(prefix) : [];
+  let own: string[];
+  let texts: (string | null)[];
+  try {
+    own = await rawKeys(prefix, dir);
+    texts = await Promise.all(own.map((key) => rawGet({ key, file: dir ? path.join(dir, key.slice(prefix.length)) : undefined })));
+  } catch (err) {
+    if (!(d === "vault" && blobStoreEnabled())) throw err;
+    warnUnreachable();
+    return legacyTexts(prefix);
   }
-  const own = await rawKeys(prefix, dir);
-  const texts = await Promise.all(own.map((key) => rawGet({ key, file: dir ? path.join(dir, key.slice(prefix.length)) : undefined })));
   const out = texts.filter((t): t is string => t !== null);
   if (d === "vault" && blobStoreEnabled()) {
     // an index entry with no document behind it does not count as a private copy
