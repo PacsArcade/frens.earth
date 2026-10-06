@@ -191,7 +191,7 @@ export default function LoginPanel() {
         <p className="text-center font-pixel text-[9px] uppercase text-white/40">
           NEW HERE?{" "}
           <Link href="/welcome" className="text-cyan underline hover:glow-cyan">
-            WALK THE WELCOME PATH ▸
+            WALK THE WELCOME PATH
           </Link>
         </p>
       </div>

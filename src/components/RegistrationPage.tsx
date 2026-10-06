@@ -67,7 +67,7 @@ export default function RegistrationPage({
         <p className="mt-4 font-pixel text-[9px] uppercase text-white/40">
           NEW HERE?{" "}
           <Link href="/welcome" className="text-cyan underline hover:glow-cyan">
-            WALK THE WELCOME PATH ▸
+            WALK THE WELCOME PATH
           </Link>{" "}
           — SIGNER, TAG, FACE, STEP BY STEP
         </p>
@@ -148,7 +148,7 @@ export default function RegistrationPage({
             rosters, rank tracks, the block for a clock. Crew keys open it; every fren is welcome
             to walk up and admire the marquee.
           </span>
-          <span className="crew-rope__cta">WALK THE CARPET ▸</span>
+          <span className="crew-rope__cta">WALK THE CARPET</span>
           <span className="crew-rope__gate">crew keys only · the door is a sign-in gate</span>
         </Link>
       </section>
