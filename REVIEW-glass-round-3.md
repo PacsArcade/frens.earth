@@ -35,3 +35,15 @@ Revision: `e9e8576`
 
 ## Screenshots (/home/pac/dev/apps/frens-glass-969999/shots-real-r3/)
 home, store, product, me, welcome, menu, 404, each as `<page>-1440.png` and `<page>-390.png`.
+
+## Round 3b: the clock strip
+
+The Admiral: the old clock at the bottom right should be gone in the new design.
+
+- Removed the floating corner clock (BftClock, fixed bottom-3 right-3) from src/app/layout.tsx. BftClock.tsx itself is untouched. Nothing else on the site is fixed to the bottom right.
+- The same numbers now sit on one thin dark-glass line directly under the header (ArcadeHeader.tsx, .clock-strip in strip-clock.css): `0018.07.17  22:26:48 aB`, BFT date then hh:mm:ss then aB, no block height. Far right on wide screens, centred full width at phone size. It is in normal flow, never fixed, so it cannot cover content.
+- No new engine: StripClock and strip-clock-engine.ts run as before (house node first, held at 9:59); the CSS only restyles their DOM (ghost ring, flip chrome, height and old calendar hidden). The date line now reads "aB" in text instead of the lone glyph.
+- Checked at 1440 and 390: home, /store, /welcome, /me. The 404 has no header, so no strip and no corner clock.
+- Pictures: /home/pac/dev/apps/frens-glass-969999/shots-real-r3/strip-<page>-<width>.png
+
+Revision: `d6b526d`

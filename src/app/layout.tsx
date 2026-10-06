@@ -3,7 +3,6 @@ import { Press_Start_2P, Roboto } from "next/font/google";
 import localFont from "next/font/local";
 import { CRTOverlay, EASY_MODE_BOOT_SCRIPT } from "@pacsarcade/arcade-ui";
 import { BrandProvider, frensEarthTheme } from "@/lib/brand";
-import BftClock from "@/components/BftClock";
 import "./globals.css";
 
 const retronoid = localFont({
@@ -71,7 +70,6 @@ export default function RootLayout({
             The dressing room (/a/brand) still previews candidates on top. */}
         <BrandProvider theme={frensEarthTheme}>
           {children}
-          <BftClock />
         </BrandProvider>
         <CRTOverlay />
       </body>

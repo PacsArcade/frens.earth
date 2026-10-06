@@ -18,6 +18,7 @@ import StripClock from "@/components/time/StripClock";
  */
 export default function ArcadeHeader() {
   return (
+    <>
     <SiteHeader
       wordmark="FRENS.EARTH"
       // frens.earth's own mark — a sprouting planet, not the arcade's coin.
@@ -39,7 +40,15 @@ export default function ArcadeHeader() {
       identitySlot={<FrenChip />}
       menuSlot={<FrenMenu />}
       menuFooterSlot={<FrenMenuFooter />}
-      tickerSlot={<StripClock />}
     />
+    {/* Round 3b: the old floating corner clock is gone; the same BFT numbers
+        ride one thin glass line directly under the header (strip-clock.css,
+        .clock-strip). The SiteHeader's own ticker row stays retired. */}
+    <div className="clock-strip">
+      <div className="clock-strip-in">
+        <StripClock />
+      </div>
+    </div>
+    </>
   );
 }
