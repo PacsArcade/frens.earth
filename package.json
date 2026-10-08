@@ -21,7 +21,7 @@
     "test:own-doors": "node scripts/own-doors.test.mjs",
     "test:doors": "node scripts/door-sweep.test.mjs",
     "test:signin": "node scripts/sign-in-abuse.test.mjs",
-    "test": "node scripts/own-doors.test.mjs && node scripts/dropship-lane-c.test.mjs && node scripts/door-sweep.test.mjs --static",
+    "test": "node scripts/own-doors.test.mjs && node scripts/blob-access.test.mjs && node scripts/private-store.test.mjs && node scripts/dropship-lane-c.test.mjs && node scripts/door-sweep.test.mjs --static",
     "gate": "bash scripts/gate.sh"
   },
   "dependencies": {

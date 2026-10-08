@@ -1,8 +1,7 @@
-import { promises as fs } from "fs";
 import path from "path";
-import { put, get } from "@vercel/blob";
 import { verifyEvent, nip19 } from "nostr-tools";
-import { blobStoreEnabled, findHandleByNpub } from "./registry";
+import { findHandleByNpub } from "./registry";
+import { readDoc, writeDoc } from "./private-store";
 import { isOperatorHex } from "./operator-auth";
 import { effectiveGithub } from "./nodeconfig";
 import { bftDateTime } from "./bb/bft";
@@ -197,40 +196,18 @@ export async function markShipped(prs: number[]): Promise<boolean> {
   return hit;
 }
 
-const BLOB_PATH = "merges/log.json";
-const filePath = () => path.join(process.cwd(), "data", "merges.json");
+const LOG_DOC = () => ({ key: "merges/log.json", file: path.join(process.cwd(), "data", "merges.json") });
 
 async function readLog(): Promise<MergeAuth[]> {
-  if (blobStoreEnabled()) {
-    try {
-      const res = await get(BLOB_PATH, { access: "public" });
-      if (res && res.statusCode === 200) return JSON.parse(await new Response(res.stream).text());
-    } catch {
-      /* start empty */
-    }
-    return [];
-  }
   try {
-    return JSON.parse(await fs.readFile(filePath(), "utf8"));
+    return (await readDoc<MergeAuth[]>(LOG_DOC())) ?? [];
   } catch {
     return [];
   }
 }
 
 async function writeLog(log: MergeAuth[]): Promise<void> {
-  const body = JSON.stringify(log, null, 2);
-  if (blobStoreEnabled()) {
-    await put(BLOB_PATH, body, {
-      access: "public",
-      addRandomSuffix: false,
-      allowOverwrite: true,
-      contentType: "application/json",
-    });
-    return;
-  }
-  const p = filePath();
-  await fs.mkdir(path.dirname(p), { recursive: true });
-  await fs.writeFile(p, body, "utf8");
+  await writeDoc(LOG_DOC(), log);
 }
 
 export function listAuthorizations(): Promise<MergeAuth[]> {

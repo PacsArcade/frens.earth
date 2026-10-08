@@ -1,15 +1,15 @@
 import { promises as fs } from "fs";
 import path from "path";
-import { put, get } from "@vercel/blob";
-import { blobStoreEnabled } from "./registry";
+import { kv, vaultConfigured, readDoc, writeDoc } from "./private-store";
 
 /**
  * The store — catalog + orders (spec: docs/storefront-framework.md, S1).
  *
  * Storage:
- * - CATALOG: public by nature → the house dual-driver single-doc pattern
- *   (data/store-catalog.json in dev, store/catalog.json blob in prod;
- *   last-write-wins is an accepted, documented trade for a single operator).
+ * - CATALOG: one document in the private store (private-store.ts;
+ *   data/store-catalog.json in dev; last-write-wins is an accepted,
+ *   documented trade for a single operator). Public responses strip its
+ *   private pointers (stripPrivateMedia below).
  * - ORDERS: PII — the private-driver mandate applies. One record per order,
  *   create-if-not-exists (the registry.ts atomicity pattern), never in a
  *   public blob: files under data/store-orders/ in dev, KV (Upstash REST)
@@ -237,7 +237,7 @@ export interface OrderRecord {
 const PII_PURGE_MS = 30 * 24 * 60 * 60 * 1000;
 
 // ---------------------------------------------------------------------------
-// Catalog (dual-driver single doc)
+// Catalog (one private-store document)
 // ---------------------------------------------------------------------------
 
 interface CatalogDoc {
@@ -259,43 +259,19 @@ function migrateCatalog(doc: StoredCatalogDoc): CatalogDoc {
   return { schemaVersion: 2, items: doc.items.map(migrateItem) };
 }
 
-const CATALOG_BLOB = "store/catalog.json";
-const catalogFile = () => path.join(process.cwd(), "data", "store-catalog.json");
+const CATALOG_DOC = () => ({ key: "store/catalog.json", file: path.join(process.cwd(), "data", "store-catalog.json") });
 
 async function readCatalog(): Promise<CatalogDoc> {
-  if (blobStoreEnabled()) {
-    try {
-      const res = await get(CATALOG_BLOB, { access: "public" });
-      if (res && res.statusCode === 200) {
-        return migrateCatalog(JSON.parse(await new Response(res.stream).text()) as StoredCatalogDoc);
-      }
-    } catch {
-      /* fall through to empty */
-    }
-    return emptyCatalog();
-  }
   try {
-    return migrateCatalog(JSON.parse(await fs.readFile(catalogFile(), "utf8")) as StoredCatalogDoc);
+    const doc = await readDoc<StoredCatalogDoc>(CATALOG_DOC());
+    return doc ? migrateCatalog(doc) : emptyCatalog();
   } catch {
     return emptyCatalog();
   }
 }
 
 async function writeCatalog(doc: CatalogDoc): Promise<void> {
-  const json = JSON.stringify(doc, null, 2);
-  if (blobStoreEnabled()) {
-    await put(CATALOG_BLOB, json, {
-      access: "public",
-      allowOverwrite: true,
-      addRandomSuffix: false,
-      contentType: "application/json",
-    });
-    return;
-  }
-  await fs.mkdir(path.dirname(catalogFile()), { recursive: true });
-  const tmp = catalogFile() + ".tmp";
-  await fs.writeFile(tmp, json, "utf8");
-  await fs.rename(tmp, catalogFile());
+  await writeDoc(CATALOG_DOC(), doc);
 }
 
 export async function listItems(opts?: { includeHidden?: boolean }): Promise<StoreItem[]> {
@@ -402,66 +378,8 @@ export async function removeItem(id: string): Promise<boolean> {
 const ordersDir = () => path.join(process.cwd(), "data", "store-orders");
 const orderFile = (id: string) => path.join(ordersDir(), `${id}.json`);
 
-/**
- * The vault speaks two transports, whichever the platform provisioned:
- * - REST (Upstash KV_REST_API_URL/TOKEN pair) when present;
- * - native Redis over TCP via REDIS_URL — the only thing the current
- *   Vercel marketplace hands out. Lazy singleton client, reused across
- *   warm invocations, dropped on error so the next call reconnects.
- */
-function restEnv(): { url: string; token: string } | null {
-  const url = process.env.KV_REST_API_URL;
-  const token = process.env.KV_REST_API_TOKEN;
-  return url && token ? { url, token } : null;
-}
-
-function vaultConfigured(): boolean {
-  return restEnv() !== null || !!process.env.REDIS_URL;
-}
-
 const kvKey = (id: string) => `store:order:${id}`;
 const KV_INDEX = "store:orders:index";
-
-type RedisLike = { sendCommand: (cmd: string[]) => Promise<unknown> };
-let redisClient: RedisLike | null = null;
-
-async function getRedis(): Promise<RedisLike> {
-  if (redisClient) return redisClient;
-  const { createClient } = await import("redis");
-  const client = createClient({
-    url: process.env.REDIS_URL,
-    socket: { connectTimeout: 5000 },
-  });
-  client.on("error", () => {
-    redisClient = null; // next call reconnects instead of riding a dead socket
-  });
-  await client.connect();
-  redisClient = client as unknown as RedisLike;
-  return redisClient;
-}
-
-async function kv(cmd: unknown[]): Promise<{ result: unknown } | null> {
-  if (!vaultConfigured()) return null;
-  const rest = restEnv();
-  if (rest) {
-    const res = await fetch(rest.url, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${rest.token}`, "Content-Type": "application/json" },
-      body: JSON.stringify(cmd),
-      cache: "no-store",
-    });
-    if (!res.ok) throw new Error(`order store: KV ${res.status}`);
-    return (await res.json()) as { result: unknown };
-  }
-  try {
-    const client = await getRedis();
-    const result = await client.sendCommand(cmd.map(String));
-    return { result };
-  } catch (err) {
-    redisClient = null;
-    throw new Error(`order store: redis ${err instanceof Error ? err.message : "error"}`);
-  }
-}
 
 /** Prod requires the vault; dev uses files. False = checkout honestly refuses. */
 export function ordersConfigured(): boolean {
