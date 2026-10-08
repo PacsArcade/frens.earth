@@ -38,7 +38,19 @@ export default function EventView({ id }: { id: string }) {
       <section className="door-panel door-hero">
         <p className="door-kicker">{ev.allDay ? "All day event" : "Event"}</p>
         <h1 className="door-title door-title--sm">{ev.title}</h1>
-        <p className="door-stamp">{bftStamp(ev.startMs, tip.height, tip.at, !ev.allDay)} a₿</p>
+        <p className="door-stamp">
+          {bftStamp(ev.startMs, tip.height, tip.at, !ev.allDay)} a
+          <svg className="btcsign" viewBox="0 0 12 16" role="img" aria-label="bitcoin">
+            <path
+              d="M3.2 3v10M3.2 3.2h4a2.4 2.4 0 010 4.8h-4M3.2 8h4.6a2.6 2.6 0 010 5.2H3.2M5 1v2.2M7.4 1v2.2M5 13v2.2M7.4 13v2.2"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="square"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </p>
         <p className="door-ev__old">{oldDate(ev.startMs, !ev.allDay)}</p>
       </section>
       <section className="door-panel">

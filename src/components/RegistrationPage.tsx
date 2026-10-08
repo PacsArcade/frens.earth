@@ -47,110 +47,84 @@ export default function RegistrationPage({
   // live echo of the tag being typed, so the cards below talk about THEIR name
   const [previewHandle, setPreviewHandle] = useState(initialHandle ?? "");
   return (
-    <main className="min-h-screen bg-void">
+    <main className="r6-home min-h-screen bg-void">
       <ArcadeHeader />
 
-      {/* Hero — a breathing neon marquee */}
-      <section className="overflow-hidden px-6 pb-10 pt-16 text-center">
-        <h1 className="font-arcade text-5xl leading-tight text-coin glow-coin sm:text-6xl">
+      {/* Hero: one job per screen, the claim flow leads */}
+      <section className="overflow-hidden px-6 pb-8 pt-14 text-center">
+        <p className="r6-kicker font-pixel">YOUR PATCH OF EARTH</p>
+        <h1 className="r6-h1 font-arcade text-5xl leading-tight text-coin glow-coin sm:text-6xl">
           <NeonTitle text="CLAIM YOUR" flickers={{ 2: 1.6, 8: 2.9 }} />
           <br />
           <NeonTitle text="FREN TAG" flickers={{ 1: 2.2, 6: 3.6 }} />
         </h1>
-        <p className="mx-auto mt-8 max-w-xl font-body text-lg text-white/80">
-          Your name, your keys — a free{" "}
-          <span className="text-pink glow-pink">{spaceTag}</span>{" "}handle nobody can rent, revoke,
-          or reset. Verified on{" "}
-          <span className="text-cyan">nostr</span>{" "}the moment you claim it; tick tock, tied to
-          Bitcoin at the next batch. Your patch of earth.
-        </p>
-        <p className="mt-4 font-pixel text-[9px] uppercase text-white/40">
-          NEW HERE?{" "}
-          <Link href="/welcome" className="text-cyan underline hover:glow-cyan">
-            WALK THE WELCOME PATH
-          </Link>{" "}
-          — SIGNER, TAG, FACE, STEP BY STEP
+        <p className="r6-lead mx-auto max-w-2xl">
+          Your name, your keys. A free <span className="r6-heart">{spaceTag}</span> handle nobody
+          can rent, revoke, or reset. Verified on <span className="r6-info">nostr</span> the
+          moment you claim it. Tick tock, tied to Bitcoin at the next batch. Your patch of earth.
         </p>
       </section>
 
-      {/* The claim machine */}
-      <section className="px-6 pb-20">
-        <TagClaim
-          space={space}
-          nip05Domain={nip05Domain}
-          onHandlePreview={setPreviewHandle}
-          initialHandle={initialHandle}
-        />
+      {/* The claim machine: the three steps in one 8-bit panel */}
+      <section className="px-6">
+        <div className="r6-claim r6-px8 mx-auto max-w-3xl">
+          <div className="r6-px8-in">
+            <TagClaim
+              space={space}
+              nip05Domain={nip05Domain}
+              onHandlePreview={setPreviewHandle}
+              initialHandle={initialHandle}
+            />
+          </div>
+        </div>
+        <p className="r6-hint mx-auto max-w-2xl text-center">
+          New here?{" "}
+          <Link href="/welcome" className="r6-link">
+            Walk the welcome path
+          </Link>
+          . Signer, tag, face, step by step.
+        </p>
       </section>
 
-      {/* How it works — cabinet cards */}
-      <section className="border-t border-dashed border-edge px-6 py-16">
-        <div className="ez-reflow mx-auto grid max-w-5xl auto-rows-fr gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="card text-left">
-            <h3 className="text-cyan">1. FREE TAG</h3>
-            <p className="font-body text-sm text-white/70">
-              Pac&apos;s Arcade owns the <span className="text-pink">{spaceTag}</span>{" "}space and
-              issues names from it in batches — thousands of tags, one tiny Bitcoin transaction.
-              That&apos;s why yours costs nothing.
+      {/* How it works: four one-liners */}
+      <section className="px-6 pb-20 pt-10">
+        <p className="r6-lab mb-5 text-center">HOW IT WORKS</p>
+        <ul className="r6-four ez-reflow mx-auto max-w-5xl">
+          <li>
+            <b>1 · FREE TAG</b>
+            <p>
+              We issue <span className="r6-heart">{spaceTag}</span> names in batches, so yours
+              costs nothing.
             </p>
-          </div>
-          <div className="card text-left">
-            <h3 className="text-cyan">2. YOUR KEYS</h3>
-            <p className="font-body text-sm text-white/70">
-              Your tag binds to a key that only you hold. We can&apos;t log in as you, reset you,
-              or take the name back. Losing the key loses the tag — self-custody is the first
-              lesson of the arcade.
-            </p>
-          </div>
-          <div className="card text-left">
-            <h3 className="text-cyan">3. LIVE NOW</h3>
-            <p className="font-body text-sm text-white/70">
+          </li>
+          <li>
+            <b>2 · YOUR KEYS</b>
+            <p>Your tag binds to a key only you hold, and losing the key loses the tag.</p>
+          </li>
+          <li>
+            <b>3 · LIVE NOW</b>
+            <p>
               Your tag works today on{" "}
               <a
                 href="https://nostr.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-cyan hover:glow-cyan underline"
+                className="r6-link"
               >
                 nostr
               </a>
-              {" "}— an open chat network no company controls. Post, message, and follow
-              other frens from any nostr app. Apps show you as verified{" "}
-              <span className="text-cyan">{previewHandle || "you"}@{nip05Domain}</span>{" "}
-              (looks like an email — it isn&apos;t one).
+              , shown as verified{" "}
+              <span className="r6-info">
+                {previewHandle || "you"}@{nip05Domain}
+              </span>
+              .
             </p>
-          </div>
-          <div className="card text-left">
-            <h3 className="text-cyan">4. ON-CHAIN</h3>
-            <p className="font-body text-sm text-white/70">
-              Every so often — when the queue fills, not every block — we anchor all new tags to
-              Bitcoin in one transaction with a cryptographic proof: permanent, uncensorable,
-              portable. Your tag already works while it waits; the batch just makes it forever.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* The crew entrance — the velvet rope to the operator console. A
-          doorway, not a billboard: heartlight marquee, honest fine print
-          (the door is a sign-in gate), night-garden palette throughout. */}
-      <section className="px-6 pb-20">
-        <Link
-          href="/a"
-          className="crew-rope mx-auto max-w-2xl"
-          title="SCAR·LET — the operator console (crew keys only; the door is a sign-in gate)"
-        >
-          <span className="crew-rope__lights" aria-hidden="true" />
-          <span className="crew-rope__kicker">◗ CREW ENTRANCE</span>
-          <span className="crew-rope__title">SCAR·LET — The Operator Console</span>
-          <span className="crew-rope__blurb">
-            Past the velvet rope: the bridge this patch of earth is flown from — decks and duty
-            rosters, rank tracks, the block for a clock. Crew keys open it; every fren is welcome
-            to walk up and admire the marquee.
-          </span>
-          <span className="crew-rope__cta">WALK THE CARPET</span>
-          <span className="crew-rope__gate">crew keys only · the door is a sign-in gate</span>
-        </Link>
+          </li>
+          <li>
+            <b>4 · ON-CHAIN</b>
+            <p>We anchor new tags to Bitcoin in one batch, so they last for good.</p>
+          </li>
+        </ul>
       </section>
 
       <EarthFooter />

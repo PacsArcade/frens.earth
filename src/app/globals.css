@@ -1964,3 +1964,46 @@ p, li { text-wrap: pretty; }
 .door-ev__old { text-wrap: balance; }
 .door-state__head { text-wrap: balance; }
 .door-card__title, .door-ev__title { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* ---- round 6: the home page made readable (dark only) ---- */
+/* bitcoin sign: the bottom of the glyph sits on the text baseline. The glyph spans 1 to 15.2 of a 16 high box, so the box drops 0.05 of its height. */
+.btcsign { display: inline-block; height: 1em; width: 0.75em; vertical-align: -0.05em; }
+.r6-home { --r6-body: #eef3f0; --r6-soft: #cbd6d0; --r6-label: #8fe9df; --r6-edge: #53e0d4; }
+.r6-home .r6-kicker { font-size: 0.8rem; letter-spacing: 0.2em; color: #d6b8ff; margin: 0 0 14px; }
+.r6-home .r6-h1 { color: #fff4c9; text-shadow: 0 0 22px rgba(247, 201, 72, 0.35); }
+.r6-home .r6-lead { margin-top: 28px; font-family: var(--font-roboto), sans-serif; font-size: 1.3rem; line-height: 1.6; color: var(--r6-body); text-wrap: pretty; }
+.r6-home .r6-heart { color: #d6b8ff; }
+.r6-home .r6-info { color: var(--r6-label); }
+.r6-home .r6-link { color: var(--r6-label); text-decoration: underline; text-underline-offset: 4px; font-weight: 600; }
+.r6-home .r6-hint { margin-top: 26px; font-family: var(--font-roboto), sans-serif; font-size: 1.1rem; line-height: 1.55; color: var(--r6-body); }
+.r6-home .r6-lab, .r6-home .r6-four b, .r6-home .claim-lab { font-family: var(--font-console, ui-monospace, monospace); font-size: 0.86rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--r6-label); line-height: 1.5; }
+.r6-home .claim-lab { margin-bottom: 0; }
+/* 8-bit notched panel: stepped corners, 3 px edge, solid text-safe fill */
+.r6-home .r6-px8 { background: var(--r6-edge); padding: 3px; text-align: left;
+  clip-path: polygon(0 12px, 6px 12px, 6px 6px, 12px 6px, 12px 0, calc(100% - 12px) 0, calc(100% - 12px) 6px, calc(100% - 6px) 6px, calc(100% - 6px) 12px, 100% 12px, 100% calc(100% - 12px), calc(100% - 6px) calc(100% - 12px), calc(100% - 6px) calc(100% - 6px), calc(100% - 12px) calc(100% - 6px), calc(100% - 12px) 100%, 12px 100%, 12px calc(100% - 6px), 6px calc(100% - 6px), 6px calc(100% - 12px), 0 calc(100% - 12px)); }
+.r6-home .r6-px8-in { background: linear-gradient(180deg, #1c2c27, #121c18); padding: 30px 34px;
+  clip-path: polygon(0 11px, 5px 11px, 5px 5px, 11px 5px, 11px 0, calc(100% - 11px) 0, calc(100% - 11px) 5px, calc(100% - 5px) 5px, calc(100% - 5px) 11px, 100% 11px, 100% calc(100% - 11px), calc(100% - 5px) calc(100% - 11px), calc(100% - 5px) calc(100% - 5px), calc(100% - 11px) calc(100% - 5px), calc(100% - 11px) 100%, 11px 100%, 11px calc(100% - 5px), 5px calc(100% - 5px), 5px calc(100% - 11px), 0 calc(100% - 11px)); }
+.r6-home .r6-claim .space-y-8 > * + * { margin-top: 26px; }
+.r6-home .claim-step { display: flex; flex-direction: column; gap: 10px; border: 0; background: transparent; padding: 0; }
+.r6-home .claim-field { height: 68px; border: 0; border-radius: 12px; background: #f5f8f6; }
+.r6-home .claim-field input { color: #22302a; }
+.r6-home .claim-field input::placeholder { color: #55605a; opacity: 1; }
+.r6-home .claim-field .blink { background: #22302a; }
+.r6-home .claim-field > span:last-child { color: #5b2fa8; text-shadow: none; }
+.r6-home .claim-step [role="status"], .r6-home .claim-step .font-body, .r6-home .claim-fine { font-family: var(--font-roboto), sans-serif; font-size: 1.1rem; line-height: 1.55; color: var(--r6-body); text-transform: none; text-shadow: none; letter-spacing: 0; margin-top: 0; }
+.r6-home .claim-fine { font-size: 1rem; color: var(--r6-soft); }
+.r6-home .claim-locked { display: flex; align-items: center; gap: 10px; font-family: var(--font-roboto), sans-serif; font-size: 1.1rem; line-height: 1.55; color: var(--r6-body); margin: 0; }
+.r6-home .claim-locked b { color: #ffe08a; }
+.r6-home .claim-lock-icon { width: 22px; height: 22px; flex: none; fill: none; stroke: #f7c948; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.r6-home .claim-go:disabled { opacity: 1; color: #e6ede9; box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.4); }
+/* how it works: four one-liners, 2 by 2, square 2 px edge */
+.r6-home .r6-four { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.r6-home .r6-four li { background: linear-gradient(180deg, #1c2c27, #121c18); border: 2px solid rgba(83, 224, 212, 0.55); padding: 20px 24px; display: flex; flex-direction: column; gap: 8px; }
+.r6-home .r6-four p { margin: 0; font-family: var(--font-roboto), sans-serif; font-size: 1.15rem; line-height: 1.55; color: var(--r6-body); }
+.r6-foot { font-size: 1.02rem; line-height: 1.6; color: #cbd6d0; }
+@media (max-width: 760px) {
+  .r6-home .r6-lead { font-size: 1.15rem; }
+  .r6-home .r6-px8-in { padding: 22px 18px; }
+  .r6-home .r6-four { grid-template-columns: 1fr; }
+  .r6-home .r6-four p { font-size: 1.1rem; }
+}
