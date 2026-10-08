@@ -889,9 +889,9 @@ export default function TagClaim({
         <button
           onClick={claim}
           disabled={availability !== "available" || !npub || !savedConfirmed || claiming}
-          className="claim-go button w-full disabled:cursor-not-allowed disabled:opacity-40"
+          className="claim-go button w-full disabled:cursor-not-allowed"
         >
-          {claiming ? "INSERTING COIN…" : "CLAIM YOUR TAG, FREE"}
+          {claiming ? "Inserting coin" : "Claim your tag, free"}
         </button>
         {claimError && (
           <p className="mt-3 font-pixel text-xs text-ghost glow-ghost">{claimError.toUpperCase()}</p>
