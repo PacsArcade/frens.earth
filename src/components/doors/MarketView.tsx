@@ -9,6 +9,8 @@ import { parseListing, satsLabel, type Listing } from "@/lib/doors/parse";
 import { Empty, Loading } from "./States";
 
 const PAGE = 16;
+/** A public relay can hand back hundreds of tags: show the busiest few, the rest one press away. */
+const CAT_CAP = 12;
 
 export function priceText(l: Listing): string {
   if (l.free) return "free";
@@ -28,6 +30,7 @@ export default function MarketView() {
   const [pics, setPics] = useState(false);
   const [satsOnly, setSatsOnly] = useState(false);
   const [page, setPage] = useState(0);
+  const [allCats, setAllCats] = useState(false);
 
   const all = useMemo(
     () =>
@@ -41,6 +44,10 @@ export default function MarketView() {
   const counts = new Map<string, number>();
   for (const l of all) for (const c of new Set(l.cats)) if (!hide.has(c)) counts.set(c, (counts.get(c) ?? 0) + 1);
   const cats = [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+
+  const capped = !allCats && cats.length > CAT_CAP;
+  // the open category stays in the list even when it is past the cap
+  const shownCats = capped ? cats.filter(([c], i) => i < CAT_CAP || c === cat) : cats;
 
   if (state === "loading") return <Loading what="listings" />;
   if (all.length === 0)
@@ -65,7 +72,7 @@ export default function MarketView() {
 
   return (
     <div className="door-market">
-      <aside className="door-panel door-cats" aria-label="Categories">
+      <aside className={`door-panel door-cats${allCats ? " door-cats--open" : ""}`} aria-label="Categories">
         <ul>
           <li>
             <button type="button" className="door-cat" aria-pressed={cat === "all"} onClick={() => { setCat("all"); setPage(0); }}>
@@ -73,7 +80,7 @@ export default function MarketView() {
               <em>{all.length}</em>
             </button>
           </li>
-          {cats.map(([c, n]) => (
+          {shownCats.map(([c, n]) => (
             <li key={c}>
               <button type="button" className="door-cat" aria-pressed={cat === c} onClick={() => { setCat(c); setPage(0); }}>
                 <span>{c}</span>
@@ -81,6 +88,13 @@ export default function MarketView() {
               </button>
             </li>
           ))}
+          {cats.length > CAT_CAP && (
+            <li>
+              <button type="button" className="glass-btn glass-btn--secondary door-cats__more" aria-expanded={allCats} onClick={() => setAllCats(!allCats)}>
+                {allCats ? "Show fewer" : `Show ${cats.length - CAT_CAP} more`}
+              </button>
+            </li>
+          )}
         </ul>
       </aside>
       <div className="door-market__main">

@@ -151,7 +151,12 @@ export default function StripClock() {
             HEIGHT <b className="sclk-h-num">—</b>
           </span>
           <span className="sclk-date">
-            <span className="sclk-d-num">————.——.——</span> <span className="sclk-ab">aB</span>
+            <span className="sclk-d-num">————.——.——</span> <span className="sclk-ab">
+              a
+              <svg className="sclk-btc" viewBox="0 0 10 14" aria-hidden="true">
+                <path d="M2 2.6H6a2.1 2.1 0 0 1 0 4.2H2M2 6.8H6.6a2.3 2.3 0 0 1 0 4.6H2M2 2.6V11.4M3.8 0.6V2.6M6 0.6V2.6M3.8 11.4V13.4M6 11.4V13.4" />
+              </svg>
+            </span>
           </span>
           <span className="sclk-oldcal">OLD CAL · —</span>
         </span>

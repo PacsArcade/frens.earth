@@ -250,7 +250,7 @@ export default function TagClaim({
     const v = pasteValue.trim().toLowerCase();
     if (v.startsWith("nsec1")) {
       setPasteError(
-        "STOP — that is your SECRET key. Anything you paste it into can act as you. We only need your PUBLIC key (starts with npub1)."
+        "STOP, that is your SECRET key. Anything you paste it into can act as you. We only need your PUBLIC key (starts with npub1)."
       );
       setPasteValue("");
       return;
@@ -263,7 +263,7 @@ export default function TagClaim({
       setSavedConfirmed(true); // they already custody their own keys
       setPasteError(null);
     } catch {
-      setPasteError("That doesn't look like a public key (npub1…). Check for typos — keys are always lowercase.");
+      setPasteError("That doesn't look like a public key (npub1…). Check for typos, keys are always lowercase.");
     }
   }, [pasteValue]);
 
@@ -295,7 +295,7 @@ export default function TagClaim({
         setClaimError(data.reason ?? "claim failed");
       }
     } catch {
-      setClaimError("network error — try again");
+      setClaimError("network error, try again");
     } finally {
       setClaiming(false);
     }
@@ -341,10 +341,10 @@ export default function TagClaim({
   }, [forged, claimed, nip05Domain, bio]);
 
   const statusLine = {
-    idle: { text: "TYPE A NAME TO CHECK THE BOARD", cls: "text-cyan glow-cyan" },
+    idle: { text: "Type a name to check the board", cls: "text-cyan glow-cyan" },
     checking: { text: "CHECKING…", cls: "text-coin glow-coin pulse-neon" },
-    available: { text: "TAG AVAILABLE — PRESS START", cls: "text-neon glow-neon" },
-    taken: { text: "TAKEN — TRY ANOTHER", cls: "text-ghost glow-ghost" },
+    available: { text: "TAG AVAILABLE. PRESS START", cls: "text-neon glow-neon" },
+    taken: { text: "TAKEN. TRY ANOTHER", cls: "text-ghost glow-ghost" },
     invalid: { text: (reason ?? "INVALID NAME").toUpperCase(), cls: "text-ghost glow-ghost" },
   }[availability];
 
@@ -372,11 +372,11 @@ export default function TagClaim({
 
         {forged && (
           <div className="mb-8 border-2 border-cyan/60 p-4">
-            <p className="font-pixel text-xs text-cyan mb-3">FINAL STEP — PIN YOUR NAME TO YOUR KEY</p>
+            <p className="font-pixel text-xs text-cyan mb-3">FINAL STEP. PIN YOUR NAME TO YOUR KEY</p>
             <p className="font-body text-sm text-white/80 mb-4">
               A brand-new key has a blank profile, so chat apps would show you as a long code
               instead of <span className="text-coin">{claimed.handle}{spaceTag}</span>. Publish a
-              starter profile — your name, your verified address, and a bio if you want one —
+              starter profile, your name, your verified address, and a bio if you want one,
               signed right here in your browser. Your secret key never leaves this page.
             </p>
             <textarea
@@ -385,9 +385,9 @@ export default function TagClaim({
               disabled={profilePublish === "done"}
               maxLength={500}
               rows={3}
-              placeholder="ABOUT ME (optional) — tell the arcade who you are. This becomes your fren identity everywhere."
+              placeholder="ABOUT ME (optional), tell the arcade who you are. This becomes your fren identity everywhere."
               className="mb-4 w-full border-2 border-edge bg-void px-3 py-2 font-body text-sm text-white/85 outline-none focus:border-cyan disabled:opacity-60"
-              aria-label="About me — optional bio for your profile"
+              aria-label="About me, optional bio for your profile"
             />
             <button
               onClick={publishStarterProfile}
@@ -397,11 +397,11 @@ export default function TagClaim({
               {profilePublish === "idle" && "PUBLISH MY PROFILE"}
               {profilePublish === "publishing" && "BROADCASTING…"}
               {profilePublish === "done" && "✓ PROFILE PUBLISHED"}
-              {profilePublish === "failed" && "RELAYS DIDN'T ANSWER — TRY AGAIN"}
+              {profilePublish === "failed" && "RELAYS DIDN'T ANSWER. TRY AGAIN"}
             </button>
             {profilePublish === "done" && (
               <p className="mt-3 font-body text-xs text-neon">
-                Done — apps now show you as {claimed.handle}{spaceTag}, verified as{" "}
+                Done, apps now show you as {claimed.handle}{spaceTag}, verified as{" "}
                 <span className="text-cyan">{nip05Id}</span> (give them a minute to notice).
               </p>
             )}
@@ -416,14 +416,14 @@ export default function TagClaim({
             {forged && profilePublish !== "done" ? "STAGE CLEAR" : "LEVEL COMPLETE"}
           </p>
           <p className="mb-4 font-body text-sm text-white/80">
-            Your profile page is live — your start screen for the nostr verse. Everything below
+            Your profile page is live, your start screen for the nostr verse. Everything below
             is waiting for you there too.
           </p>
           <Link href={`/u/${claimed.handle}`} className="button w-full">
             ENTER YOUR PROFILE
           </Link>
           <p className="mt-3 font-body text-xs text-white/50">
-            {nip05Domain}/u/{claimed.handle} — bookmark it, share it, come back any time.
+            {nip05Domain}/u/{claimed.handle}, bookmark it, share it, come back any time.
           </p>
         </div>
 
@@ -440,15 +440,15 @@ export default function TagClaim({
             >
               nostr
             </a>
-            {" "}— an open chat network no company owns. Open any nostr app (Primal, Damus,
+            , an open chat network no company owns. Open any nostr app (Primal, Damus,
             Amethyst), sign in with your key, and you can post, message, and follow other frens by
             their tags.
           </p>
           <p>
             <span className="text-neon font-pixel text-xs mr-2">VERIFY</span>
             {forged
-              ? "Published above — but you can always set it yourself too: "
-              : "Already have a profile? Don't change anything else — just "}
+              ? "Published above, but you can always set it yourself too: "
+              : "Already have a profile? Don't change anything else, just "}
             open your app&apos;s profile settings and paste {nip05Pill}{" "}into the{" "}
             <a
               href="https://github.com/nostr-protocol/nips/blob/master/05.md"
@@ -458,27 +458,27 @@ export default function TagClaim({
             >
               &quot;Verified Nostr Address (NIP-05)&quot;
             </a>
-            {" "}field. It looks like an email address but it isn&apos;t one — it&apos;s how nostr
+            {" "}field. It looks like an email address but it isn&apos;t one, it&apos;s how nostr
             proves your name belongs to your key.
           </p>
           <p>
             <span className="text-neon font-pixel text-xs mr-2">LIVE NOW</span>
-            Your tag works everywhere already — chat, verification, leaderboards, campaigns.
+            Your tag works everywhere already, chat, verification, leaderboards, campaigns.
             There is nothing to wait for.
           </p>
           <p>
             <span className="text-coin font-pixel text-xs mr-2">ANCHOR</span>
-            At the next batch ceremony your tag is anchored to Bitcoin — permanent and
+            At the next batch ceremony your tag is anchored to Bitcoin, permanent and
             uncensorable. Ceremonies run as the queue fills, announced from{" "}
             <span className="text-pink">@pacsarcade</span>{" "}on nostr.
             {tipHeight ? (
               <>
                 {" "}Bitcoin is at block{" "}
-                <span className="text-coin">{tipHeight.toLocaleString()}</span>{" "}right now —
+                <span className="text-coin">{tipHeight.toLocaleString()}</span>{" "}right now,
                 expect your anchor by block ~
                 <span className="text-coin">{(tipHeight + ANCHOR_BLOCKS_OUT).toLocaleString()}</span>, that&apos;s
                 {" "}{ANCHOR_BLOCKS_OUT.toLocaleString()} blocks out{" "}
-                <span title="why was 6 afraid of 7? because 7 8 9">(seven ate nine)</span>{" "}—
+                <span title="why was 6 afraid of 7? because 7 8 9">(seven ate nine)</span>,
                 about six-seven weeks.
               </>
             ) : null}
@@ -494,7 +494,7 @@ export default function TagClaim({
       {dialog === "pubkey" && npub && (
         <RPGDialog
           tone="info"
-          title="★ TUTORIAL — THE PUBLIC KEY"
+          title="★ TUTORIAL. THE PUBLIC KEY"
           onClose={() => {
             setPubAccepted(true);
             setDialog("none");
@@ -502,7 +502,7 @@ export default function TagClaim({
         >
           <p>
             This is your <strong className="text-cyan">PUBLIC key</strong>. It&apos;s safe to share
-            with anyone — it&apos;s how the world finds you. Your tag{" "}
+            with anyone, it&apos;s how the world finds you. Your tag{" "}
             <span className="text-coin">{handle || "yourname"}{spaceTag}</span>{" "}will point to it.
           </p>
           <div className="border-2 border-cyan/40 bg-black/60 p-3 text-cyan">
@@ -517,21 +517,21 @@ export default function TagClaim({
             {copied === "pub" ? "✓ COPIED" : "COPY PUBLIC KEY"}
           </button>
           <p className="text-white/60 text-xs">
-            Keys are always lowercase — if you ever see capital letters, something copied wrong.
+            Keys are always lowercase, if you ever see capital letters, something copied wrong.
           </p>
         </RPGDialog>
       )}
       {dialog === "danger-warn" && (
-        <RPGDialog tone="danger" title="⚠ DANGER ZONE — READ BEFORE OPENING">
+        <RPGDialog tone="danger" title="⚠ DANGER ZONE. READ BEFORE OPENING">
           <p className="shake">
             Behind this door is your <strong className="text-ghost">SECRET key</strong>. Whoever
-            holds it <em>is</em>{" "}you — forever. There is no reset button, no support line, no
+            holds it <em>is</em>{" "}you, forever. There is no reset button, no support line, no
             &quot;forgot password.&quot;
           </p>
           <p>Rules of the vault:</p>
           <ul className="list-disc pl-5 space-y-1 text-white/75">
             <li>
-              Any website, app, or AI you enter it into gains full authority to act as you —
+              Any website, app, or AI you enter it into gains full authority to act as you,
               post, message, and send in your name.
             </li>
             <li>
@@ -552,15 +552,15 @@ export default function TagClaim({
               onClick={() => setDialog("danger-reveal")}
               className="flex-1 border-2 border-ghost py-2 font-pixel text-xs text-ghost glow-ghost hover:bg-ghost/20"
             >
-              I UNDERSTAND — OPEN
+              I UNDERSTAND. OPEN
             </button>
           </div>
         </RPGDialog>
       )}
       {dialog === "danger-reveal" && forged && (
-        <RPGDialog tone="danger" title="🗝 THE SECRET KEY — COPY FIRST, THEN VERIFY" onClose={() => setDialog("none")}>
+        <RPGDialog tone="danger" title="🗝 THE SECRET KEY. COPY FIRST, THEN VERIFY" onClose={() => setDialog("none")}>
           <p>
-            <strong className="text-ghost">Tap the key to copy it to your clipboard</strong>{" "}—
+            <strong className="text-ghost">Tap the key to copy it to your clipboard</strong>,
             it stays blurred until it&apos;s safely copied, then reveals so you can double-check
             what you paste into your password manager or write down.
           </p>
@@ -575,11 +575,11 @@ export default function TagClaim({
           >
             <KeyLines value={forged.nsec} blurred={copied !== "sec"} reveal={copied === "sec"} />
             <span className={`mt-2 block text-center font-pixel text-xs ${copied === "sec" ? "text-neon glow-neon" : "text-ghost glow-ghost"}`}>
-              {copied === "sec" ? "✓ COPIED — PASTE IT SOMEWHERE SAFE NOW" : "▲ TAP TO COPY"}
+              {copied === "sec" ? "✓ COPIED. PASTE IT SOMEWHERE SAFE NOW" : "▲ TAP TO COPY"}
             </span>
           </button>
           <p className="text-white/60 text-xs">
-            It only exists here in your browser — we never see it and can&apos;t recover it later.
+            It only exists here in your browser, we never see it and can&apos;t recover it later.
             That&apos;s the point: nobody can take your tag, because nobody but you holds the key.
           </p>
           <label className="flex items-start gap-3 text-white">
@@ -603,9 +603,9 @@ export default function TagClaim({
       {dialogs}
 
       {/* STEP 1 — the tag grows leftward out of the space tag */}
-      <div className="border-2 border-edge bg-panel p-6">
-        <p className="font-pixel text-xs text-cyan mb-4">STEP 1 — PICK YOUR TAG</p>
-        <div className="flex items-center border-4 border-coin bg-void px-3 py-3 focus-within:border-neon sm:px-4">
+      <div className="claim-step border-2 border-edge bg-panel p-6">
+        <p className="claim-lab font-pixel text-xs text-cyan mb-4">STEP 1 · PICK YOUR TAG</p>
+        <div className="claim-field flex items-center border-4 border-coin bg-void px-3 py-3 focus-within:border-neon sm:px-4">
           <input
             value={handle}
             onChange={(e) => {
@@ -624,7 +624,7 @@ export default function TagClaim({
           <span className="blink mx-0.5 inline-block h-5 w-2.5 shrink-0 bg-coin sm:h-6 sm:w-3" aria-hidden />
           <span className="shrink-0 font-arcade text-xl text-pink glow-pink select-none sm:text-2xl">{spaceTag}</span>
         </div>
-        <p className={`mt-3 font-pixel text-xs ${statusLine.cls}`} role="status">
+        <p className={`mt-3 font-pixel text-xs text-pretty! ${statusLine.cls}`} role="status">
           {statusLine.text}
         </p>
         {availability === "taken" && takenNpub && (
@@ -639,7 +639,7 @@ export default function TagClaim({
             ) : (
               <div className="space-y-3">
                 <p className="font-body text-xs text-white/60">
-                  Every tag is bound to a public key. Show us yours — connect your{" "}
+                  Every tag is bound to a public key. Show us yours, connect your{" "}
                   {hasNip07 ? (
                     <button
                       onClick={checkOwnershipNip07}
@@ -659,7 +659,7 @@ export default function TagClaim({
                   >
                     NIP-07
                   </a>
-                  ) or paste your <span className="text-cyan">public</span>{" "}key (npub1…) —
+                  ) or paste your <span className="text-cyan">public</span>{" "}key (npub1…),
                   and we&apos;ll check it against the key{" "}
                   <span className="text-coin">{handle}{spaceTag}</span>{" "}is bound to.
                 </p>
@@ -719,12 +719,12 @@ export default function TagClaim({
                 )}
                 {ownership === "nomatch" && (
                   <p className="font-pixel text-xs text-ghost glow-ghost">
-                    DIFFERENT KEY HOLDS THIS TAG — TRY ANOTHER NAME
+                    DIFFERENT KEY HOLDS THIS TAG. TRY ANOTHER NAME
                   </p>
                 )}
                 {ownership === "invalid" && (
                   <p className="font-pixel text-xs text-ghost glow-ghost">
-                    THAT&apos;S NOT A PUBLIC KEY (NPUB1…) — NEVER PASTE YOUR SECRET KEY
+                    THAT&apos;S NOT A PUBLIC KEY (NPUB1…). NEVER PASTE YOUR SECRET KEY
                   </p>
                 )}
               </div>
@@ -735,12 +735,12 @@ export default function TagClaim({
           <div className="mt-4 space-y-1 border-t border-dashed border-edge pt-3 font-body text-xs text-white/60">
             <p>
               <span className="font-pixel text-[10px] text-coin mr-2">ON BITCOIN</span>
-              <span className="text-coin">{handle}{spaceTag}</span>{" "}— your permanent tag, anchored
+              <span className="text-coin">{handle}{spaceTag}</span>, your permanent tag, anchored
               on-chain at the next batch
             </p>
             <p>
               <span className="font-pixel text-[10px] text-cyan mr-2">ON NOSTR</span>
-              <span className="text-cyan">{handle}@{nip05Domain}</span>{" "}— your verified chat
+              <span className="text-cyan">{handle}@{nip05Domain}</span>, your verified chat
               identity, live the moment you claim
             </p>
           </div>
@@ -748,12 +748,18 @@ export default function TagClaim({
       </div>
 
       {/* STEP 2 — keys (locked until a tag is chosen) */}
-      <div className="border-2 border-edge bg-panel p-6">
-        <p className="font-pixel text-xs text-cyan mb-4">STEP 2 — GET YOUR KEYS</p>
+      <div className="claim-step border-2 border-edge bg-panel p-6">
+        <p className="claim-lab font-pixel text-xs text-cyan mb-4">STEP 2 · GET YOUR KEYS</p>
 
         {availability !== "available" && !npub && (
-          <p className="font-pixel text-xs text-white/30">
-            🔒 LEVEL LOCKED — PICK AN AVAILABLE TAG FIRST
+          <p className="claim-locked font-pixel text-xs text-white/30">
+            <svg viewBox="0 0 24 24" aria-hidden="true" className="claim-lock-icon">
+              <rect x="5" y="11" width="14" height="9" rx="2" />
+              <path d="M8 11V8a4 4 0 018 0v3" />
+            </svg>
+            <span>
+              <b>Locked.</b> Pick an available tag first.
+            </span>
           </p>
         )}
 
@@ -817,7 +823,7 @@ export default function TagClaim({
               }`}
             >
               <p className={`font-pixel text-xs mb-2 ${pubAccepted ? "text-neon glow-neon" : "text-cyan glow-cyan"}`}>
-                {pubAccepted ? "✓ PUBLIC KEY — ACCEPTED" : "★ PUBLIC KEY — TAP TO INSPECT"}
+                {pubAccepted ? "✓ PUBLIC KEY. ACCEPTED" : "★ PUBLIC KEY. TAP TO INSPECT"}
               </p>
               <KeyLines value={npub} blurred={!pubAccepted && !!forged} />
               <p className="mt-2 font-body text-xs text-white/40">Safe to share. Your tag resolves to this.</p>
@@ -838,16 +844,16 @@ export default function TagClaim({
               >
                 <p className={`font-pixel text-xs mb-2 ${savedConfirmed ? "text-neon glow-neon" : "text-ghost glow-ghost"}`}>
                   {savedConfirmed
-                    ? "✓ SECRET KEY — SECURED"
+                    ? "✓ SECRET KEY. SECURED"
                     : pubAccepted
-                      ? "🔒 SECRET KEY — CLICK TO UNLOCK THE VAULT"
-                      : "🔒 SECRET KEY — INSPECT YOUR PUBLIC KEY FIRST"}
+                      ? "🔒 SECRET KEY. CLICK TO UNLOCK THE VAULT"
+                      : "🔒 SECRET KEY. INSPECT YOUR PUBLIC KEY FIRST"}
                 </p>
                 <KeyLines value={forged.nsec} blurred />
                 <p className="mt-2 font-body text-xs text-white/40">
                   {savedConfirmed
                     ? "Copied and confirmed saved. Tap to copy again."
-                    : "Private. Powerful. Blurred until you copy it — then it reveals for a double-check."}
+                    : "Private. Powerful. Blurred until you copy it, then it reveals for a double-check."}
                 </p>
               </button>
             )}
@@ -870,28 +876,28 @@ export default function TagClaim({
       </div>
 
       {/* STEP 3 — lock it in */}
-      <div className="border-2 border-edge bg-panel p-6">
-        <p className="font-pixel text-xs text-cyan mb-4">STEP 3 — LOCK IT IN</p>
+      <div className="claim-step border-2 border-edge bg-panel p-6">
+        <p className="claim-lab font-pixel text-xs text-cyan mb-4">STEP 3 · LOCK IT IN</p>
         {alsoHolds && alsoHolds.handle === handle.trim().toLowerCase() && npub && (
           <p className="mb-4 border-2 border-coin/60 px-3 py-2 font-pixel text-[9px] uppercase leading-relaxed text-coin">
             HEADS UP, FREN: THIS KEY ALREADY HOLDS{" "}
             <span className="text-cyan">{alsoHolds.handle}@{alsoHolds.space}</span>. ONE NOSTR
-            PROFILE VERIFIES ONE ADDRESS AT A TIME — TWO TAGS ON ONE KEY IS ALLOWED, BUT A
+            PROFILE VERIFIES ONE ADDRESS AT A TIME. TWO TAGS ON ONE KEY IS ALLOWED, BUT A
             SECOND KEY KEEPS YOUR PLAY SELF AND SCHOOL SELF CLEANLY SPLIT. YOUR CALL.
           </p>
         )}
         <button
           onClick={claim}
           disabled={availability !== "available" || !npub || !savedConfirmed || claiming}
-          className="button w-full disabled:cursor-not-allowed disabled:opacity-40"
+          className="claim-go button w-full disabled:cursor-not-allowed"
         >
-          {claiming ? "INSERTING COIN…" : "CLAIM YOUR TAG, FREE"}
+          {claiming ? "Inserting coin" : "Claim your tag, free"}
         </button>
         {claimError && (
           <p className="mt-3 font-pixel text-xs text-ghost glow-ghost">{claimError.toUpperCase()}</p>
         )}
-        <p className="mt-3 font-body text-xs text-white/50">
-          Free forever. No email, no password, no account — your keys are your login.
+        <p className="claim-fine mt-3 font-body text-xs text-white/50">
+          Free forever. No email, no password, no account. Your keys are your login.
         </p>
       </div>
     </div>

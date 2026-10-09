@@ -23,7 +23,7 @@ export default function FrenChip() {
       <span className="flex min-w-0 items-center gap-2">
         <PixelAvatar variant="ghost" size={32} />
         <span className="hidden whitespace-nowrap font-pixel text-[10px] text-coin glow-coin md:block">
-          LOGIN
+          SIGN IN
         </span>
       </span>
     );

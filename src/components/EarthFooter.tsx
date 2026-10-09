@@ -6,15 +6,15 @@
 export default function EarthFooter() {
   return (
     <footer className="border-t-2 border-edge px-6 py-10 text-center">
-      <p className="font-pixel text-xs leading-relaxed text-white/40">
-        YOUR TAG BELONGS TO YOU — WE NEVER SEE OR STORE YOUR SECRET KEY
+      <p className="r6-foot font-body leading-relaxed">
+        Your tag belongs to you. We never see or store your secret key.
       </p>
-      <p className="mt-3 font-pixel text-[10px] leading-relaxed text-white/40">
-        FRENS.EARTH — MADE WITH LOVE AT{" "}
+      <p className="r6-foot mt-3 font-body leading-relaxed">
+        Frens.earth. Made with love at{" "}
         <a href="https://pacsarcade.org" className="text-pink hover:glow-pink">
-          PAC&apos;S ARCADE
-        </a>{" "}
-        · A NON-PROFIT IN FORMATION
+          Pac&apos;s Arcade
+        </a>
+        . A non-profit in formation.
       </p>
       {/* Discoverable, not loud: glyphs + brand assets + a press blurb, all on-site. */}
       <p className="mt-3 font-pixel text-[10px] leading-relaxed text-white/30">
