@@ -62,14 +62,25 @@ export function parseVariantCost(json: unknown, usedPlacements: string[]): CostR
 
   const keyOf = (r: PriceRow) => r.id ?? r.placement ?? "";
   const used = usedPlacements.length ? usedPlacements : ["front"];
-  const usedRows = placements.filter((p) => used.includes(keyOf(p)));
+  // live placement ids can carry a suffix (front_large, back_dtg...), so a
+  // used "front" also matches a placement id that starts with "front"
+  const matches = (key: string) => used.some((u) => key === u || key.startsWith(`${u}_`));
+  const usedRows = placements.filter((p) => matches(keyOf(p)));
 
-  // the technique: the one the used placements print with, else the only one
-  const wanted = usedRows.map((p) => p.technique).find(Boolean);
+  // the technique: the one the used placements print with, else the only
+  // one, else DTG (the house tees and hoodies print DTG)
+  const techKey = (t: PriceRow) => t.technique_key ?? t.technique;
+  const wanted = usedRows.map((p) => p.technique_key ?? p.technique).find(Boolean);
   const tech =
-    techniques.find((t) => (t.technique_key ?? t.technique) === wanted) ??
-    (techniques.length === 1 ? techniques[0] : undefined);
-  if (!tech) return { ok: false, error: "could not tell which technique this product prints with" };
+    techniques.find((t) => techKey(t) === wanted) ??
+    (techniques.length === 1 ? techniques[0] : undefined) ??
+    techniques.find((t) => techKey(t) === "dtg");
+  if (!tech) {
+    // names only (no prices), so the next run says what Printful offered
+    const offered = techniques.map(techKey).join(", ") || "none";
+    const ids = placements.map(keyOf).join(", ") || "none";
+    return { ok: false, error: `could not tell which technique this product prints with (techniques: ${offered}; placements: ${ids}; used: ${used.join(", ")})` };
+  }
   const techCents = rowCents(tech);
   if (techCents == null) return { ok: false, error: "technique price was not a number" };
 

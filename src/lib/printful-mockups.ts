@@ -47,7 +47,7 @@ export type MockupStep =
 interface StyleGroup {
   placement?: string;
   technique?: string;
-  mockup_styles?: { id?: number; category?: string; view_name?: string }[];
+  mockup_styles?: { id?: number; category?: string; view_name?: string; restricted_to_variants?: number[] | null }[];
 }
 
 /** Pure: which style ids to ask for. Model/lifestyle views first, then the
@@ -57,6 +57,8 @@ export function pickStyles(
   groups: StyleGroup[],
   usedPlacements: string[],
   max = MAX_STYLES,
+  catalogVariantId?: number,
+  skip: number[] = [],
 ): { styleIds: number[]; techniques: Record<string, string> } {
   const techniques: Record<string, string> = {};
   const scored: { id: number; score: number; order: number }[] = [];
@@ -65,7 +67,11 @@ export function pickStyles(
     if (!g.placement || !usedPlacements.includes(g.placement)) continue;
     if (g.technique && !techniques[g.placement]) techniques[g.placement] = g.technique;
     for (const s of g.mockup_styles ?? []) {
-      if (typeof s.id !== "number") continue;
+      if (typeof s.id !== "number" || skip.includes(s.id)) continue;
+      // a style kept for some variants only (sticker sizes, colours) is
+      // refused for the others: ask only for the ones this variant may use
+      const only = s.restricted_to_variants;
+      if (catalogVariantId != null && Array.isArray(only) && only.length > 0 && !only.includes(catalogVariantId)) continue;
       const text = `${s.category ?? ""} ${s.view_name ?? ""}`.toLowerCase();
       const score = /lifestyle|model|person|worn|wearing/.test(text) ? 0 : 1;
       scored.push({ id: s.id, score, order: order++ });
@@ -75,6 +81,12 @@ export function pickStyles(
   const ids: number[] = [];
   for (const s of scored) if (!ids.includes(s.id)) ids.push(s.id);
   return { styleIds: ids.slice(0, max), techniques };
+}
+
+/** Pure: the style ids a 400 from /v2/mockup-tasks says are not available. */
+export function unavailableStyleIds(error: string): number[] {
+  const m = /style_ids`?:\s*([\d,\s]+?)\s*are not available/.exec(error);
+  return m ? m[1].split(",").map((x) => Number(x.trim())).filter((n) => Number.isFinite(n) && n > 0) : [];
 }
 
 interface V2Mockup {
@@ -168,9 +180,10 @@ export async function mockupStep(
       `/v2/catalog-products/${catalogProductId}/mockup-styles`,
     );
     if (styles.ok) {
-      const { styleIds, techniques } = pickStyles(styles.data.data ?? [], used);
+      const groups = styles.data.data ?? [];
+      let { styleIds, techniques } = pickStyles(groups, used, MAX_STYLES, catalogVariantId);
       if (styleIds.length === 0) return { state: "error", error: "Printful lists no mockup styles for this product" };
-      const create = await printfulRequest<{ data?: V2Task[] }>("/v2/mockup-tasks", {
+      const createTask = (ids: number[]) => printfulRequest<{ data?: V2Task[] }>("/v2/mockup-tasks", {
         method: "POST",
         body: JSON.stringify({
           format: "jpg",
@@ -179,7 +192,7 @@ export async function mockupStep(
               source: "catalog",
               catalog_product_id: catalogProductId,
               catalog_variant_ids: [catalogVariantId],
-              mockup_style_ids: styleIds,
+              mockup_style_ids: ids,
               placements: placed.map((p) => ({
                 placement: p.placement,
                 ...(techniques[p.placement] ? { technique: techniques[p.placement] } : {}),
@@ -189,6 +202,16 @@ export async function mockupStep(
           ],
         }),
       });
+      let create = await createTask(styleIds);
+      if (!create.ok && create.status === 400) {
+        // Printful names the styles it refuses for this variant: drop those
+        // and ask once more with the rest
+        const refused = unavailableStyleIds(create.error);
+        if (refused.length) {
+          ({ styleIds, techniques } = pickStyles(groups, used, MAX_STYLES, catalogVariantId, refused));
+          if (styleIds.length) create = await createTask(styleIds);
+        }
+      }
       if (!create.ok) {
         if (create.status === 429) return { state: "rate_limited", waitSec: create.retryAfterSec ?? 30 };
         return { state: "error", error: create.error };

@@ -17,7 +17,7 @@ process.env.PRINTFUL_API_KEY = "test-key-not-real";
 
 const { sellPriceCents, parseVariantCost, toCents } = await import(path.join(root, "src/lib/printful-pricing.ts"));
 const { cheapestRate, quoteShipping, chargeWithShipping } = await import(path.join(root, "src/lib/printful-shipping.ts"));
-const { mockupStep, pickStyles, v2Urls, v1Urls } = await import(path.join(root, "src/lib/printful-mockups.ts"));
+const { mockupStep, pickStyles, v2Urls, v1Urls, unavailableStyleIds } = await import(path.join(root, "src/lib/printful-mockups.ts"));
 const { fiatMinorToSats } = await import(path.join(root, "src/lib/btc-rate.ts"));
 
 let passed = 0, failed = 0;
@@ -65,6 +65,13 @@ const prices = {
   t("cost: discounted technique price, free front", c.ok && c.costCents === 950 && c.technique === "dtg");
   const c2 = parseVariantCost(prices, ["front", "back"]);
   t("cost: adds the back placement (discounted wins)", c2.ok && c2.costCents === 1150);
+  const multi = { data: { variant: { techniques: [{ technique_key: "embroidery", price: "9.00" }, { technique_key: "dtg", price: "11.00" }] }, product: { placements: [{ id: "front_large", technique_key: "dtg", price: "0.00" }, { id: "back", technique_key: "dtg", price: "5.95" }] } } };
+  const c3 = parseVariantCost(multi, ["front", "back"]);
+  t("cost: suffixed placement ids match and pick their technique", c3.ok && c3.technique === "dtg" && c3.costCents === 1695);
+  const c4 = parseVariantCost({ data: { variant: { techniques: [{ technique_key: "embroidery", price: "9.00" }, { technique_key: "dtg", price: "11.00" }] } } }, ["front"]);
+  t("cost: several techniques and no placement info falls back to DTG", c4.ok && c4.technique === "dtg" && c4.costCents === 1100);
+  const c5 = parseVariantCost({ data: { variant: { techniques: [{ technique_key: "a", price: "1" }, { technique_key: "b", price: "2" }] } } }, ["front"]);
+  t("cost: unknown techniques refuse and name what was offered", !c5.ok && /techniques: a, b/.test(c5.error));
   t("cost: no techniques refuses", !parseVariantCost({ data: { variant: { techniques: [] } } }, ["front"]).ok);
   t("cost: garbage refuses", !parseVariantCost(null, ["front"]).ok);
 }
@@ -214,6 +221,15 @@ const deps = () => {
   stubFetch([["/store/variants/555", () => json(syncVariant)], ["/v2/catalog-products/71/mockup-styles", () => new Response("x", { status: 500 })]]);
   const r = await mockupStep({ itemId: "tee", syncVariantId: "555" }, deps());
   t("mockups: Printful error is an honest error, no key in it", r.state === "error" && !/test-key/.test(r.error));
+}
+
+{
+  const groups = [{ placement: "front", technique: "digital", mockup_styles: [{ id: 1, category: "Flat" }, { id: 2, category: "Lifestyle", restricted_to_variants: [999] }, { id: 3, category: "Lifestyle", restricted_to_variants: [24966] }] }];
+  const p1 = pickStyles(groups, ["front"], 8, 24966);
+  t("styles: skips styles kept for other variants", p1.styleIds.join() === "3,1");
+  const p2 = pickStyles(groups, ["front"], 8, 24966, [3]);
+  t("styles: skips styles Printful refused", p2.styleIds.join() === "1");
+  t("styles: reads the refused ids from Printful's 400", unavailableStyleIds('printful /v2/mockup-tasks 400 {"data":"Following `style_ids`: 27922, 28008 are not available for catalog variant: 24966').join() === "27922,28008");
 }
 
 console.log(`printful-api: ${passed} passed, ${failed} failed`);
