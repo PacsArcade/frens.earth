@@ -75,6 +75,14 @@ const prices = {
   const many = { data: { variant: { techniques: [{ technique_key: "dtg", price: "12.00" }] }, product: { placements: [{ id: "front", technique_key: "dtg", price: "0.00" }, { id: "front_large", technique_key: "dtg", price: "5.95" }, { id: "front_small", technique_key: "dtg", price: "2.95" }, { id: "back", technique_key: "dtg", price: "5.95" }] } } };
   const c6 = parseVariantCost(many, ["front", "back"]);
   t("cost: counts ONE placement per design (exact id wins over suffixed)", c6.ok && c6.costCents === 1795 && c6.parts.length === 3);
+  // the live tee (block 973,835): /prices lists front at 6.25 too, but the
+  // dashboard's $23 proves the technique price already pays for the front
+  const tee = { data: { variant: { techniques: [{ technique_key: "dtg", price: "14.25" }] }, product: { placements: [{ id: "front", technique_key: "dtg", price: "6.25" }, { id: "back", technique_key: "dtg", price: "6.25" }, { id: "sleeve_left", technique_key: "dtg", price: "2.75" }] } } };
+  const c7 = parseVariantCost(tee, ["front", "back", "sleeve_left"]);
+  t("cost: the front is included in the technique price ($23.25 tee)", c7.ok && c7.costCents === 2325, JSON.stringify(c7));
+  t("cost: the included front shows as a 0 part", c7.ok && c7.parts.some((p) => p.name === "placement front (included)" && p.cents === 0));
+  const c8 = parseVariantCost(tee, ["back", "sleeve_left"]);
+  t("cost: no front -> the cheapest used placement is included", c8.ok && c8.costCents === 2050, JSON.stringify(c8));
   t("cost: no techniques refuses", !parseVariantCost({ data: { variant: { techniques: [] } } }, ["front"]).ok);
   t("cost: garbage refuses", !parseVariantCost(null, ["front"]).ok);
 }
