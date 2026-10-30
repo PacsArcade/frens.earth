@@ -90,6 +90,19 @@ const syncVariant = { result: { sync_variant: { id: 555, variant_id: 4012, produ
   t("quote: the key is not in the url or body", calls.every((c) => !c.url.includes("test-key") && !String(c.init.body ?? "").includes("test-key")));
 }
 {
+  // the live v1 shape (block 973,767): the sync variant IS the result, and
+  // the catalog product id may only come from GET /products/variant/{id}
+  const flat = { result: { id: 555, variant_id: 4012, product: { variant_id: 4012 }, files: [{ type: "default", url: "https://files.example/d.png" }] } };
+  const calls = stubFetch([
+    ["/store/variants/555", () => json(flat)],
+    ["/products/variant/4012", () => json({ result: { variant: { id: 4012, product_id: 71 } } })],
+    ["/shipping/rates", () => json({ result: [{ id: "STANDARD", name: "Flat Rate", rate: "4.99", currency: "USD" }] })],
+  ]);
+  const q = await quoteShipping(recipient, [{ item, qty: 1 }]);
+  t("live shape: flat sync variant + catalog lookup quotes", q.ok && q.amountMinor === 499);
+  t("live shape: asked the catalog for the product", calls.some((c) => c.url.includes("/products/variant/4012")));
+}
+{
   stubFetch([["/store/variants/555", () => json(syncVariant)], ["/shipping/rates", () => new Response("boom", { status: 500 })]]);
   const q = await quoteShipping(recipient, [{ item, qty: 1 }]);
   t("quote: Printful failure refuses honestly", !q.ok && /try again/.test(q.reason) && !/test-key/.test(q.reason));

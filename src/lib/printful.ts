@@ -356,24 +356,34 @@ export interface SyncVariantInfo {
  *  files behind one sync variant. The one door from the shelf's
  *  `partnerVariantIds` to everything else Printful knows about the product.
  *  ⚠ field names read from the v1 docs, not yet exercised live from here. */
+type SyncVariantBody = {
+  id?: number;
+  variant_id?: number;
+  product?: { product_id?: number; variant_id?: number };
+  files?: { type?: string; url?: string }[];
+};
+
 export async function fetchSyncVariant(
   syncVariantId: string,
   signal?: AbortSignal,
 ): Promise<{ ok: true; info: SyncVariantInfo } | PrintfulFailure> {
   const call = await printfulRequest<{
-    result?: {
-      sync_variant?: {
-        id?: number;
-        variant_id?: number;
-        product?: { product_id?: number; variant_id?: number };
-        files?: { type?: string; url?: string }[];
-      };
-    };
+    result?: SyncVariantBody & { sync_variant?: SyncVariantBody };
   }>(`/store/variants/${encodeURIComponent(syncVariantId)}`, signal ? { signal } : undefined);
   if (!call.ok) return { ok: false, error: call.error };
-  const sv = call.data.result?.sync_variant;
+  // live v1 answers with the sync variant AS the result; keep the wrapped
+  // shape too in case Printful ever nests it
+  const sv = call.data.result?.sync_variant ?? call.data.result;
   const catalogVariantId = sv?.variant_id ?? sv?.product?.variant_id;
-  const catalogProductId = sv?.product?.product_id;
+  let catalogProductId = sv?.product?.product_id;
+  if (catalogVariantId && !catalogProductId) {
+    // the catalog variant names its product (v1 GET /products/variant/{id})
+    const cat = await printfulRequest<{ result?: { variant?: { product_id?: number } } }>(
+      `/products/variant/${catalogVariantId}`,
+      signal ? { signal } : undefined,
+    );
+    if (cat.ok) catalogProductId = cat.data.result?.variant?.product_id;
+  }
   if (!catalogVariantId || !catalogProductId) {
     return { ok: false, error: `printful: sync variant ${syncVariantId} did not name its catalog product` };
   }
