@@ -108,6 +108,8 @@ export async function POST(request: Request) {
       ok: true,
       costCents: price.costCents,
       priceCents: price.priceCents,
+      // what the cost is made of (Printful's own prices), so a number can be checked
+      parts: price.parts,
       sats: sats ?? null,
       note: sats == null ? "no bitcoin rate answered, sats left unset (the invoice converts from dollars)" : undefined,
     });
