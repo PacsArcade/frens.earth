@@ -72,6 +72,9 @@ const prices = {
   t("cost: several techniques and no placement info falls back to DTG", c4.ok && c4.technique === "dtg" && c4.costCents === 1100);
   const c5 = parseVariantCost({ data: { variant: { techniques: [{ technique_key: "a", price: "1" }, { technique_key: "b", price: "2" }] } } }, ["front"]);
   t("cost: unknown techniques refuse and name what was offered", !c5.ok && /techniques: a, b/.test(c5.error));
+  const many = { data: { variant: { techniques: [{ technique_key: "dtg", price: "12.00" }] }, product: { placements: [{ id: "front", technique_key: "dtg", price: "0.00" }, { id: "front_large", technique_key: "dtg", price: "5.95" }, { id: "front_small", technique_key: "dtg", price: "2.95" }, { id: "back", technique_key: "dtg", price: "5.95" }] } } };
+  const c6 = parseVariantCost(many, ["front", "back"]);
+  t("cost: counts ONE placement per design (exact id wins over suffixed)", c6.ok && c6.costCents === 1795 && c6.parts.length === 3);
   t("cost: no techniques refuses", !parseVariantCost({ data: { variant: { techniques: [] } } }, ["front"]).ok);
   t("cost: garbage refuses", !parseVariantCost(null, ["front"]).ok);
 }

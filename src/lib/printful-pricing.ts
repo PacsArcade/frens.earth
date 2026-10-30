@@ -48,7 +48,9 @@ function rowCents(r: PriceRow): number | null {
   return toCents(r.discounted_price ?? r.price);
 }
 
-export type CostResult = { ok: true; costCents: number; technique: string } | { ok: false; error: string };
+export type CostResult =
+  | { ok: true; costCents: number; technique: string; parts: { name: string; cents: number }[] }
+  | { ok: false; error: string };
 
 /** Pure: the /prices response + the placements this product uses -> cost. */
 export function parseVariantCost(json: unknown, usedPlacements: string[]): CostResult {
@@ -64,8 +66,15 @@ export function parseVariantCost(json: unknown, usedPlacements: string[]): CostR
   const used = usedPlacements.length ? usedPlacements : ["front"];
   // live placement ids can carry a suffix (front_large, back_dtg...), so a
   // used "front" also matches a placement id that starts with "front"
-  const matches = (key: string) => used.some((u) => key === u || key.startsWith(`${u}_`));
-  const usedRows = placements.filter((p) => matches(keyOf(p)));
+  // ONE placement per used one: the exact id when Printful lists it, else
+  // the first suffixed one (a tee lists front, front_large... and only one
+  // of them is printed)
+  const usedRows: PriceRow[] = [];
+  for (const u of used) {
+    const row =
+      placements.find((p) => keyOf(p) === u) ?? placements.find((p) => keyOf(p).startsWith(`${u}_`));
+    if (row && !usedRows.includes(row)) usedRows.push(row);
+  }
 
   // the technique: the one the used placements print with, else the only
   // one, else DTG (the house tees and hoodies print DTG)
@@ -85,12 +94,14 @@ export function parseVariantCost(json: unknown, usedPlacements: string[]): CostR
   if (techCents == null) return { ok: false, error: "technique price was not a number" };
 
   let total = techCents;
+  const parts = [{ name: `technique ${String(techKey(tech) ?? "")}`, cents: techCents }];
   for (const row of usedRows) {
     const c = rowCents(row);
     if (c == null) return { ok: false, error: `placement ${keyOf(row)} price was not a number` };
     total += c;
+    parts.push({ name: `placement ${keyOf(row)}`, cents: c });
   }
-  return { ok: true, costCents: total, technique: String(tech.technique_key ?? tech.technique ?? "") };
+  return { ok: true, costCents: total, technique: String(tech.technique_key ?? tech.technique ?? ""), parts };
 }
 
 /** GET /v2/catalog-variants/{id}/prices, 8 s limit, no secret in errors. */
@@ -107,7 +118,7 @@ export async function fetchVariantCost(
 }
 
 export type ShelfPrice =
-  | { ok: true; costCents: number; priceCents: number; technique: string; catalogVariantId: number }
+  | { ok: true; costCents: number; priceCents: number; technique: string; catalogVariantId: number; parts: { name: string; cents: number }[] }
   | { ok: false; error: string };
 
 /** One sync variant -> its cost and its shelf price (the "Reprice from
@@ -124,5 +135,6 @@ export async function shelfPriceForSyncVariant(syncVariantId: string): Promise<S
     priceCents: sellPriceCents(cost.costCents),
     technique: cost.technique,
     catalogVariantId: v.info.catalogVariantId,
+    parts: cost.parts,
   };
 }
