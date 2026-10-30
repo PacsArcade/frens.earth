@@ -6,7 +6,8 @@ import { fetchSyncVariant, placementForFileType, printfulRequest, type PrintfulC
  *
  * Cost = the catalog variant's price for the technique the product prints
  * with (DTG, embroidery, ...) plus the price of each placement the design
- * uses (front is usually 0.00, a back print or sleeve adds money). Source:
+ * uses, less the one print the technique price already pays for (the
+ * front; see parseVariantCost). A back print or sleeve adds money. Source:
  * GET /v2/catalog-variants/{id}/prices (selling region north_america, USD).
  * discounted_price wins when present. A sized item is priced from its BASE
  * size (the first size) and listed at one price; the dearer sizes (2XL and
@@ -93,11 +94,25 @@ export function parseVariantCost(json: unknown, usedPlacements: string[]): CostR
   const techCents = rowCents(tech);
   if (techCents == null) return { ok: false, error: "technique price was not a number" };
 
+  // the technique price already pays for ONE print (block 973,835: the
+  // dashboard showed the organic tee at $23 = dtg 14.25 + back 6.25 +
+  // sleeve 2.75, while /prices also lists front at 6.25). So the front is
+  // included; a design with no front gets its cheapest placement included,
+  // so the shelf never undercharges.
+  const isFront = (r: PriceRow) => keyOf(r) === "front" || keyOf(r).startsWith("front_");
+  const cheapest = () =>
+    usedRows.reduce<PriceRow | undefined>((a, r) => (a == null || (rowCents(r) ?? 0) < (rowCents(a) ?? 0) ? r : a), undefined);
+  const included = usedRows.find(isFront) ?? cheapest();
+
   let total = techCents;
   const parts = [{ name: `technique ${String(techKey(tech) ?? "")}`, cents: techCents }];
   for (const row of usedRows) {
     const c = rowCents(row);
     if (c == null) return { ok: false, error: `placement ${keyOf(row)} price was not a number` };
+    if (row === included) {
+      parts.push({ name: `placement ${keyOf(row)} (included)`, cents: 0 });
+      continue;
+    }
     total += c;
     parts.push({ name: `placement ${keyOf(row)}`, cents: c });
   }
