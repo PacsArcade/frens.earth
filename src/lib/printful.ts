@@ -43,8 +43,13 @@ export function printfulConfigured(): boolean {
   return printfulEnv() !== null;
 }
 
+/** Hard ceiling on every Printful API call (the live-dependency hard stop:
+ *  no outbound call on a page or checkout path without a time limit). */
+export const PRINTFUL_TIMEOUT_MS = 8000;
+
 async function printfulFetch(pathname: string, env: PrintfulEnv, init?: RequestInit): Promise<Response> {
   return fetch(`${PRINTFUL_API_BASE}${pathname}`, {
+    signal: AbortSignal.timeout(PRINTFUL_TIMEOUT_MS),
     ...init,
     headers: {
       Authorization: `Bearer ${env.apiKey}`,
@@ -54,6 +59,41 @@ async function printfulFetch(pathname: string, env: PrintfulEnv, init?: RequestI
     },
     cache: "no-store",
   });
+}
+
+export type PrintfulCall<T> =
+  | { ok: true; data: T }
+  | { ok: false; error: string; status?: number; retryAfterSec?: number };
+
+/**
+ * One JSON call to Printful with the shared timeout. Never throws; the error
+ * string carries the endpoint path and status, never a header or the key.
+ * `signal` lets a caller pass a tighter shared deadline (shipping quote).
+ */
+export async function printfulRequest<T>(
+  pathname: string,
+  init?: RequestInit & { signal?: AbortSignal },
+): Promise<PrintfulCall<T>> {
+  const env = printfulEnv();
+  if (!env) return { ok: false, error: "Printful not configured: set PRINTFUL_API_KEY" };
+  const label = pathname.split("?")[0];
+  try {
+    const res = await printfulFetch(pathname, env, init);
+    if (!res.ok) {
+      const retry = Number(res.headers.get("retry-after"));
+      const body = await res.text().catch(() => "");
+      return {
+        ok: false,
+        status: res.status,
+        retryAfterSec: Number.isFinite(retry) && retry > 0 ? retry : undefined,
+        error: `printful ${label} ${res.status} ${body.replace(/\s+/g, " ").slice(0, 160)}`.trim(),
+      };
+    }
+    return { ok: true, data: (await res.json()) as T };
+  } catch (err) {
+    const timedOut = err instanceof Error && (err.name === "TimeoutError" || err.name === "AbortError");
+    return { ok: false, error: timedOut ? `printful ${label} timed out` : `printful ${label} unreachable` };
+  }
 }
 
 export interface PrintfulRecipient {
@@ -295,4 +335,55 @@ export function parsePrintfulWebhookBody(raw: unknown): PrintfulWebhookEvent | n
     default:
       return null;
   }
+}
+
+export interface SyncVariantFile {
+  /** Printful v1 file type: "default" (front), "back", "embroidery_chest_left", ... */
+  type: string;
+  /** the design file as the artist uploaded it */
+  url: string;
+}
+
+export interface SyncVariantInfo {
+  syncVariantId: string;
+  /** the CATALOG variant (size/colour of the blank) and product it prints on */
+  catalogVariantId: number;
+  catalogProductId: number;
+  files: SyncVariantFile[];
+}
+
+/** GET /store/variants/{sync_variant_id} (v1) -> the catalog ids and the design
+ *  files behind one sync variant. The one door from the shelf's
+ *  `partnerVariantIds` to everything else Printful knows about the product.
+ *  ⚠ field names read from the v1 docs, not yet exercised live from here. */
+export async function fetchSyncVariant(
+  syncVariantId: string,
+  signal?: AbortSignal,
+): Promise<{ ok: true; info: SyncVariantInfo } | PrintfulFailure> {
+  const call = await printfulRequest<{
+    result?: {
+      sync_variant?: {
+        id?: number;
+        variant_id?: number;
+        product?: { product_id?: number; variant_id?: number };
+        files?: { type?: string; url?: string }[];
+      };
+    };
+  }>(`/store/variants/${encodeURIComponent(syncVariantId)}`, signal ? { signal } : undefined);
+  if (!call.ok) return { ok: false, error: call.error };
+  const sv = call.data.result?.sync_variant;
+  const catalogVariantId = sv?.variant_id ?? sv?.product?.variant_id;
+  const catalogProductId = sv?.product?.product_id;
+  if (!catalogVariantId || !catalogProductId) {
+    return { ok: false, error: `printful: sync variant ${syncVariantId} did not name its catalog product` };
+  }
+  const files = (sv?.files ?? [])
+    .filter((f): f is { type: string; url: string } => Boolean(f.type && f.url) && f.type !== "preview")
+    .map((f) => ({ type: f.type, url: f.url }));
+  return { ok: true, info: { syncVariantId, catalogVariantId, catalogProductId, files } };
+}
+
+/** v1 file type -> v2 placement name ("default" is the front print). */
+export function placementForFileType(type: string): string {
+  return type === "default" ? "front" : type;
 }

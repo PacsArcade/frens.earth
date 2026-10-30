@@ -1,5 +1,6 @@
 "use client";
 
+import PrintfulPanel from "@/components/store/PrintfulPanel";
 import { useCallback, useEffect, useState } from "react";
 import { upload as blobDirectUpload } from "@vercel/blob/client";
 import { bftDateTime, estimateHeight } from "@/lib/bb/bft";
@@ -337,6 +338,8 @@ export default function StoreRoom() {
           <b>STRIPE</b> — SOON · wires into this berth at S5
         </li>
       </ul>
+
+      {partners.printful && <PrintfulPanel onChanged={load} />}
 
       <h2 className="mt-6 font-bold tracking-widest text-cyan-300">WARES</h2>
       {items.length === 0 && <p className="mt-2 text-neutral-400">No wares on the shelf yet — add the first below.</p>}

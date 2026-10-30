@@ -12,6 +12,8 @@ import {
 import { liveAdapter } from "@/lib/payments";
 import { frenFromRequest } from "@/lib/fren-auth";
 import { hasStructuredAddress } from "@/lib/dropship";
+import { recipientFromShipping } from "@/lib/printful";
+import { chargeWithShipping, quoteShipping } from "@/lib/printful-shipping";
 
 export const dynamic = "force-dynamic";
 
@@ -41,6 +43,10 @@ export async function POST(request: Request) {
     size?: string;
     contact?: { email?: string };
     shipping?: OrderRecord["shipping"];
+    /** Printful items: ask for the shipping rate only, create nothing */
+    quoteOnly?: boolean;
+    /** Printful items: the shipping amount (minor units) the buyer was shown */
+    acceptedShippingMinor?: number;
   };
   try {
     body = await request.json();
@@ -110,10 +116,44 @@ export async function POST(request: Request) {
 
   // sats-primary: sale price (gold rail) wins when present
   const effective = item.sale ?? item.price;
-  const snapshot: PriceSnapshot =
+  let snapshot: PriceSnapshot =
     effective.sats != null
       ? { amount: effective.sats, currency: "SATS", at: new Date().toISOString() }
       : { amount: effective.fiat!.amount, currency: effective.fiat!.currency, at: new Date().toISOString() };
+
+  // Printful lines: the buyer pays Printful's own shipping rate, shown BEFORE
+  // payment. No rate = no charge: the quote refuses honestly (one function,
+  // quoteShipping(), is what a flat fee would replace later).
+  let shippingFee: OrderRecord["shippingFee"];
+  if (item.partner === "printful") {
+    const recipient = recipientFromShipping(body.shipping, body.contact?.email);
+    if (!recipient) {
+      return NextResponse.json({ ok: false, reason: "a complete address is required to quote shipping" }, { status: 400 });
+    }
+    const quote = await quoteShipping(recipient, [{ item, size: size || undefined, qty: 1 }]);
+    if (!quote.ok) return NextResponse.json({ ok: false, reason: quote.reason }, { status: 503 });
+    const charge = await chargeWithShipping(effective, quote);
+    if (!charge.ok) return NextResponse.json({ ok: false, reason: charge.reason }, { status: 503 });
+    const shown = {
+      shipping: { amount: charge.shippingAmount, currency: charge.currency },
+      shippingUsdMinor: quote.amountMinor,
+      method: quote.method,
+      minDays: quote.minDays,
+      maxDays: quote.maxDays,
+      item: { amount: charge.itemAmount, currency: charge.currency },
+      total: { amount: charge.amount, currency: charge.currency },
+    };
+    if (body.quoteOnly) return NextResponse.json({ ok: true, quote: shown });
+    if (body.acceptedShippingMinor !== quote.amountMinor) {
+      // the buyer has not seen this exact rate yet (or it moved): show it, do not charge
+      return NextResponse.json(
+        { ok: false, reason: "confirm the shipping rate before paying", quote: shown },
+        { status: 409 }
+      );
+    }
+    snapshot = { amount: charge.amount, currency: charge.currency, at: new Date().toISOString() };
+    shippingFee = { amount: charge.shippingAmount, currency: charge.currency, method: quote.method };
+  }
 
   const order: OrderRecord = {
     id: newOrderId(),
@@ -121,6 +161,7 @@ export async function POST(request: Request) {
     state: "created",
     lineItems: [{ itemId: item.id, title: item.title, qty: 1, size: item.sizes?.length ? size : undefined }],
     priceSnapshot: snapshot,
+    shippingFee,
     adapterId: adapter.id,
     chargeIds: [],
     entitlementSubject,

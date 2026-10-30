@@ -190,6 +190,9 @@ export interface OrderRecord {
   state: OrderState;
   lineItems: { itemId: string; title: string; qty: number; size?: string }[];
   priceSnapshot: PriceSnapshot;
+  /** Printful's shipping rate folded into priceSnapshot.amount (same
+   *  currency); kept apart here so the receipt can show the two lines */
+  shippingFee?: { amount: number; currency: string; method?: string };
   adapterId: string;
   /** one order, many charges — invoices expire and get re-minted */
   chargeIds: string[];

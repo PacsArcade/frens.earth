@@ -24,6 +24,7 @@ const ALLOWED = {
   "src/lib/registry.ts": "the name registry, served to the world by design",
   "src/app/api/admin/store/upload/route.ts": "product image uploads",
   "src/app/a/store/page.tsx": "product image uploads (browser side)",
+  "src/lib/printful-mockups.ts": "product pictures made from Printful mockups (public by nature)",
   "src/app/api/frens/upload/route.ts": "member image uploads",
   "src/lib/private-store.ts": "read-only access to older copies (checked below: no put)",
 };
