@@ -3,6 +3,26 @@
 import { useState } from "react";
 import type { StoreItem } from "@/lib/store";
 
+interface Money {
+  amount: number;
+  currency: string;
+}
+interface ShippingQuoteView {
+  shipping: Money;
+  shippingUsdMinor: number;
+  method: string;
+  minDays?: number;
+  maxDays?: number;
+  item: Money;
+  total: Money;
+}
+
+function formatMoney(m: Money): string {
+  return m.currency === "SATS"
+    ? `${m.amount.toLocaleString("en-US")} sats`
+    : `${(m.amount / 100).toFixed(2)} ${m.currency}`;
+}
+
 /**
  * The buy moment — honest to the no-coiner: this shelf takes bitcoin, and
  * the button says so before any invoice appears. Digital/package items buy
@@ -23,6 +43,9 @@ export default function BuyPanel({ item, railLive }: { item: StoreItem; railLive
   const [country, setCountry] = useState("");
   const [size, setSize] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // Printful items: the shipping rate the buyer has SEEN, tied to the exact
+  // address + size it was quoted for (any edit makes it stale)
+  const [quote, setQuote] = useState<{ key: string; q: ShippingQuoteView } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const needsShipping = item.fulfillment === "self" || Boolean(item.partner);
@@ -31,6 +54,34 @@ export default function BuyPanel({ item, railLive }: { item: StoreItem; railLive
   const sizes = item.sizes ?? [];
   const needsSize = sizes.length > 0;
   const structuredComplete = Boolean(shipName && addr1 && city && country);
+  const needsQuote = item.partner === "printful";
+  const quoteKey = JSON.stringify([size, shipName, addr1, addr2, city, state, zip, country]);
+  const liveQuote = quote && quote.key === quoteKey ? quote.q : null;
+
+  /** Ask for Printful's shipping rate for this address; creates nothing. */
+  async function getRate() {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/store/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          itemId: item.id,
+          size: size ?? undefined,
+          quoteOnly: true,
+          contact: email ? { email } : undefined,
+          shipping: { name: shipName, address1: addr1, address2: addr2 || undefined, city, state: state || undefined, zip: zip || undefined, country },
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) setError(data.reason ?? "could not get a shipping rate");
+      else setQuote({ key: quoteKey, q: data.quote });
+    } catch {
+      setError("shipping rate unreachable, try again");
+    }
+    setBusy(false);
+  }
 
   async function buy() {
     setBusy(true);
@@ -49,9 +100,17 @@ export default function BuyPanel({ item, railLive }: { item: StoreItem; railLive
           size: size ?? undefined,
           contact: email ? { email } : undefined,
           shipping,
+          acceptedShippingMinor: liveQuote?.shippingUsdMinor,
         }),
       });
       const data = await res.json();
+      if (res.status === 409 && data.quote) {
+        // the rate moved since it was shown: show the new one, charge nothing
+        setQuote({ key: quoteKey, q: data.quote });
+        setError("the shipping rate changed, please check the new total");
+        setBusy(false);
+        return;
+      }
       if (!res.ok || !data.ok) {
         setError(data.reason ?? "checkout failed");
         setBusy(false);
@@ -204,8 +263,29 @@ export default function BuyPanel({ item, railLive }: { item: StoreItem; railLive
           </p>
         </>
       )}
+      {needsQuote && liveQuote && (
+        <div className="mt-4 border border-neutral-700 px-3 py-2 text-xs text-neutral-200" aria-live="polite">
+          <p>item: {formatMoney(liveQuote.item)}</p>
+          <p>
+            shipping ({liveQuote.method}
+            {liveQuote.minDays && liveQuote.maxDays ? `, ${liveQuote.minDays} to ${liveQuote.maxDays} days` : ""}):{" "}
+            {formatMoney(liveQuote.shipping)}
+          </p>
+          <p className="mt-1 font-bold">total: {formatMoney(liveQuote.total)}</p>
+        </div>
+      )}
+      {needsQuote && !liveQuote && (
+        <button
+          onClick={getRate}
+          disabled={busy || !structuredComplete || (needsSize && !size)}
+          className="glass-btn mt-4 w-full touch-manipulation"
+        >
+          {busy ? "CHECKING SHIPPING…" : needsSize && !size ? "PICK A SIZE FIRST" : "SEE SHIPPING AND TOTAL"}
+        </button>
+      )}
       <button
         onClick={buy}
+        hidden={needsQuote && !liveQuote}
         disabled={
           busy ||
           (needsStructured ? !structuredComplete : needsShipping && (!shipName || !shipAddr)) ||
