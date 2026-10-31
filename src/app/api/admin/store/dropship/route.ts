@@ -3,6 +3,7 @@ import { operatorFromCookieHeader } from "@/lib/operator-auth";
 import { listOrders, getOrder, getItem, markFulfilled, type OrderRecord } from "@/lib/store";
 import { settleDropshipFromOrder, confirmDropship, applyDropshipStatus } from "@/lib/dropship";
 import { fetchOrderStatus, printfulConfigured } from "@/lib/printful";
+import { autoConfirmSettings, autoConfirmUsedToday, utcDay } from "@/lib/auto-confirm";
 import { fourthwallConfigured, fourthwallBridgeNote } from "@/lib/fourthwall";
 
 export const dynamic = "force-dynamic";
@@ -36,12 +37,14 @@ async function partnerLineItem(order: OrderRecord) {
 /**
  * The pending-fulfillment desk (S6 ruling 6). GET lists every order
  * carrying a partner-fulfilled line, newest first. POST is the one door
- * that spends the artist's Printful balance (`action: "confirm"`) — always
- * an explicit operator click, never automatic.
+ * that spends the artist's Printful balance by hand (`action: "confirm"`);
+ * since block 973,932 the settle path may also auto-confirm under a daily
+ * cap, and GET reports today's used/cap.
  */
 export async function GET(request: Request) {
   const denied = gate(request);
   if (denied) return denied;
+  const settings = autoConfirmSettings();
   const all = await listOrders();
   const views: DropshipView[] = [];
   for (const o of all) {
@@ -59,6 +62,12 @@ export async function GET(request: Request) {
     ok: true,
     views,
     printfulConfigured: printfulConfigured(),
+    autoConfirm: {
+      enabled: settings.enabled,
+      capUsdMinor: settings.capUsdMinor,
+      usedUsdMinor: await autoConfirmUsedToday().catch(() => 0),
+      day: utcDay(),
+    },
     fourthwallConfigured: fourthwallConfigured(),
   });
 }

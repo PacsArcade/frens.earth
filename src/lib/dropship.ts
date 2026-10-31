@@ -1,6 +1,14 @@
-import { getItem, setDropship, markFulfilled, type OrderRecord, type StoreItem, type DropshipRecord } from "./store";
+import { getItem, getOrder, setDropship, markFulfilled, type OrderRecord, type StoreItem, type DropshipRecord } from "./store";
 import { printfulConfigured, recipientFromShipping, variantIdForLine, createDraftOrder, type PrintfulLineItem } from "./printful";
 import { fourthwallConfigured } from "./fourthwall";
+import {
+  autoConfirmSettings,
+  decideAutoConfirm,
+  paidUsdMinor,
+  autoConfirmUsedToday,
+  reserveAutoConfirm,
+  releaseAutoConfirm,
+} from "./auto-confirm";
 
 /**
  * The bridge between money and DROP-SHIP FULFILLMENT (S6 ruling 6, ported
@@ -11,8 +19,17 @@ import { fourthwallConfigured } from "./fourthwall";
  * state rather than dependent on catching one event.
  *
  * Idempotent by construction: a dropship record already past `draft_pending`
- * is left alone — this never re-creates a draft that already exists, and it
- * NEVER submits one (that's the operator's own click, in the admin route).
+ * is left alone — this never re-creates a draft that already exists.
+ *
+ * SPEND RULE (changed at block 973,932 by the Admiral's ruling "auto confirm
+ * daily cap"; before it nothing here ever submitted): right after a draft is
+ * created the shop MAY confirm it itself, only when the guards in
+ * auto-confirm.ts all pass (PRINTFUL_AUTO_CONFIRM on, a daily USD cap set,
+ * Printful's cost known and covered by what the buyer paid, today's UTC
+ * total within the cap). Any failed guard leaves the draft for the
+ * operator's click in the admin desk, with the reason recorded on
+ * `dropship.autoConfirm`. The auto path runs only from the single draft
+ * creation, so a webhook retry (state already past draft) cannot confirm twice.
  */
 
 /** The catalog item behind a partner-fulfilled line, plus its size — v1
@@ -139,13 +156,68 @@ async function draftDropship(order: OrderRecord, item: StoreItem): Promise<Drops
     return { ran: true, state: "draft_failed", note: result.error };
   }
   await setDropship(order.id, { partner: "printful", state: "draft_created", partnerOrderId: result.partnerOrderId, lastError: undefined });
-  return { ran: true, state: "draft_created" };
+  return autoConfirmDraft(order.id, result.partnerOrderId, result.costUsdMinor);
 }
 
-/** The admin desk's "confirm & submit" door — the ONE place that spends the
- *  artist's Printful balance. Never called from a webhook, settle path, or
- *  cron; always an operator's explicit click (src/app/api/admin/store/
- *  dropship/route.ts is the one caller). */
+/** Block 973,932 ruling: try to confirm the draft just created, guarded
+ *  (see auto-confirm.ts). Never throws; a failure of any guard or of the
+ *  store leaves the draft for the operator's click. Re-reads the order so a
+ *  concurrent run that already decided or confirmed is respected. */
+async function autoConfirmDraft(orderId: string, partnerOrderId: string, draftCost: number | null): Promise<DropshipResult> {
+  const drafted: DropshipResult = { ran: true, state: "draft_created" };
+  const settings = autoConfirmSettings();
+  if (!settings.enabled) return drafted; // off = today's behaviour, nothing recorded
+  try {
+    const fresh = await getOrder(orderId);
+    if (!fresh?.dropship) return drafted;
+    let cost = draftCost;
+    if (cost == null) {
+      const { fetchOrderCostUsdMinor } = await import("./printful");
+      cost = await fetchOrderCostUsdMinor(partnerOrderId);
+    }
+    let live: number | null = null;
+    if (fresh.priceSnapshot.currency === "SATS" && !(fresh.priceSnapshot.rate && fresh.priceSnapshot.rate > 0)) {
+      const { usdPerBtc } = await import("./btc-rate");
+      live = await usdPerBtc();
+    }
+    const paid = paidUsdMinor(fresh.priceSnapshot, live);
+    const used = await autoConfirmUsedToday();
+    const d = decideAutoConfirm({
+      settings,
+      costUsdMinor: cost,
+      paidUsdMinor: paid.minor,
+      paidFromSats: paid.fromSats,
+      usedTodayUsdMinor: used,
+      dropshipState: fresh.dropship.state,
+      alreadyDecided: Boolean(fresh.dropship.autoConfirm),
+    });
+    if (d.decision === "held") {
+      await setDropship(orderId, { partner: "printful", state: "draft_created", autoConfirm: { at: Date.now(), costUsdMinor: cost, decision: "held", reason: d.reason } });
+      return { ...drafted, note: `auto-confirm held: ${d.reason}` };
+    }
+    const cap = await reserveAutoConfirm(cost as number, settings.capUsdMinor);
+    if (!cap.ok) {
+      await setDropship(orderId, { partner: "printful", state: "draft_created", autoConfirm: { at: Date.now(), costUsdMinor: cost, decision: "held", reason: `daily cap reached (used $${(cap.used / 100).toFixed(2)})` } });
+      return { ...drafted, note: "auto-confirm held: daily cap reached" };
+    }
+    const result = await confirmDropship(fresh);
+    if (result.state !== "submitted") {
+      await releaseAutoConfirm(cost as number);
+      await setDropship(orderId, { partner: "printful", state: "submit_failed", autoConfirm: { at: Date.now(), costUsdMinor: cost, decision: "held", reason: `confirm call failed: ${result.note ?? "unknown"}` } });
+      return { ran: true, state: "submit_failed", note: result.note };
+    }
+    await setDropship(orderId, { partner: "printful", state: "submitted", autoConfirm: { at: Date.now(), costUsdMinor: cost, decision: "confirmed", reason: d.reason } });
+    return { ran: true, state: "submitted", note: "auto-confirmed" };
+  } catch (err) {
+    // the store or the rate source misbehaved: the draft stays, the click remains
+    return { ...drafted, note: `auto-confirm skipped: ${err instanceof Error ? err.message : "error"}` };
+  }
+}
+
+/** The confirm door — the ONE place that spends the artist's Printful
+ *  balance. Callers: the operator's click (src/app/api/admin/store/
+ *  dropship/route.ts) and, since block 973,932, autoConfirmDraft above, which
+ *  runs only after every auto-confirm guard has passed. */
 export async function confirmDropship(order: OrderRecord): Promise<DropshipResult> {
   const ds = order.dropship;
   if (!ds || ds.partner !== "printful") return { ...NOTHING, note: "no Printful draft to confirm" };
