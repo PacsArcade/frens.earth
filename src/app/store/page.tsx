@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import CartLink from "@/components/store/CartLink";
 import ArcadeHeader from "@/components/ArcadeHeader";
 import EarthFooter from "@/components/EarthFooter";
 import { listItems, stripPrivateMedia, type StoreItem } from "@/lib/store";
@@ -113,6 +114,7 @@ export default async function StorePage() {
           wares from this ship, paid in bitcoin, straight to the artist — no middleman, no custodian holding the
           float.
         </p>
+        <div className="mt-4"><CartLink /></div>
         {!rail && (
           <p className="mt-4 rounded-md border border-edge bg-panel px-3 py-2 text-xs text-cyan">
             ◌ payment rail not connected — the shelf is browse-only until this ship links its BTCPay
