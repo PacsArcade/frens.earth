@@ -14,12 +14,15 @@ import { frenFromRequest } from "@/lib/fren-auth";
 import { hasStructuredAddress } from "@/lib/dropship";
 import { recipientFromShipping } from "@/lib/printful";
 import { chargeWithShipping, quoteShipping } from "@/lib/printful-shipping";
+import { normalizeCartLines, resolveCart, cartSubtotal, orderLineItems } from "@/lib/cart";
 
 export const dynamic = "force-dynamic";
 
 /**
- * Single-item checkout (no cart — v1 scope, said out loud). Two shapes:
- * - { itemId, contact?, shipping? }  → new order + first charge
+ * Checkout. Three shapes:
+ * - { itemId, contact?, shipping? }  → new single-item order + first charge
+ * - { lines: [{itemId,size?,qty}], contact?, shipping? } → a cart order (see
+ *   src/lib/cart.ts for what a cart may hold; digital/package stay single-buy)
  * - { orderId }                      → fresh charge for an expired order
  * Digital/package items require a fren session — the entitlement subject is
  * captured HERE, because the paid webhook is server-to-server and the order
@@ -39,6 +42,7 @@ export async function POST(request: Request) {
 
   let body: {
     itemId?: string;
+    lines?: unknown;
     orderId?: string;
     size?: string;
     contact?: { email?: string };
@@ -76,6 +80,8 @@ export async function POST(request: Request) {
     await attachCharge(order.id, charge.chargeId);
     return NextResponse.json({ ok: true, orderId: order.id, payUrl: charge.payUrl, extras: charge.extras });
   }
+
+  if (body.lines !== undefined) return cartCheckout(body, adapter, origin);
 
   const item = body.itemId ? await getItem(body.itemId) : null;
   if (!item || item.status !== "live") {
@@ -188,5 +194,109 @@ export async function POST(request: Request) {
   );
   await attachCharge(order.id, charge.chargeId);
 
+  return NextResponse.json({ ok: true, orderId: order.id, payUrl: charge.payUrl, extras: charge.extras });
+}
+
+interface CartBody {
+  lines?: unknown;
+  contact?: { email?: string };
+  shipping?: OrderRecord["shipping"];
+  quoteOnly?: boolean;
+  acceptedShippingMinor?: number;
+}
+
+/** A cart order: every line re-priced from the catalog, one shipper, one
+ *  shipping quote for all Printful lines, refusals before any order exists. */
+async function cartCheckout(
+  body: CartBody,
+  adapter: NonNullable<ReturnType<typeof liveAdapter>>,
+  origin: string,
+) {
+  const norm = normalizeCartLines(body.lines);
+  if (!norm.ok) return NextResponse.json({ ok: false, reason: norm.reason }, { status: norm.status });
+  const items = new Map<string, Awaited<ReturnType<typeof getItem>>>();
+  for (const l of norm.lines) if (!items.has(l.itemId)) items.set(l.itemId, await getItem(l.itemId));
+  const cart = resolveCart(norm.lines, items);
+  if (!cart.ok) return NextResponse.json({ ok: false, reason: cart.reason }, { status: cart.status });
+
+  const partnerLines = cart.lines.filter((l) => l.item.partner);
+  if (partnerLines.length > 0 && !hasStructuredAddress(body.shipping)) {
+    return NextResponse.json(
+      { ok: false, reason: "this cart ships via a fulfillment partner, so a complete address (name, street, city, country) is required before checkout" },
+      { status: 400 }
+    );
+  }
+  if (partnerLines.length === 0 && !(body.shipping?.name && body.shipping?.address)) {
+    return NextResponse.json({ ok: false, reason: "a name and address are required to ship this cart" }, { status: 400 });
+  }
+
+  const subtotal = cartSubtotal(cart.lines);
+  let snapshot: PriceSnapshot =
+    subtotal.sats != null
+      ? { amount: subtotal.sats, currency: "SATS", at: new Date().toISOString() }
+      : { amount: subtotal.fiat!.amount, currency: subtotal.fiat!.currency, at: new Date().toISOString() };
+
+  let shippingFee: OrderRecord["shippingFee"];
+  if (cart.shipper === "printful") {
+    const recipient = recipientFromShipping(body.shipping, body.contact?.email);
+    if (!recipient) {
+      return NextResponse.json({ ok: false, reason: "a complete address is required to quote shipping" }, { status: 400 });
+    }
+    const quote = await quoteShipping(
+      recipient,
+      cart.lines.map((l) => ({ item: l.item, size: l.size, qty: l.qty })),
+    );
+    if (!quote.ok) return NextResponse.json({ ok: false, reason: quote.reason }, { status: 503 });
+    const charge = await chargeWithShipping(subtotal, quote);
+    if (!charge.ok) return NextResponse.json({ ok: false, reason: charge.reason }, { status: 503 });
+    const shown = {
+      shipping: { amount: charge.shippingAmount, currency: charge.currency },
+      shippingUsdMinor: quote.amountMinor,
+      method: quote.method,
+      minDays: quote.minDays,
+      maxDays: quote.maxDays,
+      item: { amount: charge.itemAmount, currency: charge.currency },
+      total: { amount: charge.amount, currency: charge.currency },
+    };
+    if (body.quoteOnly) return NextResponse.json({ ok: true, quote: shown });
+    if (body.acceptedShippingMinor !== quote.amountMinor) {
+      return NextResponse.json(
+        { ok: false, reason: "confirm the shipping rate before paying", quote: shown },
+        { status: 409 }
+      );
+    }
+    snapshot = { amount: charge.amount, currency: charge.currency, at: new Date().toISOString() };
+    shippingFee = { amount: charge.shippingAmount, currency: charge.currency, method: quote.method };
+  } else if (body.quoteOnly) {
+    return NextResponse.json({ ok: false, reason: "this cart has no shipping quote to show" }, { status: 400 });
+  }
+
+  const order: OrderRecord = {
+    id: newOrderId(),
+    schemaVersion: 2,
+    state: "created",
+    lineItems: orderLineItems(cart.lines),
+    priceSnapshot: snapshot,
+    shippingFee,
+    adapterId: adapter.id,
+    chargeIds: [],
+    contact: body.contact,
+    shipping: body.shipping,
+    createdAtMs: Date.now(),
+    events: [],
+  };
+  await createOrder(order);
+
+  const charge = await adapter.createCharge(
+    {
+      orderId: order.id,
+      amount: snapshot.amount,
+      currency: snapshot.currency,
+      buyerEmail: body.contact?.email,
+      redirectUrl: `${origin}/store/order/${order.id}`,
+    },
+    `${order.id}:0`
+  );
+  await attachCharge(order.id, charge.chargeId);
   return NextResponse.json({ ok: true, orderId: order.id, payUrl: charge.payUrl, extras: charge.extras });
 }

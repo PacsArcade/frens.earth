@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import type { StoreItem } from "@/lib/store";
+import AddToCart from "./AddToCart";
+import ShipFields, { EMPTY_SHIP, shipBody, shipComplete } from "./ShipFields";
 
 interface Money {
   amount: number;
@@ -30,17 +32,9 @@ function formatMoney(m: Money): string {
  */
 export default function BuyPanel({ item, railLive }: { item: StoreItem; railLive: boolean }) {
   const [email, setEmail] = useState("");
-  const [shipName, setShipName] = useState("");
+  const [ship, setShip] = useState(EMPTY_SHIP);
+  // self-fulfilled items take one free-text address
   const [shipAddr, setShipAddr] = useState("");
-  // structured fields — only a partner (drop-ship) item asks for these
-  // (S6 ruling 6): Printful's Orders API needs address1/city/country as
-  // separate values, not one free-text blob to parse apart
-  const [addr1, setAddr1] = useState("");
-  const [addr2, setAddr2] = useState("");
-  const [city, setCity] = useState("");
-  const [state, setState] = useState("");
-  const [zip, setZip] = useState("");
-  const [country, setCountry] = useState("");
   const [size, setSize] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   // Printful items: the shipping rate the buyer has SEEN, tied to the exact
@@ -53,9 +47,10 @@ export default function BuyPanel({ item, railLive }: { item: StoreItem; railLive
   const gated = item.kind === "digital" || item.kind === "package";
   const sizes = item.sizes ?? [];
   const needsSize = sizes.length > 0;
-  const structuredComplete = Boolean(shipName && addr1 && city && country);
+  const structuredComplete = shipComplete(ship);
+  const shipName = ship.name;
   const needsQuote = item.partner === "printful";
-  const quoteKey = JSON.stringify([size, shipName, addr1, addr2, city, state, zip, country]);
+  const quoteKey = JSON.stringify([size, ship]);
   const liveQuote = quote && quote.key === quoteKey ? quote.q : null;
 
   /** Ask for Printful's shipping rate for this address; creates nothing. */
@@ -71,7 +66,7 @@ export default function BuyPanel({ item, railLive }: { item: StoreItem; railLive
           size: size ?? undefined,
           quoteOnly: true,
           contact: email ? { email } : undefined,
-          shipping: { name: shipName, address1: addr1, address2: addr2 || undefined, city, state: state || undefined, zip: zip || undefined, country },
+          shipping: shipBody(ship),
         }),
       });
       const data = await res.json();
@@ -88,7 +83,7 @@ export default function BuyPanel({ item, railLive }: { item: StoreItem; railLive
     setError(null);
     try {
       const shipping = needsStructured
-        ? { name: shipName, address1: addr1, address2: addr2 || undefined, city, state: state || undefined, zip: zip || undefined, country }
+        ? shipBody(ship)
         : needsShipping
           ? { name: shipName, address: shipAddr }
           : undefined;
@@ -166,6 +161,9 @@ export default function BuyPanel({ item, railLive }: { item: StoreItem; railLive
           </div>
         </fieldset>
       )}
+      <div className="mt-4">
+        <AddToCart item={item} size={size} />
+      </div>
       {/* text-base on touch = 16px, so iOS doesn't zoom-jump on focus */}
       <label className="mt-4 block text-xs text-neutral-400">
         email for your receipt (optional)
@@ -182,7 +180,7 @@ export default function BuyPanel({ item, railLive }: { item: StoreItem; railLive
             ship to — name
             <input
               value={shipName}
-              onChange={(e) => setShipName(e.target.value)}
+              onChange={(e) => setShip({ ...ship, name: e.target.value })}
               className="mt-1 w-full border border-neutral-700 bg-black px-2 py-2 text-base sm:text-sm"
             />
           </label>
@@ -200,69 +198,7 @@ export default function BuyPanel({ item, railLive }: { item: StoreItem; railLive
           </p>
         </>
       )}
-      {needsStructured && (
-        <>
-          <p className="mt-2 text-[10px] text-cyan-300">
-            this item ships via a fulfillment partner — a complete address is required
-          </p>
-          <label className="mt-2 block text-xs text-neutral-400">
-            ship to — name
-            <input
-              value={shipName}
-              onChange={(e) => setShipName(e.target.value)}
-              className="mt-1 w-full border border-neutral-700 bg-black px-2 py-2 text-base sm:text-sm"
-            />
-          </label>
-          <label className="mt-2 block text-xs text-neutral-400">
-            address
-            <input
-              value={addr1}
-              onChange={(e) => setAddr1(e.target.value)}
-              placeholder="street address"
-              className="mt-1 w-full border border-neutral-700 bg-black px-2 py-2 text-base sm:text-sm"
-            />
-          </label>
-          <input
-            value={addr2}
-            onChange={(e) => setAddr2(e.target.value)}
-            placeholder="apt / suite (optional)"
-            className="mt-2 w-full border border-neutral-700 bg-black px-2 py-2 text-base sm:text-sm"
-          />
-          <div className="mt-2 flex flex-wrap gap-2">
-            <input
-              value={city}
-              onChange={(e) => setCity(e.target.value)}
-              placeholder="city"
-              className="min-w-32 flex-1 border border-neutral-700 bg-black px-2 py-2 text-base sm:text-sm"
-            />
-            <input
-              value={state}
-              onChange={(e) => setState(e.target.value)}
-              placeholder="state / province"
-              className="w-32 border border-neutral-700 bg-black px-2 py-2 text-base sm:text-sm"
-            />
-          </div>
-          <div className="mt-2 flex flex-wrap gap-2">
-            <input
-              value={zip}
-              onChange={(e) => setZip(e.target.value)}
-              placeholder="zip / postal code"
-              className="w-32 border border-neutral-700 bg-black px-2 py-2 text-base sm:text-sm"
-            />
-            <input
-              value={country}
-              onChange={(e) => setCountry(e.target.value.toUpperCase())}
-              placeholder="country (US, CA, …)"
-              maxLength={2}
-              className="w-40 border border-neutral-700 bg-black px-2 py-2 text-base sm:text-sm"
-            />
-          </div>
-          <p className="mt-1 text-[10px] text-neutral-500">
-            country as a 2-letter code (US, CA, GB, …) · seen by the artist and the fulfillment
-            partner alone · forgotten ~30 days after delivery
-          </p>
-        </>
-      )}
+      {needsStructured && <ShipFields value={ship} onChange={setShip} />}
       {needsQuote && liveQuote && (
         <div className="mt-4 border border-neutral-700 px-3 py-2 text-xs text-neutral-200" aria-live="polite">
           <p>item: {formatMoney(liveQuote.item)}</p>

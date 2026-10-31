@@ -3,6 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import ArcadeHeader from "@/components/ArcadeHeader";
 import EarthFooter from "@/components/EarthFooter";
+import ProductGallery from "@/components/store/ProductGallery";
+import CartLink from "@/components/store/CartLink";
 import BuyPanel from "@/components/store/BuyPanel";
 import { getItem, stripPrivateMedia } from "@/lib/store";
 import { liveAdapter } from "@/lib/payments";
@@ -33,6 +35,7 @@ export default async function ItemPage({ params }: { params: Promise<{ id: strin
         <Link href="/store" className="font-pixel text-[10px] uppercase tracking-wide text-cyan hover:glow-cyan">
           ← the shelf
         </Link>
+        <div className="mt-3"><CartLink /></div>
 
         <div className="mt-4 flex flex-wrap items-center gap-2">
           {item.partner && (
@@ -49,21 +52,7 @@ export default async function ItemPage({ params }: { params: Promise<{ id: strin
 
         <h1 className="mt-3 text-2xl font-bold tracking-tight text-white">{item.title}</h1>
 
-        {shots.length > 0 && (
-          <div className="mt-5 overflow-hidden rounded-md border border-edge bg-panel">
-            {/* product shots come from blob/dev-file URLs — plain img, width-bounded so nothing breaks the column */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={shots[0]} alt={item.title} className="aspect-square w-full max-w-full bg-void object-contain p-6" />
-            {shots.length > 1 && (
-              <div className="flex flex-wrap gap-2 border-t border-edge p-2">
-                {shots.slice(1).map((url, i) => (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img key={url} src={url} alt={`${item.title} — view ${i + 2}`} className="h-20 w-20 rounded-sm border border-edge bg-void object-contain" />
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+        <ProductGallery shots={shots} title={item.title} />
 
         <p className="mt-4 text-sm leading-relaxed text-white/60">{item.blurb}</p>
 

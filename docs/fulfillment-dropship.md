@@ -39,7 +39,21 @@ draft→confirm flow, and the honest limits of what's here.
    "Webhook" below). **v1 only** — a signed-webhook (v2-beta) upgrade is a
    separate, queued task, not attempted here.
 
-## The draft → confirm flow (no auto-spend, said plainly)
+## Auto-confirm under a daily cap (block 973,932)
+
+The Admiral ruled "auto confirm daily cap". Right after a draft is created the
+shop confirms it itself only if ALL hold: `PRINTFUL_AUTO_CONFIRM=on`;
+`PRINTFUL_AUTO_CONFIRM_DAILY_USD` is a positive dollar figure (unset/0 = off);
+Printful's draft cost total (`result.costs.total`) is readable; it is no more
+than the buyer paid in USD (a sats order is valued at the live rate with a 5%
+safety margin; no rate = held); and today's (UTC) auto-confirmed total plus
+this cost stays within the cap. Anything else leaves the draft for the click
+below, and the reason is stored on `dropship.autoConfirm` and shown in the
+admin desk. The daily total is an atomic INCRBY counter in the vault (one key
+per UTC day); on dev files it is read-modify-write and may overshoot by one
+order. The sections below describe the manual click, which always remains.
+
+## The draft → confirm flow (the click)
 
 The standing rule — no automated action spends a real balance without an
 explicit human click — is enforced structurally, not just by convention:

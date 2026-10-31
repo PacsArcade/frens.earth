@@ -101,6 +101,7 @@ export default function OrderStatus({ orderId }: { orderId: string }) {
         {order.lineItems.map((li) => (
           <p key={li.itemId} className="font-bold">
             {li.title}
+            {li.qty > 1 && <span className="ml-2 font-normal text-neutral-300">x{li.qty}</span>}
             {li.size && <span className="ml-2 font-normal text-neutral-300">· size {li.size}</span>}
           </p>
         ))}

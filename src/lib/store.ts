@@ -122,8 +122,9 @@ export interface StoreItem {
  * C): the state machine an order's `dropship` field walks through once it
  * carries a partner-fulfilled line. `draft_pending`/`draft_created`/
  * `draft_failed` never spend anything — Printful drafts are free to hold.
- * `submitted` is the ONE state an operator reaches on purpose (the
- * confirm-to-submit door in the admin desk) — that is the moment real
+ * `submitted` is reached by the operator's confirm click in the admin
+ * desk, or (block 973,932 ruling, guarded by a daily cap) by the shop's own
+ * auto-confirm — that is the moment real
  * fulfillment (and the artist's Printful balance) is touched. `shipped`
  * carries tracking once the partner reports it; the order's own `state`
  * flips to "fulfilled" at the same moment (markFulfilled) so the artist
@@ -147,6 +148,14 @@ export interface DropshipRecord {
   trackingUrl?: string;
   /** why the last attempt didn't land — never a silent retry-forever */
   lastError?: string;
+  /** the shop's own auto-confirm decision (block 973,932 ruling), if it ran */
+  autoConfirm?: {
+    at: number;
+    /** Printful draft cost, USD cents; null when it could not be read */
+    costUsdMinor: number | null;
+    decision: "confirmed" | "held";
+    reason: string;
+  };
   createdAtMs: number;
   updatedAtMs: number;
 }
@@ -223,8 +232,8 @@ export interface OrderRecord {
   /**
    * Drop-ship fulfillment state (S6 ruling 6) — set the moment an order
    * carrying a partner-fulfilled line settles. A DRAFT costs the artist
-   * nothing to create; only `state: "submitted"` (an operator's explicit
-   * confirm click, never automatic) actually spends against the partner
+   * nothing to create; only `state: "submitted"` (an operator's confirm click, or the
+   * guarded auto-confirm of block 973,932) actually spends against the partner
    * account. Rides the order record itself — same private KV/dev-file
    * driver every other order field already uses, no new storage.
    */

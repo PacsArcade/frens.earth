@@ -15,13 +15,14 @@ import type { OrderRecord, StoreItem } from "./store";
  * round-trip. Pac's sandbox run (docs/fulfillment-dropship.md's test plan)
  * is the first real test.
  *
- * THE FLOW (draft → confirm, never auto-spend): `createDraftOrder()` posts
- * with `confirm: false` — Printful holds the order as a DRAFT, which costs
- * the artist's Printful balance nothing. Only `confirmOrder()` (an
- * operator's explicit click in the admin desk, never called from a webhook
- * or a settle path) submits it for real fulfillment and spends against
- * their account — the same "no auto-spend of Pac's balance without the
- * admin's click" grain the fleet holds elsewhere.
+ * THE FLOW (draft → confirm): `createDraftOrder()` posts with
+ * `confirm: false` — Printful holds the order as a DRAFT, which costs the
+ * artist's Printful balance nothing. Only `confirmOrder()` submits it for
+ * real fulfillment and spends against their account: an operator's click in
+ * the admin desk, or (Admiral's ruling, block 973,932) the guarded
+ * auto-confirm in dropship.ts (kill switch + daily USD cap + cost covered
+ * by what the buyer paid; see auto-confirm.ts). A failed guard = a draft
+ * waiting for the click.
  */
 
 const PRINTFUL_API_BASE = "https://api.printful.com";
@@ -161,6 +162,19 @@ export function buildPrintfulOrderBody(
 export interface PrintfulOrderResult {
   ok: true;
   partnerOrderId: string;
+  /** Printful's draft cost total in USD cents (result.costs.total), or null
+   *  when the draft did not carry a readable USD total */
+  costUsdMinor: number | null;
+}
+
+/** Pure: v1 `result.costs` -> USD cents. `total` is a dollar string ("12.34").
+ *  Anything missing, non-numeric, zero, or in another currency = null. */
+export function parseCostsUsdMinor(costs: { total?: string | number; currency?: string } | undefined): number | null {
+  if (!costs) return null;
+  if (costs.currency && costs.currency.toUpperCase() !== "USD") return null;
+  const n = typeof costs.total === "number" ? costs.total : Number(String(costs.total ?? "").trim());
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return Math.round(n * 100);
 }
 export interface PrintfulFailure {
   ok: false;
@@ -187,19 +201,21 @@ export async function createDraftOrder(
       const body = await res.text().catch(() => "");
       return { ok: false, error: `printful: draft create ${res.status} ${body.slice(0, 200)}` };
     }
-    const json = (await res.json()) as { result?: { id?: number | string } };
+    const json = (await res.json()) as {
+      result?: { id?: number | string; costs?: { total?: string | number; currency?: string } };
+    };
     const id = json.result?.id;
     if (id == null) return { ok: false, error: "printful: draft create returned no order id" };
-    return { ok: true, partnerOrderId: String(id) };
+    return { ok: true, partnerOrderId: String(id), costUsdMinor: parseCostsUsdMinor(json.result?.costs) };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "printful: unreachable" };
   }
 }
 
 /** POST /orders/{id}/confirm — the ONE call that spends the artist's
- *  balance. Only ever invoked from an operator's explicit admin-desk click
- *  (src/app/api/admin/store/dropship/route.ts), never from a webhook, a
- *  settle helper, or a cron tick. ⚠ FIRST-VERIFIED-BY-PAC'S-SANDBOX. */
+ *  balance. Invoked from an operator's admin-desk click
+ *  (src/app/api/admin/store/dropship/route.ts) or, since block 973,932, from
+ *  the guarded auto-confirm in dropship.ts (kill switch + daily cap). ⚠ FIRST-VERIFIED-BY-PAC'S-SANDBOX. */
 export async function confirmOrder(partnerOrderId: string): Promise<{ ok: true } | PrintfulFailure> {
   const env = printfulEnv();
   if (!env) return { ok: false, error: "Printful not configured — set PRINTFUL_API_KEY" };
@@ -247,6 +263,21 @@ export interface PrintfulOrderSnapshot {
   status: PrintfulOrderStatus;
   trackingNumber?: string;
   trackingUrl?: string;
+}
+
+/** GET /orders/{id} cost only — the second look when the draft response had
+ *  no readable total (Printful can still be calculating it). null = unknown. */
+export async function fetchOrderCostUsdMinor(partnerOrderId: string): Promise<number | null> {
+  const env = printfulEnv();
+  if (!env) return null;
+  try {
+    const res = await printfulFetch(`/orders/${encodeURIComponent(partnerOrderId)}`, env);
+    if (!res.ok) return null;
+    const json = (await res.json()) as { result?: { costs?: { total?: string | number; currency?: string } } };
+    return parseCostsUsdMinor(json.result?.costs);
+  } catch {
+    return null;
+  }
 }
 
 /** GET /orders/{id} — a status re-check the admin desk's "refresh" button

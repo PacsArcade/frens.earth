@@ -11,6 +11,15 @@ interface DropshipView {
   productUrl?: string;
 }
 
+interface AutoConfirmView {
+  enabled: boolean;
+  capUsdMinor: number;
+  usedUsdMinor: number;
+  day: string;
+}
+
+const dollars = (minor: number) => `$${(minor / 100).toFixed(2)}`;
+
 const STATE_CHIP: Record<DropshipState, { className: string; label: string }> = {
   draft_pending: { className: "border-neutral-600 text-neutral-400", label: "not configured yet" },
   draft_created: { className: "border-yellow-500 text-yellow-400", label: "draft ready — needs your confirm" },
@@ -33,6 +42,7 @@ const STATE_CHIP: Record<DropshipState, { className: string; label: string }> = 
  */
 export default function DropshipDesk() {
   const [views, setViews] = useState<DropshipView[] | null>(null);
+  const [auto, setAuto] = useState<AutoConfirmView | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [note, setNote] = useState<Record<string, string>>({});
 
@@ -40,7 +50,10 @@ export default function DropshipDesk() {
     fetch("/api/admin/store/dropship", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
-        if (d?.ok) setViews(d.views ?? []);
+        if (d?.ok) {
+          setViews(d.views ?? []);
+          setAuto(d.autoConfirm ?? null);
+        }
       })
       .catch(() => {});
   }, []);
@@ -68,11 +81,16 @@ export default function DropshipDesk() {
   // still open when a REAL fetch hasn't landed at all — an empty array
   // (nothing pending) renders nothing, same silent-empty convention the
   // WARES/ORDER BOOK sections on this page already keep
-  if (views === null || views.length === 0) return null;
+  if (views === null || (views.length === 0 && !auto?.enabled)) return null;
 
   return (
     <div className="mt-6">
       <h2 className="font-bold tracking-widest text-cyan-300">PENDING FULFILLMENT</h2>
+      <p className="mt-1 text-xs text-neutral-400">
+        {auto?.enabled
+          ? `auto-confirm ON: ${dollars(auto.usedUsdMinor)} of ${dollars(auto.capUsdMinor)} used today (UTC ${auto.day})`
+          : "auto-confirm OFF: every draft waits for your click"}
+      </p>
       <ul className="mt-2 space-y-2">
         {views.map(({ order, partner, itemTitle, bridgeNote, productUrl }) => {
           const ds = order.dropship;
@@ -90,6 +108,13 @@ export default function DropshipDesk() {
                 <span className={`border px-2 py-0.5 text-[10px] ${chip.className}`}>{chip.label}</span>
               </div>
 
+              {ds?.autoConfirm && (
+                <p className="mt-1" style={{ color: ds.autoConfirm.decision === "confirmed" ? "#4ade80" : "#facc15" }}>
+                  {ds.autoConfirm.decision === "confirmed"
+                    ? `auto-confirmed (${ds.autoConfirm.costUsdMinor != null ? dollars(ds.autoConfirm.costUsdMinor) : "cost n/a"})`
+                    : `held: ${ds.autoConfirm.reason}`}
+                </p>
+              )}
               {ds?.lastError && <p className="mt-1" style={{ color: "#ff5577" }}>{ds.lastError}</p>}
               {bridgeNote && state === "manual_bridge" && (
                 <p className="mt-1 text-neutral-400">

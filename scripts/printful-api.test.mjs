@@ -98,7 +98,7 @@ const syncVariant = { result: { sync_variant: { id: 555, variant_id: 4012, produ
 {
   const calls = stubFetch([
     ["/store/variants/555", () => json(syncVariant)],
-    ["/shipping/rates", (u, init) => json({ result: [{ id: "STANDARD", name: "Flat Rate", rate: "4.99", currency: "USD", minDeliveryDays: 3, maxDeliveryDays: 6 }] })],
+    ["/shipping/rates", () => json({ result: [{ id: "STANDARD", name: "Flat Rate", rate: "4.99", currency: "USD", minDeliveryDays: 3, maxDeliveryDays: 6 }] })],
   ]);
   const q = await quoteShipping(recipient, [{ item, qty: 2 }]);
   t("quote: success is Printful's rate", q.ok && q.amountMinor === 499 && q.method === "Flat Rate");
