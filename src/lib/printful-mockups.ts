@@ -50,6 +50,14 @@ interface StyleGroup {
   mockup_styles?: { id?: number; category?: string; view_name?: string; restricted_to_variants?: number[] | null }[];
 }
 
+/** Pure: the placement name this product's catalog uses for a sync file
+ *  type. A garment's "default" file prints on "front"; a sticker's catalog
+ *  has a "default" placement of its own, so it keeps that name. */
+export function placementForCatalog(type: string, groups: StyleGroup[]): string {
+  if (groups.some((g) => g.placement === type)) return type;
+  return placementForFileType(type);
+}
+
 /** Pure: which style ids to ask for. Model/lifestyle views first, then the
  *  rest in Printful's order, one per id, capped. Also returns the technique
  *  each used placement prints with. */
@@ -173,14 +181,18 @@ export async function mockupStep(
     if (!v.ok) return { state: "error", error: v.error };
     const { catalogProductId, catalogVariantId, files } = v.info;
     if (files.length === 0) return { state: "error", error: "this Printful variant has no design file to mock up" };
-    const placed = files.map((f) => ({ placement: placementForFileType(f.type), url: f.url }));
-    const used = placed.map((p) => p.placement);
+    let placed = files.map((f) => ({ placement: placementForFileType(f.type), url: f.url }));
+    let used = placed.map((p) => p.placement);
 
     const styles = await printfulRequest<{ data?: StyleGroup[] }>(
       `/v2/catalog-products/${catalogProductId}/mockup-styles`,
     );
     if (styles.ok) {
       const groups = styles.data.data ?? [];
+      // stickers (and other flat goods) name their one print spot "default"
+      // in the catalog, where garments call it "front": ask by the catalog's name
+      placed = files.map((f) => ({ placement: placementForCatalog(f.type, groups), url: f.url }));
+      used = placed.map((p) => p.placement);
       let { styleIds, techniques } = pickStyles(groups, used, MAX_STYLES, catalogVariantId);
       if (styleIds.length === 0) return { state: "error", error: "Printful lists no mockup styles for this product" };
       const createTask = (ids: number[]) => printfulRequest<{ data?: V2Task[] }>("/v2/mockup-tasks", {

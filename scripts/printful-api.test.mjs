@@ -17,7 +17,7 @@ process.env.PRINTFUL_API_KEY = "test-key-not-real";
 
 const { sellPriceCents, parseVariantCost, toCents } = await import(path.join(root, "src/lib/printful-pricing.ts"));
 const { cheapestRate, quoteShipping, chargeWithShipping } = await import(path.join(root, "src/lib/printful-shipping.ts"));
-const { mockupStep, pickStyles, v2Urls, v1Urls, unavailableStyleIds } = await import(path.join(root, "src/lib/printful-mockups.ts"));
+const { mockupStep, pickStyles, placementForCatalog, v2Urls, v1Urls, unavailableStyleIds } = await import(path.join(root, "src/lib/printful-mockups.ts"));
 const { fiatMinorToSats } = await import(path.join(root, "src/lib/btc-rate.ts"));
 
 let passed = 0, failed = 0;
@@ -160,6 +160,17 @@ t("pickStyles: model views first, capped, deduped", (() => {
   const g = [{ placement: "front", technique: "dtg", mockup_styles: [{ id: 1, view_name: "Flat" }, { id: 2, category: "Lifestyle" }, { id: 3, view_name: "On model" }, { id: 1, view_name: "Flat" }] }, { placement: "back", mockup_styles: [{ id: 9 }] }];
   const r = pickStyles(g, ["front"], 2);
   return r.styleIds.join() === "2,3" && r.techniques.front === "dtg";
+})());
+// stickers (catalog 358) name their print spot "default", one style group per size
+const stickerGroups = [
+  { placement: "default", technique: "digital", mockup_styles: [{ id: 19000, category_name: "Default", view_name: "Default", restricted_to_variants: [10163] }] },
+  { placement: "default", technique: "digital", mockup_styles: [{ id: 19001, view_name: "Default", restricted_to_variants: [10164] }, { id: 19007, view_name: "Lifestyle 1", restricted_to_variants: [10164] }] },
+];
+t("placementForCatalog: a sticker keeps \"default\"", placementForCatalog("default", stickerGroups) === "default");
+t("placementForCatalog: a tee's default prints on front", placementForCatalog("default", [{ placement: "front", mockup_styles: [] }]) === "front");
+t("pickStyles: a 4-inch sticker gets its own size's styles, lifestyle first", (() => {
+  const r = pickStyles(stickerGroups, [placementForCatalog("default", stickerGroups)], 8, 10164);
+  return r.styleIds.join() === "19007,19001" && r.techniques.default === "digital";
 })());
 t("v2Urls/v1Urls collect distinct urls",
   v2Urls({ catalog_variant_mockups: [{ mockups: [{ mockup_url: "a" }, { mockup_url: "a" }, { mockup_url: "b" }] }] }).join() === "a,b" &&
