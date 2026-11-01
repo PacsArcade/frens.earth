@@ -67,7 +67,13 @@ const RESERVED = new Set([
   "wallet",
   "bitcoin",
   "satoshi",
+  "vend", // seated house name; reserving it protects the <name>.vend pattern
 ]);
+
+/** Seated house names that may carry sub-names (<name>.<parent>). Only these
+    parents are accepted, and only through the seat doors (operator route or
+    the parent app's own server-to-server route), never the public queue. */
+export const SUBNAME_PARENTS: readonly string[] = ["vend"];
 
 const HANDLE_RE = /^[a-z0-9](?:[a-z0-9-]{1,18})[a-z0-9]$/;
 const NPUB_RE = /^npub1[02-9ac-hj-np-z]{58}$/;
@@ -85,7 +91,37 @@ function checkHandleFormat(raw: string): { ok: true; handle: string } | { ok: fa
   return { ok: true, handle };
 }
 
+/** Normalize a handle for LOOKUPS: format rules only, reserved names and
+    allow-listed sub-names included. Null if it can never be a seated name. */
+export function normalizeLookupHandle(raw: string): string | null {
+  const h = raw.trim().toLowerCase();
+  const fmt = h.includes(".") ? checkSubnameFormat(h) : checkHandleFormat(h);
+  return fmt.ok ? fmt.handle : null;
+}
+
+/** Format rules for <name>.<parent>: name follows the handle rules (3-20),
+    parent must be on the allow-list. The whole handle may exceed 20. */
+export function checkSubnameFormat(
+  raw: string
+): { ok: true; handle: string; name: string; parent: string } | { ok: false; reason: string } {
+  const handle = raw.trim().toLowerCase();
+  const parts = handle.split(".");
+  if (parts.length !== 2) {
+    return { ok: false, reason: "a sub-name looks like name.parent" };
+  }
+  const [name, parent] = parts;
+  if (!SUBNAME_PARENTS.includes(parent)) {
+    return { ok: false, reason: "that parent name does not take sub-names" };
+  }
+  const fmt = checkHandleFormat(name);
+  if (!fmt.ok) return { ok: false, reason: `sub-name: ${fmt.reason}` };
+  return { ok: true, handle: `${fmt.handle}.${parent}`, name: fmt.handle, parent };
+}
+
 export function validateHandle(raw: string): { ok: true; handle: string } | { ok: false; reason: string } {
+  if (raw.includes(".")) {
+    return { ok: false, reason: "dots are not allowed in a public name" };
+  }
   const fmt = checkHandleFormat(raw);
   if (!fmt.ok) return fmt;
   if (RESERVED.has(fmt.handle)) {
@@ -181,7 +217,7 @@ async function blobEntries(space: string): Promise<HandleEntry[]> {
         .filter((b) => b.pathname !== idx)
         .map(async (b) => {
           try {
-            const res = await get(b.pathname, { access: "public" });
+            const res = await get(b.pathname, { access: "public", useCache: false });
             if (!res || res.statusCode !== 200) return null;
             return JSON.parse(await new Response(res.stream).text()) as HandleEntry;
           } catch {
@@ -227,10 +263,13 @@ async function blobBuildIndexMap(space: string): Promise<Record<string, HandleEn
   return map;
 }
 
-/** Fetch the aggregated index blob, or null if absent/unreadable. */
+/** Fetch the aggregated index blob, or null if absent/unreadable. The index
+    is overwritten in place, so it is always read from origin (useCache:false):
+    through the CDN a stale copy hid a seated name from nostr.json and whois,
+    and a read-modify-write on a stale copy could drop a fresh entry. */
 async function blobReadIndex(space: string): Promise<Record<string, HandleEntry> | null> {
   try {
-    const res = await get(indexPath(space), { access: "public" });
+    const res = await get(indexPath(space), { access: "public", useCache: false });
     if (!res || res.statusCode !== 200) return null;
     return JSON.parse(await new Response(res.stream).text()) as Record<string, HandleEntry>;
   } catch {
@@ -322,7 +361,7 @@ export async function getEntry(handle: string, space?: string): Promise<HandleEn
   const s = normalizeSpace(space);
   if (blobStoreEnabled()) {
     try {
-      const res = await get(blobPath(s, handle), { access: "public" });
+      const res = await get(blobPath(s, handle), { access: "public", useCache: false });
       if (!res || res.statusCode !== 200) return null;
       return JSON.parse(await new Response(res.stream).text()) as HandleEntry;
     } catch {
@@ -410,7 +449,8 @@ export async function seatReservedHandle({
   space?: string;
   blockHeight?: number | null;
 }): Promise<{ ok: true; entry: HandleEntry } | { ok: false; reason: string }> {
-  const fmt = checkHandleFormat(handle);
+  const dotted = handle.includes(".");
+  const fmt = dotted ? checkSubnameFormat(handle) : checkHandleFormat(handle);
   if (!fmt.ok) return fmt;
 
   if (!NPUB_RE.test(npub)) {
@@ -418,6 +458,11 @@ export async function seatReservedHandle({
   }
 
   const s = normalizeSpace(space);
+  if (dotted && fmt.handle.includes(".")) {
+    // a sub-name only goes under a parent that is actually seated
+    const parent = await getEntry(fmt.handle.split(".")[1], s);
+    if (!parent) return { ok: false, reason: "the parent name is not seated yet" };
+  }
   const entry: HandleEntry = {
     handle: fmt.handle,
     npub,
@@ -461,6 +506,18 @@ export async function seatReservedHandle({
   // A reverse lookup cached before the seat must not shadow the fresh entry.
   npubCache.delete(npub);
   return { ok: true, entry };
+}
+
+/** Release a sub-name under its parent (crew member left). Same rules as
+    releaseHandle: only a pending (queued) entry can go. */
+export async function releaseSubname(
+  name: string,
+  parent: string,
+  space?: string
+): Promise<{ ok: true } | { ok: false; reason: string }> {
+  const fmt = checkSubnameFormat(`${name}.${parent}`);
+  if (!fmt.ok) return fmt;
+  return releaseHandle(fmt.handle, space);
 }
 
 /** Post-claim update (matrix door cut, etc.) — the one sanctioned rewrite
@@ -580,6 +637,41 @@ export async function findHandleByNpub(
   return null;
 }
 
+/** At most one miss-triggered rebuild per space per minute per instance, so a
+    public lookup of an unknown key cannot turn into a scan of every blob. */
+const lastHeal = new Map<string, number>();
+const HEAL_MIN_GAP_MS = 60_000;
+function healThrottleOpen(space: string): boolean {
+  const now = Date.now();
+  if (now - (lastHeal.get(space) ?? 0) < HEAL_MIN_GAP_MS) return false;
+  lastHeal.set(space, now);
+  return true;
+}
+
+/** Operator tool: rebuild the aggregated index from the authoritative
+    per-handle blobs. Returns the handle count, or null on the file driver
+    (no index there). */
+export async function rebuildIndex(space?: string): Promise<{ count: number } | null> {
+  if (!blobStoreEnabled()) return null;
+  const rebuilt = await blobRebuildIndex(normalizeSpace(space));
+  npubCache.clear();
+  return { count: Object.keys(rebuilt).length };
+}
+
+/** If an authoritative entry is missing from (or differs in) the index, put it
+    back. Cheap when healthy: one fresh index read. */
+export async function healIndexEntry(entry: HandleEntry, space?: string): Promise<boolean> {
+  if (!blobStoreEnabled()) return false;
+  const s = normalizeSpace(space);
+  const index = await blobReadIndex(s);
+  const cur = index?.[entry.handle];
+  if (cur && cur.npub === entry.npub && cur.status === entry.status) return false;
+  await reindex(s, (idx) => {
+    idx[entry.handle] = entry;
+  });
+  return true;
+}
+
 /** EVERY tag an npub holds, across every known space — the /me "your tags"
     listing and whois's npub-only answer. findHandleByNpub stops at the first
     hit (sign-in only needs one door); this walks all of them, including two
@@ -589,9 +681,14 @@ export async function findHandleByNpub(
 export async function findAllByNpub(npub: string): Promise<{ handle: string; space: string }[]> {
   const holds: { handle: string; space: string }[] = [];
   for (const space of KNOWN_SPACES) {
-    const entries = blobStoreEnabled()
+    let entries = blobStoreEnabled()
       ? await blobIndexEntries(space)
       : (await fileRead(space)).entries;
+    // A miss may be an entry the index dropped: rebuild from the per-handle
+    // blobs (throttled, this is a public lookup) and look again.
+    if (blobStoreEnabled() && !entries.some((e) => e.npub === npub) && healThrottleOpen(space)) {
+      entries = Object.values(await blobRebuildIndex(space));
+    }
     for (const e of entries) {
       if (e.npub === npub) holds.push({ handle: e.handle, space });
     }
