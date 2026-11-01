@@ -1,6 +1,6 @@
-import { getEntry, findAllByNpub } from "@/lib/registry";
+import { getEntry, findAllByNpub, healIndexEntry } from "@/lib/registry";
 import { KNOWN_SPACES } from "@/lib/identity-config";
-import { validateHandle } from "@/lib/registry";
+import { normalizeLookupHandle } from "@/lib/registry";
 
 /* Which tags does an npub hold? Public data (the availability API already
    returns npubs for taken names) — powers the one-key-two-tags warning in
@@ -17,11 +17,14 @@ export async function GET(request: Request) {
   }
   const holds: { handle: string; space: string }[] = [];
   if (hint) {
-    const valid = validateHandle(hint);
-    if (valid.ok) {
+    const handle = normalizeLookupHandle(hint);
+    if (handle) {
       for (const space of KNOWN_SPACES) {
-        const entry = await getEntry(valid.handle, space);
-        if (entry && entry.npub === npub) holds.push({ handle: valid.handle, space });
+        const entry = await getEntry(handle, space);
+        if (entry && entry.npub === npub) {
+          await healIndexEntry(entry, space).catch(() => false);
+          holds.push({ handle, space });
+        }
       }
     }
   } else {
