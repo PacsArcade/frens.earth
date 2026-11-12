@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { bftDateTime } from "@/lib/bb/bft";
+import { nip07SignEvent, nip07FailureCopy, NIP07_WAITING_HINT } from "@/lib/nip07";
 
 /**
  * SHIP — SCAR's sign-to-deploy lane. The admiral used to ship from a terminal
@@ -70,19 +71,19 @@ export default function DeployPanel() {
       return;
     }
     setBusy(true);
-    let event;
-    try {
-      event = await window.nostr.signEvent({
+    const signed = await nip07SignEvent({
         kind: 22242,
         created_at: Math.floor(Date.now() / 1000),
         tags: [],
         content: `PACS-DEPLOY-${Date.now()}`,
-      });
-    } catch {
-      setErr("signing was declined — nothing shipped");
+      }, { onSlow: () => setErr(NIP07_WAITING_HINT) });
+    if (!signed.ok) {
+      setErr(nip07FailureCopy(signed));
       setBusy(false);
       return;
     }
+    setErr(null);
+    const event = signed.value;
     try {
       const res = await fetch("/api/admin/deploy", {
         method: "POST",

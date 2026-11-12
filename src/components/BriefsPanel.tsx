@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Markdown from "@/components/Markdown";
 import { bftDateTime } from "@/lib/bb/bft";
 import { ScarConsole, type ReaderContent } from "@/components/console/ReaderDrawer";
+import { nip07SignEvent, nip07FailureCopy, NIP07_WAITING_HINT } from "@/lib/nip07";
 
 /**
  * The Briefs library — the design briefs as reviewable tickets, in TWO TIERS:
@@ -195,19 +196,19 @@ export default function BriefsPanel() {
     setErr(null);
     setOk(null);
     setBusy(action);
-    let event;
-    try {
-      event = await window.nostr.signEvent({
+    const signed = await nip07SignEvent({
         kind: 22242,
         created_at: Math.floor(Date.now() / 1000),
         tags: [],
         content: `PACS-BRIEF-${b.tier}-${b.slug}-${Date.now()}-${action}${comment ? `\n${comment}` : ""}`,
-      });
-    } catch {
-      setErr("signing was declined — nothing sent");
+      }, { onSlow: () => setErr(NIP07_WAITING_HINT) });
+    if (!signed.ok) {
+      setErr(nip07FailureCopy(signed));
       setBusy(null);
       return;
     }
+    setErr(null);
+    const event = signed.value;
     try {
       const res = await fetch("/api/admin/briefs", {
         method: "POST",

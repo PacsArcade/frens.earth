@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { bftDateTime } from "@/lib/bb/bft";
 import { ScarConsole, type ReaderContent } from "@/components/console/ReaderDrawer";
+import { nip07SignEvent, nip07FailureCopy, NIP07_WAITING_HINT } from "@/lib/nip07";
 
 /**
  * SIGN-OFFS — the cross-project approval tickets on the Action Items board.
@@ -96,19 +97,19 @@ export default function SignoffsPanel() {
     setErr(null);
     setOk(null);
     setBusy(t.id);
-    let event;
-    try {
-      event = await window.nostr.signEvent({
+    const signed = await nip07SignEvent({
         kind: 22242,
         created_at: Math.floor(Date.now() / 1000),
         tags: [],
         content: `PACS-SIGNOFF-${t.id}-${Date.now()}-sign${comment ? `\n${comment}` : ""}`,
-      });
-    } catch {
-      setErr("signing was declined — nothing sent");
+      }, { onSlow: () => setErr(NIP07_WAITING_HINT) });
+    if (!signed.ok) {
+      setErr(nip07FailureCopy(signed));
       setBusy(null);
       return;
     }
+    setErr(null);
+    const event = signed.value;
     try {
       const res = await fetch("/api/admin/signoffs", {
         method: "POST",

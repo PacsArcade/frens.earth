@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { generateSecretKey, getPublicKey, nip19, SimplePool, finalizeEvent } from "nostr-tools";
 import { ANCHOR_BLOCKS_OUT } from "@/lib/identity-config";
+import { nip07GetPublicKey } from "@/lib/nip07";
 
 type Availability = "idle" | "checking" | "available" | "taken" | "invalid";
 
@@ -227,23 +228,17 @@ export default function TagClaim({
   );
 
   const checkOwnershipNip07 = useCallback(async () => {
-    try {
-      const hex = await window.nostr!.getPublicKey();
-      setOwnership(nip19.npubEncode(hex) === takenNpub ? "match" : "nomatch");
-    } catch {
-      /* user dismissed the extension prompt */
-    }
+    const got = await nip07GetPublicKey();
+    if (!got.ok) return; /* dismissed, or the signer did not answer */
+    setOwnership(nip19.npubEncode(got.value) === takenNpub ? "match" : "nomatch");
   }, [takenNpub]);
 
   const connectNip07 = useCallback(async () => {
-    try {
-      const hex = await window.nostr!.getPublicKey();
-      setNpub(nip19.npubEncode(hex));
-      setForged(null);
-      setSavedConfirmed(true); // their extension already guards the key
-    } catch {
-      /* user dismissed the extension prompt */
-    }
+    const got = await nip07GetPublicKey();
+    if (!got.ok) return; /* dismissed, or the signer did not answer */
+    setNpub(nip19.npubEncode(got.value));
+    setForged(null);
+    setSavedConfirmed(true); // their extension already guards the key
   }, []);
 
   const acceptPastedKey = useCallback(() => {

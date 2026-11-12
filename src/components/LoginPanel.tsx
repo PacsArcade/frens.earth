@@ -8,6 +8,7 @@ import SignerNudge from "@/components/SignerNudge";
 import SignerDoors from "@/components/SignerDoors";
 import useFrenSession, { applyFrenSession } from "@/hooks/useFrenSession";
 import { useBrand, type DoorAccent } from "@/lib/brand";
+import { nip07SignEvent, nip07FailureCopy, NIP07_WAITING_HINT } from "@/lib/nip07";
 
 /* one-shot environment read, hydration-safe and lint-clean */
 const noopSubscribe = () => () => {};
@@ -35,6 +36,7 @@ export default function LoginPanel() {
   const hasSigner = useHasSigner();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [waiting, setWaiting] = useState(false);
   const { fren: existing, signOut } = useFrenSession();
   const { copy, doors } = useBrand();
 
@@ -80,19 +82,24 @@ export default function LoginPanel() {
     /* Two failure worlds, two honest messages: a signer rejection is the
        FREN's call; a server fault is OURS. Blaming the signer for a 500
        (the SEAT_SECRET lesson) sent people debugging the wrong thing. */
-    let event;
-    try {
-      event = await window.nostr.signEvent({
+    /* the signer is called straight from this click, before any await (Ditto
+       refuses a first connect that is not inside the gesture) */
+    const signed = await nip07SignEvent(
+      {
         kind: 22242,
         created_at: Math.floor(Date.now() / 1000),
         tags: [],
         content: `PACS-LOGIN-${Date.now()}`,
-      });
-    } catch {
-      setError("signing was declined — nothing sent");
+      },
+      { onSlow: () => setWaiting(true) }
+    );
+    setWaiting(false);
+    if (!signed.ok) {
+      setError(nip07FailureCopy(signed));
       setBusy(false);
       return;
     }
+    const event = signed.value;
     const reason = await submitLogin(event);
     if (reason) setError(reason);
     setBusy(false);
@@ -150,6 +157,11 @@ export default function LoginPanel() {
                 </div>
               </details>
             </>
+          )}
+          {waiting && !error && (
+            <p role="status" className="mt-3 font-body text-sm text-white/70">
+              {NIP07_WAITING_HINT}
+            </p>
           )}
           {error && <p className="mt-3 font-pixel text-[9px] uppercase text-ghost">{error}</p>}
           <div className="mt-4">
