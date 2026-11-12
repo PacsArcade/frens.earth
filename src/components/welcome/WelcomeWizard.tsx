@@ -15,6 +15,7 @@ import useNostrProfile from "@/hooks/useNostrProfile";
 import { isAndroid } from "@/lib/signer-doors";
 import { isImageUrl } from "@/components/ProfileEditor";
 import { anyAccepted, publishKind0, type RelayResult } from "@/lib/kind0-publish";
+import { nip07GetPublicKey, nip07FailureCopy, NIP07_WAITING_HINT } from "@/lib/nip07";
 
 /**
  * The welcome path — the nostr onboarding gauntlet, walked WITH the fren.
@@ -125,11 +126,14 @@ export default function WelcomeWizard({
       setConnectError("no signer extension answered — step 1 has the gear-up doors");
       return;
     }
-    try {
-      setConnectedNpub(nip19.npubEncode(await window.nostr.getPublicKey()));
-    } catch {
-      setConnectError("the signer declined — nothing read");
+    /* called straight from the click, before any await (Ditto's gesture rule) */
+    const got = await nip07GetPublicKey({ onSlow: () => setConnectError(NIP07_WAITING_HINT) });
+    if (!got.ok) {
+      setConnectError(nip07FailureCopy(got));
+      return;
     }
+    setConnectError(null);
+    setConnectedNpub(nip19.npubEncode(got.value));
   }
 
   /* one merge-and-sign builder for both mini steps */

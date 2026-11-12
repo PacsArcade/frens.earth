@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import Notice from "@/components/Notice";
+import { nip07SignEvent, nip07FailureCopy, NIP07_WAITING_HINT } from "@/lib/nip07";
 
 /**
  * The merge queue — SCAR's authorize-with-key lane. Each open PR gets one
@@ -358,19 +359,19 @@ export default function MergeQueue({ mode }: { mode?: "approvals" | "testing" })
       return;
     }
     setBusyPr(pr.number);
-    let event;
-    try {
-      event = await window.nostr.signEvent({
+    const signed = await nip07SignEvent({
         kind: 22242,
         created_at: Math.floor(Date.now() / 1000),
         tags: [],
         content: `PACS-MERGE-${pr.number}-${pr.headSha}-${Date.now()}`,
-      });
-    } catch {
-      setErr("signing was declined — nothing sent");
+      }, { onSlow: () => setErr(NIP07_WAITING_HINT) });
+    if (!signed.ok) {
+      setErr(nip07FailureCopy(signed));
       setBusyPr(null);
       return;
     }
+    setErr(null);
+    const event = signed.value;
     /* authorized — flip the card to MERGING… now, before the API answers, so the
        merge never looks like it vanished mid-flight. */
     const clearMerging = () =>
@@ -419,19 +420,19 @@ export default function MergeQueue({ mode }: { mode?: "approvals" | "testing" })
       return;
     }
     setShipBusy(true);
-    let event;
-    try {
-      event = await window.nostr.signEvent({
+    const signed = await nip07SignEvent({
         kind: 22242,
         created_at: Math.floor(Date.now() / 1000),
         tags: [],
         content: `PACS-DEPLOY-${Date.now()}`,
-      });
-    } catch {
-      setErr("signing was declined — nothing shipped");
+      }, { onSlow: () => setErr(NIP07_WAITING_HINT) });
+    if (!signed.ok) {
+      setErr(nip07FailureCopy(signed));
       setShipBusy(false);
       return;
     }
+    setErr(null);
+    const event = signed.value;
     try {
       const res = await fetch("/api/admin/deploy", {
         method: "POST",
@@ -513,19 +514,19 @@ export default function MergeQueue({ mode }: { mode?: "approvals" | "testing" })
       return;
     }
     setNoteBusy(pr);
-    let event;
-    try {
-      event = await window.nostr.signEvent({
+    const signed = await nip07SignEvent({
         kind: 22242,
         created_at: Math.floor(Date.now() / 1000),
         tags: [],
         content: `PACS-NOTE-${pr}-${Date.now()}\n${text}`,
-      });
-    } catch {
-      setErr("signing was declined — nothing sent");
+      }, { onSlow: () => setErr(NIP07_WAITING_HINT) });
+    if (!signed.ok) {
+      setErr(nip07FailureCopy(signed));
       setNoteBusy(null);
       return;
     }
+    setErr(null);
+    const event = signed.value;
     try {
       const res = await fetch("/api/admin/merges", {
         method: "POST",

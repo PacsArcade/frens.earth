@@ -5,6 +5,7 @@ import type { EventTemplate, VerifiedEvent } from "nostr-tools/pure";
 import type { Event as NostrEvent } from "nostr-tools";
 import { signTemplateViaBunker, startNostrConnectForTemplate } from "@/lib/signer-doors";
 import SignerNudge from "@/components/SignerNudge";
+import { nip07SignEvent, nip07FailureCopy, NIP07_WAITING_HINT } from "@/lib/nip07";
 
 /**
  * The signer doors, reused for PUBLISHING — the same three-door model as
@@ -76,16 +77,25 @@ export default function Kind0Doors({
       return;
     }
     setBusy("nip07");
-    try {
-      const event = (await window.nostr.signEvent({
+    /* called straight from the click, before any await (Ditto's gesture rule) */
+    const signed = await nip07SignEvent(
+      {
         kind: template.kind,
         created_at: template.created_at,
         tags: template.tags,
         content: template.content,
-      })) as NostrEvent;
-      await handleSigned(event);
+      },
+      { onSlow: () => setError(NIP07_WAITING_HINT) }
+    );
+    try {
+      if (!signed.ok) {
+        setError(nip07FailureCopy(signed));
+        return;
+      }
+      setError(null);
+      await handleSigned(signed.value as unknown as NostrEvent);
     } catch {
-      setError("signing was declined — nothing sent");
+      setError("couldn't finish sending — try again");
     } finally {
       setBusy("idle");
     }

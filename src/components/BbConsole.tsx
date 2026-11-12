@@ -9,6 +9,7 @@ import { currentBlockInfo } from "@/lib/bb/bft";
 import { loadBuddies, upsertBuddy } from "@/lib/bb/store";
 import Hatchery from "@/components/bb/Hatchery";
 import BuddyDevice from "@/components/bb/BuddyDevice";
+import { nip07GetPublicKey, nip07SignEvent, nip07FailureCopy, NIP07_WAITING_HINT } from "@/lib/nip07";
 
 /** Short npub for display + starship naming: "npub18…h6w6" (npub + 2 + … + last 4). */
 export const shortNpub = (n: string) => (n.length > 15 ? `${n.slice(0, 7)}…${n.slice(-4)}` : n);
@@ -65,25 +66,31 @@ export default function BbConsole() {
       setConnectErr("No nostr signer found — install a NIP-07 extension (e.g. Alby, nos2x) and reload.");
       return;
     }
-    let pk: string;
-    try {
-      pk = await window.nostr.getPublicKey();
-    } catch {
-      setConnectErr("Couldn't read your key — approve the signer prompt and try again.");
+    const got = await nip07GetPublicKey({ onSlow: () => setConnectErr(NIP07_WAITING_HINT) });
+    if (!got.ok) {
+      setConnectErr(
+        got.kind === "timeout"
+          ? nip07FailureCopy(got)
+          : `Couldn't read your key (${got.message}). Approve the signer prompt and try again.`
+      );
       return;
     }
+    setConnectErr("");
+    const pk = got.value;
     const connectedNpub = nip19.npubEncode(pk);
     setClientNpub(connectedNpub);
 
     try {
       const who = await fetch(`/api/frens/whois?npub=${connectedNpub}`).then((r) => r.json());
       if (!who.ok || !who.holds?.length || !window.nostr.signEvent) return; // tagless — play local
-      const event = await window.nostr.signEvent({
+      const signed = await nip07SignEvent({
         kind: 22242,
         created_at: Math.floor(Date.now() / 1000),
         tags: [],
         content: `PACS-LOGIN-${Date.now()}`,
       });
+      if (!signed.ok) return; // declined, or the signer is away; the key still plays bb-local
+      const event = signed.value;
       const res = await fetch("/api/frens/session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

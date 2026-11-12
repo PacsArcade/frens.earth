@@ -3,6 +3,7 @@
 import { useState } from "react";
 import EarthFooter from "@/components/EarthFooter";
 import SignerDoors from "@/components/SignerDoors";
+import { nip07SignEvent, nip07FailureCopy, NIP07_WAITING_HINT } from "@/lib/nip07";
 
 /**
  * The admin door — same trust model as everything else here: the operator IS
@@ -50,19 +51,19 @@ export default function OperatorGate({ configured }: { configured: boolean }) {
     setBusy(true);
     /* signer rejection = the operator's call; a server fault = ours. Never
        blame the key for a 500 (the SEAT_SECRET lesson). */
-    let event;
-    try {
-      event = await window.nostr.signEvent({
+    const signed = await nip07SignEvent({
         kind: 22242,
         created_at: Math.floor(Date.now() / 1000),
         tags: [],
         content: `PACS-CONSOLE-${Date.now()}`,
-      });
-    } catch {
-      setError("signing was declined — nothing sent");
+      }, { onSlow: () => setError(NIP07_WAITING_HINT) });
+    if (!signed.ok) {
+      setError(nip07FailureCopy(signed));
       setBusy(false);
       return;
     }
+    setError(null);
+    const event = signed.value;
     const reason = await submitConsole(event);
     if (reason) setError(reason);
     setBusy(false);
