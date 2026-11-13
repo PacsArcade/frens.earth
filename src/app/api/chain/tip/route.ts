@@ -1,4 +1,5 @@
 import { effectiveMempoolNode, MEMPOOL_URL_DEFAULT } from "@/lib/nodeconfig";
+import { tipStampFor } from "@/lib/chain-tip-stamp";
 
 export const dynamic = "force-dynamic";
 
@@ -92,12 +93,8 @@ async function readNode(base: string, full: boolean): Promise<Tip> {
         signal: AbortSignal.timeout(TIMEOUT_MS),
       });
       if (res.ok) {
-        const blocks = (await res.json()) as Array<{ height?: number; timestamp?: number }>;
-        if (Array.isArray(blocks)) {
-          const b = blocks.find((x) => x?.height === out.height) ?? blocks[0];
-          if (b && typeof b.timestamp === "number" && Number.isFinite(b.timestamp))
-            out.tipTimestamp = b.timestamp;
-        }
+        // only the stamp of the block AT this height, never the list's newest (see tipStampFor)
+        out.tipTimestamp = tipStampFor(await res.json(), out.height);
       }
     } catch {
       /* optional — the client falls back to its observed break time */
